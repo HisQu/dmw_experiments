@@ -34,6 +34,28 @@ class RecordingRunner:
         return subprocess.CompletedProcess(command, 0, self.stdout, "")
 
 
+class FailingRunner(RecordingRunner):
+    """Return one fixed systemd failure after recording the command."""
+
+    def __init__(self, *, stderr: str) -> None:
+        super().__init__()
+        self.stderr = stderr
+
+    def __call__(
+        self,
+        command: list[str],
+        **_: Any,
+    ) -> subprocess.CompletedProcess[str]:
+        """Store one command and return the configured failure.
+
+        :param command: Argument vector under test.
+        :param _: Ignored subprocess keyword arguments.
+        :return: Failed completed-process record.
+        """
+        self.calls.append(command)
+        return subprocess.CompletedProcess(command, 1, "", self.stderr)
+
+
 def test_service_names_are_stable_for_resume() -> None:
     """One run identity always maps to the same three unit names."""
     units = ServiceUnits.for_run("header-sublemma-smoke", "academiccloud")
@@ -74,3 +96,19 @@ def test_active_state_reads_systemd_property_order() -> None:
     )
 
     assert manager.active_state("example.service") == "active"
+
+
+def test_interrupt_tolerates_runner_between_restart_attempts() -> None:
+    """Pause still stops a service while systemd has no current main PID."""
+    runner = FailingRunner(stderr="No main process to kill")
+    manager = UserServiceManager(runner=runner)
+    manager.is_active = lambda _unit: True
+
+    manager.interrupt("example.service")
+
+    assert runner.calls[-1][:4] == [
+        "systemctl",
+        "--user",
+        "kill",
+        "--signal=SIGINT",
+    ]

@@ -2175,10 +2175,6 @@ def _validate_input_protocol(
         )
     if not args.publication_run:
         return
-    if profile.name != "academiccloud-qwen36":
-        raise SystemExit(
-            "Publication header--sublemma replication is AcademicCloud-only."
-        )
     if set(args.conditions) != set(DEFAULT_CONDITIONS):
         raise SystemExit(
             "Publication header--sublemma replication requires all three "

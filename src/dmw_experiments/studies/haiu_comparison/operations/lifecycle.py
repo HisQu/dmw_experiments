@@ -266,6 +266,11 @@ class ExperimentLifecycle:
                     execution,
                     require_app_wide_secrets=True,
                 )
+                self._prepare_haiu_storage(
+                    workspace=workspace,
+                    execution=execution,
+                    resume=resume,
+                )
                 if resume:
                     manifest, environment_lock = self._resume_artifacts(
                         workspace
@@ -314,6 +319,35 @@ class ExperimentLifecycle:
         if errors:
             raise RuntimeError("; ".join(errors))
         return tuple(started)
+
+    def _prepare_haiu_storage(
+        self,
+        *,
+        workspace: RunWorkspace,
+        execution: ProviderExecutionSpec,
+        resume: bool,
+    ) -> Path:
+        """Create or verify the run-owned Haiu AppRC storage root.
+
+        Haiu validates its selected storage during ``HaiuRC`` construction.
+        The lifecycle must therefore establish this derived run directory
+        before it starts either the backend or collection runner.
+
+        :param workspace: Provider-specific view of the copied run.
+        :param execution: Provider execution owning the storage.
+        :param resume: Whether an earlier launch must already own the root.
+        :return: Absolute run-local Haiu storage directory.
+        :raises ValueError: If resume evidence lacks its storage root.
+        """
+        storage = workspace.environment / f"haiu-{execution.name}"
+        if resume:
+            if not storage.is_dir():
+                raise ValueError(
+                    "Cannot resume without Haiu storage: " + storage.name
+                )
+            return storage
+        storage.mkdir()
+        return storage
 
     def _resume_artifacts(self, workspace: RunWorkspace) -> tuple[Path, Path]:
         manifest = workspace.environment / (
@@ -601,6 +635,7 @@ class ExperimentLifecycle:
             execution=execution,
             runtime=runtime,
             workspace=workspace,
+            resolved=resolved,
         )
         self.services.start(
             unit=units.backend,
@@ -678,6 +713,7 @@ class ExperimentLifecycle:
         execution: ProviderExecutionSpec,
         runtime: RuntimePaths,
         workspace: RunWorkspace,
+        resolved: ResolvedRunEnvironment,
     ) -> list[str]:
         command = _execution_wrapper_command(
             runtime=runtime,
@@ -703,7 +739,7 @@ class ExperimentLifecycle:
             command.extend(
                 [
                     "--lmstudio-base-url",
-                    "http://127.0.0.1:1236/v1",
+                    resolved.config.haiu.base_url,
                     "--model",
                     "qwen/qwen3.6-27b",
                     "--lmstudio-model-id",

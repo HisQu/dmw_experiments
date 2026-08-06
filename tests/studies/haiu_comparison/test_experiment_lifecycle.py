@@ -8,8 +8,14 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+import pytest
+
+from dmw_experiments.shared.artifacts import RunWorkspace
 from dmw_experiments.shared.config import AppRuntimeConfig
 from dmw_experiments.shared.supervision import UserServiceManager
+from dmw_experiments.studies.haiu_comparison.model.run_contract import (
+    load_run_contract,
+)
 from dmw_experiments.studies.haiu_comparison.operations.lifecycle import (
     ExperimentLifecycle,
 )
@@ -82,3 +88,32 @@ def test_default_python_keeps_active_interpreter_path() -> None:
 
     assert runtime.publication_python.is_absolute()
     assert runtime.publication_python.name.startswith("python")
+
+
+def test_haiu_storage_is_created_for_new_run_and_required_for_resume(
+    tmp_path: Path,
+) -> None:
+    """Fresh starts own Haiu storage and resumptions require that evidence."""
+    root = _smoke_run(tmp_path)
+    execution = load_run_contract(root).execution("academiccloud")
+    workspace = RunWorkspace.open(root, execution.name)
+    lifecycle = ExperimentLifecycle(
+        config=AppRuntimeConfig(),
+        services=UserServiceManager(runner=_inactive_runner),
+    )
+
+    storage = lifecycle._prepare_haiu_storage(
+        workspace=workspace,
+        execution=execution,
+        resume=False,
+    )
+
+    assert storage == root / "environment" / "haiu-academiccloud"
+    assert storage.is_dir()
+    storage.rmdir()
+    with pytest.raises(ValueError, match="Cannot resume without Haiu storage"):
+        lifecycle._prepare_haiu_storage(
+            workspace=workspace,
+            execution=execution,
+            resume=True,
+        )

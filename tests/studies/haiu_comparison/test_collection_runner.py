@@ -164,7 +164,7 @@ def test_parser_keeps_id_file_and_pair_catalogue_mutually_exclusive() -> None:
         )
 
 
-def test_pair_publication_protocol_requires_academiccloud_full_matrix(
+def test_pair_publication_protocol_supports_each_provider_full_matrix(
     tmp_path: Path,
 ) -> None:
     catalog, import_manifest = _pair_input_evidence(tmp_path)
@@ -191,6 +191,13 @@ def test_pair_publication_protocol_requires_academiccloud_full_matrix(
     run_experiment._validate_input_protocol(
         args=args,
         profile=provider_profile("academiccloud-qwen36"),
+        input_catalog=catalog,
+        dmw_input_manifest=import_manifest,
+    )
+    args.provider_profile = "lmstudio-qwen36-q6"
+    run_experiment._validate_input_protocol(
+        args=args,
+        profile=provider_profile("lmstudio-qwen36-q6"),
         input_catalog=catalog,
         dmw_input_manifest=import_manifest,
     )

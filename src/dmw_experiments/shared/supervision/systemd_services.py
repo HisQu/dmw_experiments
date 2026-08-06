@@ -172,6 +172,8 @@ class UserServiceManager:
         )
         if completed.returncode:
             detail = completed.stderr.strip() or completed.stdout.strip()
+            if "No main process to kill" in detail:
+                return
             raise RuntimeError(f"Cannot interrupt {unit}: {detail}")
 
     def active_experiment_units(self) -> tuple[str, ...]:

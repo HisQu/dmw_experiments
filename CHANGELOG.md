@@ -131,6 +131,12 @@ All notable changes to `dmw_experiments` will be documented in this file.
 
 - Fixed first launch so stack-version validation reads the nested installed
   package table returned by environment-lock capture.
+- Fixed provider launch so every fresh execution receives isolated run-owned
+  Haiu storage and LMStudio uses the endpoint resolved from its run environment.
+- Allowed the header--sublemma publication protocol to collect the complete
+  three-condition matrix with either registered provider profile.
+- Made pause tolerate the short systemd restart interval in which a supervised
+  runner has no current main process.
 - Corrected AppRC setup documentation to use `config app init` and
   `config edit`.
 
