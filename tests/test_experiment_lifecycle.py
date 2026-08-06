@@ -9,7 +9,10 @@ from typing import Any
 
 from dmw_experiments.artifacts import RunWorkspace
 from dmw_experiments.config import AppRuntimeConfig
-from dmw_experiments.execution.lifecycle import ExperimentLifecycle
+from dmw_experiments.execution.lifecycle import (
+    ExperimentLifecycle,
+    RuntimePaths,
+)
 from dmw_experiments.studies.datamodel_workflow_haiu_comparison.operations.run_spec import (
     load_header_sublemma_run_spec,
 )
@@ -91,3 +94,16 @@ def test_validate_rejects_smoke_spec_for_full_command(tmp_path: Path) -> None:
         assert "requires a 'full' run spec" in str(error)
     else:
         raise AssertionError("Smoke spec unexpectedly passed full validation.")
+
+
+def test_default_python_keeps_virtual_environment_path(tmp_path: Path) -> None:
+    """Service commands must not resolve the venv interpreter symlink."""
+    environment = tmp_path / "provider.env"
+    environment.write_text("DATAMODEL_LOGIN=test\n", encoding="utf-8")
+    runtime = RuntimePaths.from_config(
+        AppRuntimeConfig(academiccloud_env_file=environment)
+    )
+
+    assert runtime.publication_python == (
+        Path(__file__).resolve().parents[1] / ".venv" / "bin" / "python"
+    )

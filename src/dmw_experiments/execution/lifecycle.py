@@ -66,6 +66,8 @@ class RuntimePaths:
         publication_python = config.publication_python
         if publication_python == UNSET_PATH:
             publication_python = REPOSITORY_ROOT / ".venv" / "bin" / "python"
+        else:
+            publication_python = _repository_relative_path(publication_python)
         provider_environment_file = config.academiccloud_env_file
         if provider_environment_file == UNSET_PATH:
             raise ValueError(
@@ -75,9 +77,12 @@ class RuntimePaths:
             )
         return cls(
             output_root=output_root.resolve(),
-            publication_python=publication_python.expanduser().resolve(),
+            # > Keep the virtual-environment executable path itself. Resolving
+            # > its symlink would invoke the base interpreter without the
+            # > locked environment when systemd starts a service.
+            publication_python=publication_python.absolute(),
             provider_environment_file=(
-                provider_environment_file.expanduser().resolve()
+                _repository_relative_path(provider_environment_file).resolve()
             ),
         )
 
@@ -867,3 +872,13 @@ def _attempt_status(path: Path) -> str:
     if not isinstance(payload, dict):
         return "invalid"
     return str(payload.get("status") or "")
+
+
+def _repository_relative_path(path: Path) -> Path:
+    """Anchor one configured host path at the experiment checkout.
+
+    :param path: Absolute or repository-relative configuration value.
+    :return: Expanded path with a deterministic repository anchor.
+    """
+    expanded = path.expanduser()
+    return expanded if expanded.is_absolute() else REPOSITORY_ROOT / expanded

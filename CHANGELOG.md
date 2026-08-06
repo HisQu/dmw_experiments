@@ -90,6 +90,9 @@ All notable changes to `dmw_experiments` will be documented in this file.
 
 ### 🔨 Fixed
 
+- Kept user-systemd launches attached to the locked virtual-environment
+  interpreter instead of resolving its executable symlink to the base Python.
+
 <br>
 
 ---
