@@ -36,6 +36,7 @@ from haiu import HaiuRC
 from haiu.config import HAIU_CONFIG
 from haiu.llm_specs import llm_spec
 
+from dmw_experiments.config.runtime_environment import load_runtime_environment
 from dmw_experiments.studies.datamodel_workflow_haiu_comparison.comparison_experiment.artifacts import (
     ArtifactWriter,
 )
@@ -147,29 +148,6 @@ class _ConditionWallClockTimeout(BaseException):
     """Interrupt a condition that exceeds the runner's hard time limit."""
 
 
-def _load_runtime_environment(
-    *,
-    provider_environment_files: tuple[Path, ...],
-) -> None:
-    """Load explicit ignored runtime dotenv files in one place.
-
-    Long-running services receive only file paths on their command line. This
-    keeps provider and DMW credentials out of process arguments while retaining
-    the dotenv precedence used by the published comparison runs.
-
-    :param provider_environment_files: Ignored experiment-specific dotenv files.
-    :return: ``None`` after populating the process environment.
-    """
-    from dotenv import load_dotenv
-
-    for environment_file in provider_environment_files:
-        if not environment_file.is_file():
-            raise SystemExit(
-                f"Provider environment file does not exist: {environment_file}"
-            )
-        load_dotenv(environment_file, override=True)
-
-
 def main(argv: list[str] | None = None) -> int:
     """CLI entrypoint.
 
@@ -177,10 +155,8 @@ def main(argv: list[str] | None = None) -> int:
     :return: Process exit code.
     """
     args = _build_parser().parse_args(argv)
-    _load_runtime_environment(
-        provider_environment_files=tuple(
-            Path(path).expanduser() for path in args.env_file
-        ),
+    load_runtime_environment(
+        tuple(Path(path).expanduser() for path in args.env_file)
     )
     profile = provider_profile(args.provider_profile)
     _validate_profile_model_overrides(args=args, profile=profile)

@@ -35,7 +35,8 @@ MongoDBAPI and GTA URLs in the published OPA and NER metadata.
 Create `output/private/academiccloud.env`. Merge every runtime variable needed
 by the published DMW application, MongoDBAPI, Haiu, and AcademicCloud into this
 single ignored file. Add `DATAMODEL_LOGIN` and `DATAMODEL_PASSWORD` for DMW API
-authentication.
+authentication. Set `FAISS_INDEX_PATH` to the absolute path of the local NER
+few-shot example index; do not leave the old DMW-relative value in place.
 
 ```bash
 export DMW_EXPERIMENTS_STORAGE="output"
@@ -56,8 +57,8 @@ dmw_experiments validate \
 ```
 
 Validation checks the schema-v2 contract, smoke/full isolation, required
-inputs, interpreter, and ignored runtime file. It does not connect to MongoDB,
-start DMW, or call a model.
+inputs, interpreter, required runtime keys, absolute NER index, and ignored
+runtime file. It does not connect to MongoDB, start DMW, or call a model.
 
 ## Run the required smoke
 

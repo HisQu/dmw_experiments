@@ -52,6 +52,7 @@ for raw-derived CSV tables.
 | `DMW_EXPERIMENTS_WATCHDOG_STALL_SECONDS` | Maximum quiet checkpoint interval; defaults to `14400`. |
 | `DATAMODEL_LOGIN` | DMW API login read from the ignored runtime file. |
 | `DATAMODEL_PASSWORD` | DMW API password read from the ignored runtime file. |
+| `FAISS_INDEX_PATH` | Absolute existing NER few-shot example-index file. |
 
 ## Dependency surfaces
 

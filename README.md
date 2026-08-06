@@ -67,6 +67,7 @@ including these experiment-owned names:
 ```dotenv
 DATAMODEL_LOGIN="..."
 DATAMODEL_PASSWORD="..."
+FAISS_INDEX_PATH="/absolute/path/to/paraphrase-multilingual-mpnet-resolved"
 ```
 
 Point AppRC at that file and the generated-output root:
@@ -81,6 +82,10 @@ dmw_experiments config doctor
 > Never commit the runtime dotenv file. `output/` is ignored, and launch
 > commands retain only its path. Credentials are not copied into manifests,
 > service arguments, logs, or BABYSIT journals.
+
+`FAISS_INDEX_PATH` is the local NER few-shot example index, not a DMW package
+or repository checkout. The lifecycle requires an absolute existing file so
+service working directories cannot change which asset NER reads.
 
 ## Run an experiment
 

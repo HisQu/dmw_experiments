@@ -8,6 +8,8 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
+from dmw_experiments.config.runtime_environment import load_runtime_environment
+
 
 def _parser() -> argparse.ArgumentParser:
     """Build the launcher interface used by the parallel experiment.
@@ -124,27 +126,6 @@ def _load_dmw_app() -> Any:
     return app
 
 
-def _load_dmw_dotenv_layers(environment_files: Sequence[Path]) -> None:
-    """Load explicit private configuration before importing DMW.
-
-    The LM Studio launcher changes only the chat provider after the published
-    DMW application initializes. Explicit files keep the launcher independent
-    from sibling source-repository layouts.
-
-    :param environment_files: Ignored dotenv files in precedence order.
-    :return: ``None`` after loading the documented repository dotenv layers.
-    :raises SystemExit: If a requested environment file is missing.
-    """
-    from dotenv import load_dotenv
-
-    for environment_file in environment_files:
-        if not environment_file.is_file():
-            raise SystemExit(
-                f"Environment file does not exist: {environment_file}"
-            )
-        load_dotenv(environment_file, override=True)
-
-
 def main(argv: Sequence[str] | None = None) -> int:
     """Load DMW, apply process-local routing, and serve the application.
 
@@ -159,7 +140,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     # > DMW initializes MongoDB during application import, before the local
     # > chat-provider split can safely replace only generation settings.
-    _load_dmw_dotenv_layers(
+    load_runtime_environment(
         tuple(Path(value).expanduser() for value in args.env_file)
     )
     app = _load_dmw_app()

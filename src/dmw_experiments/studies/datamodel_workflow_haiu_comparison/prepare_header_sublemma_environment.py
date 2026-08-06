@@ -20,6 +20,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Protocol
 
+from dmw_experiments.config.runtime_environment import load_runtime_environment
 from dmw_experiments.studies.datamodel_workflow_haiu_comparison.comparison_experiment.input_catalog import (
     HeaderSublemmaCatalog,
     canonical_json_sha256,
@@ -485,7 +486,7 @@ def main(argv: list[str] | None = None) -> int:
     :return: Zero after verified preparation and manifest creation.
     """
     args = _build_parser().parse_args(argv)
-    _load_runtime_dotenv_layers(tuple(args.env_file))
+    load_runtime_environment(tuple(args.env_file))
     catalog = load_header_sublemma_catalog(args.catalog)
     spec = PairEnvironmentSpec(
         database_name=args.mongo_db,
@@ -510,22 +511,6 @@ def main(argv: list[str] | None = None) -> int:
     print(f"DMW database branch: {spec.target_branch}")
     print(f"Import manifest: {args.output.expanduser().resolve()}")
     return 0
-
-
-def _load_runtime_dotenv_layers(environment_files: tuple[Path, ...]) -> None:
-    """Load MongoDB settings from ignored files before adapter import.
-
-    :param environment_files: Runtime dotenv files in precedence order.
-    :return: ``None`` after loading explicit runtime configuration.
-    """
-    from dotenv import load_dotenv
-
-    for environment_file in environment_files:
-        if not environment_file.is_file():
-            raise SystemExit(
-                f"Runtime environment file does not exist: {environment_file}"
-            )
-        load_dotenv(environment_file, override=True)
 
 
 if __name__ == "__main__":

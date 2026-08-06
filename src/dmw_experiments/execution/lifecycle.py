@@ -14,6 +14,10 @@ from typing import Any
 
 from dmw_experiments.artifacts.run_workspace import RunWorkspace
 from dmw_experiments.config import AppRuntimeConfig, UNSET_PATH
+from dmw_experiments.config.runtime_environment import (
+    load_runtime_environment,
+    validate_academiccloud_environment,
+)
 from dmw_experiments.execution.release_stack import ReleaseStackManager
 from dmw_experiments.studies.datamodel_workflow_haiu_comparison.operations.run_spec import (
     HeaderSublemmaRunSpec,
@@ -103,6 +107,7 @@ class RuntimePaths:
                 "AcademicCloud environment file does not exist: "
                 f"{self.provider_environment_file}"
             )
+        validate_academiccloud_environment(self.provider_environment_file)
         for input_file in (
             REFERENCE_ONTOLOGY,
             RETRIEVAL_WORKSPACE,
@@ -537,13 +542,10 @@ class ExperimentLifecycle:
         )
         from dmw_experiments.studies.datamodel_workflow_haiu_comparison.run_experiment import (
             _configure_provider_profile,
-            _load_runtime_environment,
         )
 
         releases = ReleaseStackManager(output_root=runtime.output_root).ensure()
-        _load_runtime_environment(
-            provider_environment_files=(runtime.provider_environment_file,),
-        )
+        load_runtime_environment((runtime.provider_environment_file,))
         HAIU_CONFIG.bootstrap(
             env_files=(runtime.provider_environment_file,),
             env_file_overrides_os_environ=False,

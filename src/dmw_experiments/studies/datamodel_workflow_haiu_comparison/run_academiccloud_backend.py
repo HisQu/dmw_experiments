@@ -10,6 +10,8 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any, Protocol, cast
 
+from dmw_experiments.config.runtime_environment import load_runtime_environment
+
 SAFE_COLLECTION_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]*$")
 
 
@@ -37,26 +39,6 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-tokens", type=int, default=60_000)
     parser.add_argument("--env-file", type=Path, action="append", required=True)
     return parser
-
-
-def _load_runtime_dotenv_layers(environment_files: Sequence[Path]) -> None:
-    """Load explicit ignored runtime configuration before application import.
-
-    The installed DMW application requires these layers to resolve MongoDB and
-    the AcademicCloud provider. The raw-collection override is installed
-    separately because DMW reloads dotenv files during its own bootstrap.
-
-    :param environment_files: Runtime dotenv files in precedence order.
-    :return: ``None`` after loading the explicit environment layers.
-    """
-    from dotenv import load_dotenv
-
-    for environment_file in environment_files:
-        if not environment_file.is_file():
-            raise SystemExit(
-                f"Runtime environment file does not exist: {environment_file}"
-            )
-        load_dotenv(environment_file, override=True)
 
 
 def _install_raw_collection_override(
@@ -122,7 +104,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.max_tokens <= 0:
         raise SystemExit("--max-tokens must be positive.")
 
-    _load_runtime_dotenv_layers(args.env_file)
+    load_runtime_environment(args.env_file)
     _install_raw_collection_override(
         raw_collection=args.raw_collection,
         max_tokens=args.max_tokens,

@@ -7,10 +7,10 @@ from types import ModuleType
 
 import pytest
 
+from dmw_experiments.config.runtime_environment import load_runtime_environment
 from dmw_experiments.studies.datamodel_workflow_haiu_comparison.run_lmstudio_backend import (
     _apply_provider_split,
     _load_dmw_app,
-    _load_dmw_dotenv_layers,
     _parser,
 )
 
@@ -43,7 +43,7 @@ def test_explicit_environment_file_is_loaded(
     environment.write_text("DMW_TEST_RUNTIME_VALUE=loaded\n", encoding="utf-8")
     monkeypatch.delenv("DMW_TEST_RUNTIME_VALUE", raising=False)
 
-    _load_dmw_dotenv_layers((environment,))
+    load_runtime_environment((environment,))
 
     assert os.environ["DMW_TEST_RUNTIME_VALUE"] == "loaded"
 
