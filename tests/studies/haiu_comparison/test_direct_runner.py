@@ -11,7 +11,7 @@ from dmw_experiments.studies.haiu_comparison.haiu_ontologizer.direct_runner impo
     DirectRunConfig,
     run_direct_baseline,
 )
-from dmw_experiments.studies.haiu_comparison.haiu_ontologizer.models import (
+from dmw_experiments.studies.haiu_comparison.model.traces import (
     RegestText,
 )
 from dmw_experiments.studies.haiu_comparison.haiu_ontologizer.retrieval import (

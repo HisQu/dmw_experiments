@@ -10,7 +10,7 @@ from haiu import GenerationBudget, HaiuRC, LLMClient, resolve_generation_budget
 from haiu.clients.llm.llm_metrics import LLMCallMeta
 from haiu.llm_specs import llm_spec
 
-from dmw_experiments.studies.haiu_comparison.haiu_ontologizer.models import (
+from dmw_experiments.studies.haiu_comparison.model.traces import (
     DirectRunTrace,
     DirectStageTrace,
     PromptBundle,

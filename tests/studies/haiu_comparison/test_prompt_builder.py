@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from dmw_experiments.studies.haiu_comparison.haiu_ontologizer.models import (
+from dmw_experiments.studies.haiu_comparison.model.traces import (
     RegestText,
 )
 from dmw_experiments.studies.haiu_comparison.haiu_ontologizer.opa_prompt_renderer import (

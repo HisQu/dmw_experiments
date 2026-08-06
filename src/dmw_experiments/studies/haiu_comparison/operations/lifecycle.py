@@ -22,17 +22,17 @@ from dmw_experiments.shared.config.runtime_environment import (
     validate_run_environment_contract,
 )
 from dmw_experiments.shared.supervision import ServiceUnits, UserServiceManager
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.input_catalog import (
+from dmw_experiments.studies.haiu_comparison.model.inputs import (
     load_dmw_pair_import_manifest,
     load_header_sublemma_catalog,
 )
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.provider_profiles import (
+from dmw_experiments.studies.haiu_comparison.model.providers import (
     provider_profile,
 )
-from dmw_experiments.studies.haiu_comparison.operations.run_spec import (
-    ExecutionSpec,
-    HeaderSublemmaRunSpec,
-    load_run_spec,
+from dmw_experiments.studies.haiu_comparison.model.run_contract import (
+    ProviderExecutionSpec,
+    RunContract,
+    load_run_contract,
 )
 from dmw_experiments.studies.haiu_comparison.paths import REPOSITORY_ROOT
 
@@ -128,7 +128,7 @@ class ExperimentLifecycle:
         :param require_credentials: Whether AppRC app-wide secrets must exist.
         :return: Portable non-secret launch plan.
         """
-        spec = load_run_spec(run_root)
+        spec = load_run_contract(run_root)
         runtime = RuntimePaths.from_config(self.config)
         runtime.validate()
         executions = self._selected_executions(spec, execution_names)
@@ -217,7 +217,7 @@ class ExperimentLifecycle:
         :param execution_names: Optional provider filter.
         :return: Aggregate durable status after stopping services.
         """
-        spec = load_run_spec(run_root)
+        spec = load_run_contract(run_root)
         for execution in self._selected_executions(spec, execution_names):
             workspace = RunWorkspace.open(run_root, execution.name)
             units = ServiceUnits.for_run(spec.run_id, execution.name)
@@ -256,7 +256,7 @@ class ExperimentLifecycle:
         :param execution_names: Optional provider filter.
         :return: Per-provider and aggregate progress.
         """
-        spec = load_run_spec(run_root)
+        spec = load_run_contract(run_root)
         statuses = {
             execution.name: self._execution_status(
                 spec=spec,
@@ -292,7 +292,7 @@ class ExperimentLifecycle:
         execution_names: tuple[str, ...],
         resume: bool,
     ) -> tuple[RunWorkspace, ...]:
-        spec = load_run_spec(run_root)
+        spec = load_run_contract(run_root)
         runtime = RuntimePaths.from_config(self.config)
         runtime.validate()
         started: list[RunWorkspace] = []
@@ -383,9 +383,9 @@ class ExperimentLifecycle:
 
     def _selected_executions(
         self,
-        spec: HeaderSublemmaRunSpec,
+        spec: RunContract,
         names: tuple[str, ...],
-    ) -> tuple[ExecutionSpec, ...]:
+    ) -> tuple[ProviderExecutionSpec, ...]:
         if not names:
             return spec.enabled_executions
         if len(names) != len(set(names)):
@@ -400,9 +400,7 @@ class ExperimentLifecycle:
             )
         return selected
 
-    def _population_units(
-        self, spec: HeaderSublemmaRunSpec, run_root: Path
-    ) -> int:
+    def _population_units(self, spec: RunContract, run_root: Path) -> int:
         if spec.limit == 1:
             return 1
         catalogue = load_header_sublemma_catalog(run_root / spec.input_catalog)
@@ -411,8 +409,8 @@ class ExperimentLifecycle:
     def _execution_status(
         self,
         *,
-        spec: HeaderSublemmaRunSpec,
-        execution: ExecutionSpec,
+        spec: RunContract,
+        execution: ProviderExecutionSpec,
         run_root: Path,
     ) -> ExecutionStatus:
         output = run_root / execution.output_directory_name
@@ -459,7 +457,7 @@ class ExperimentLifecycle:
 
     def _require_no_other_execution_run(
         self,
-        execution: ExecutionSpec,
+        execution: ProviderExecutionSpec,
         *,
         allowed: ServiceUnits | None,
     ) -> None:
@@ -479,8 +477,8 @@ class ExperimentLifecycle:
     def _prepare_storage(
         self,
         *,
-        spec: HeaderSublemmaRunSpec,
-        execution: ExecutionSpec,
+        spec: RunContract,
+        execution: ProviderExecutionSpec,
         runtime: RuntimePaths,
         workspace: RunWorkspace,
         resolved: ResolvedRunEnvironment,
@@ -491,7 +489,7 @@ class ExperimentLifecycle:
         command = [
             str(runtime.publication_python),
             "-m",
-            "dmw_experiments.studies.haiu_comparison.prepare_header_sublemma_environment",
+            "dmw_experiments.studies.haiu_comparison.preparation.dmw_storage",
             "--catalog",
             str(workspace.root / spec.input_catalog),
             "--output",
@@ -527,8 +525,8 @@ class ExperimentLifecycle:
     def _capture_environment_lock(
         self,
         *,
-        spec: HeaderSublemmaRunSpec,
-        execution: ExecutionSpec,
+        spec: RunContract,
+        execution: ProviderExecutionSpec,
         runtime: RuntimePaths,
         workspace: RunWorkspace,
         resolved: ResolvedRunEnvironment,
@@ -636,8 +634,8 @@ class ExperimentLifecycle:
     def _start_services(
         self,
         *,
-        spec: HeaderSublemmaRunSpec,
-        execution: ExecutionSpec,
+        spec: RunContract,
+        execution: ProviderExecutionSpec,
         runtime: RuntimePaths,
         workspace: RunWorkspace,
         resolved: ResolvedRunEnvironment,
@@ -733,8 +731,8 @@ class ExperimentLifecycle:
     def _backend_command(
         self,
         *,
-        spec: HeaderSublemmaRunSpec,
-        execution: ExecutionSpec,
+        spec: RunContract,
+        execution: ProviderExecutionSpec,
         runtime: RuntimePaths,
         workspace: RunWorkspace,
     ) -> list[str]:
@@ -774,8 +772,8 @@ class ExperimentLifecycle:
     def _runner_command(
         self,
         *,
-        spec: HeaderSublemmaRunSpec,
-        execution: ExecutionSpec,
+        spec: RunContract,
+        execution: ProviderExecutionSpec,
         runtime: RuntimePaths,
         workspace: RunWorkspace,
         dmw_input_manifest: Path,
@@ -871,7 +869,7 @@ def _execution_wrapper_command(
     *,
     runtime: RuntimePaths,
     workspace: RunWorkspace,
-    execution: ExecutionSpec,
+    execution: ProviderExecutionSpec,
     component: str,
 ) -> list[str]:
     return [

@@ -11,10 +11,10 @@ import haiu
 import haiu.utils as ut
 from haiu.clients.llm.llm_metrics import LLMCallMeta
 
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.models import (
+from dmw_experiments.studies.haiu_comparison.model.results import (
     TokenMeasurement,
 )
-from dmw_experiments.studies.haiu_comparison.haiu_ontologizer.models import (
+from dmw_experiments.studies.haiu_comparison.model.traces import (
     PromptBundle,
 )
 

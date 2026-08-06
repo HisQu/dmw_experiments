@@ -23,7 +23,7 @@ from typing import Any, Protocol
 from dmw_experiments.shared.config.runtime_environment import (
     load_runtime_environment,
 )
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.input_catalog import (
+from dmw_experiments.studies.haiu_comparison.model.inputs import (
     HeaderSublemmaCatalog,
     canonical_json_sha256,
     load_header_sublemma_catalog,

@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.ids import (
+from dmw_experiments.studies.haiu_comparison.model.identifiers import (
     limited_ids,
     normalize_regest_id,
     parse_regest_id_entries,

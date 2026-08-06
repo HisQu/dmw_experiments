@@ -49,13 +49,26 @@ All notable changes to `dmw_experiments` will be documented in this file.
 
 ### 💥 Breaking changes
 
+- Breaking: Reorganized Haiu comparison Python imports around the experiment
+  lifecycle instead of the former `comparison_experiment`,
+  `haiu_ontologizer`, and root-script layout.
+  Affected: Python callers importing study internals directly.
+  Migration: Use `HaiuComparisonStudy` for supported orchestration or import
+  domain contracts from `dmw_experiments.studies.haiu_comparison.model`.
+
 <br>
 
 ### ➕ Added
 
+- Added typed condition, execution, run-contract, and copied-run models so all
+  lifecycle phases resolve artifacts through one validated run directory.
+
 <br>
 
 ### 💔 Changed
+
+- Separated Haiu comparison model and preparation code from collection,
+  operations, and analysis implementations.
 
 <br>
 

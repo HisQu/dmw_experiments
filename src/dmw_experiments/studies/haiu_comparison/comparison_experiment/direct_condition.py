@@ -11,7 +11,7 @@ from dmw_experiments.studies.haiu_comparison.comparison_experiment.metrics impor
     turtle_generation_input_tokens,
     turtle_syntax_fields,
 )
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.models import (
+from dmw_experiments.studies.haiu_comparison.model.results import (
     ExperimentResult,
     TokenMeasurement,
 )
@@ -19,7 +19,7 @@ from dmw_experiments.studies.haiu_comparison.haiu_ontologizer.direct_runner impo
     DirectRunConfig,
     run_direct_baseline,
 )
-from dmw_experiments.studies.haiu_comparison.haiu_ontologizer.models import (
+from dmw_experiments.studies.haiu_comparison.model.traces import (
     DirectRunTrace,
     RegestText,
 )

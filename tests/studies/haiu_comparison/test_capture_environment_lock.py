@@ -10,11 +10,11 @@ import pytest
 from dmw_experiments.studies.haiu_comparison import (
     capture_environment_lock,
 )
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.input_catalog import (
+from dmw_experiments.studies.haiu_comparison.model.inputs import (
     canonical_json_sha256,
     load_header_sublemma_catalog,
 )
-from dmw_experiments.studies.haiu_comparison.prepare_header_sublemma_environment import (
+from dmw_experiments.studies.haiu_comparison.preparation.dmw_storage import (
     PairEnvironmentSpec,
     build_import_manifest,
     write_manifest,

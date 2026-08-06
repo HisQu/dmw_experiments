@@ -19,11 +19,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.provider_profiles import (
+from dmw_experiments.studies.haiu_comparison.model.providers import (
     PROVIDER_PROFILES,
     provider_profile,
 )
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.input_catalog import (
+from dmw_experiments.studies.haiu_comparison.model.inputs import (
     load_dmw_pair_import_manifest,
     load_header_sublemma_catalog,
 )

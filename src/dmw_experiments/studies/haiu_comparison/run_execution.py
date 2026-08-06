@@ -9,8 +9,8 @@ from pathlib import Path
 from dmw_experiments.shared.config.runtime_environment import (
     bootstrap_run_environment,
 )
-from dmw_experiments.studies.haiu_comparison.operations.run_spec import (
-    load_run_spec,
+from dmw_experiments.studies.haiu_comparison.model.run_contract import (
+    load_run_contract,
 )
 
 
@@ -25,7 +25,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--execution", required=True)
     parser.add_argument("component", choices=("backend", "runner"))
     args, remaining = parser.parse_known_args(argv)
-    spec = load_run_spec(args.run_dir)
+    spec = load_run_contract(args.run_dir)
     execution = spec.execution(args.execution)
     bootstrap_run_environment(
         args.run_dir,

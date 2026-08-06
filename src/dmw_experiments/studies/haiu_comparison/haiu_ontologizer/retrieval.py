@@ -11,7 +11,7 @@ from typing import Any
 from haiu import HaiuRC
 from haiu.rag import RAGWorkspace
 
-from dmw_experiments.studies.haiu_comparison.haiu_ontologizer.models import (
+from dmw_experiments.studies.haiu_comparison.model.traces import (
     RegestText,
 )
 

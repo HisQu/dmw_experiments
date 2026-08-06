@@ -14,8 +14,8 @@ from dmw_experiments.studies.haiu_comparison.export_results_workbook import (
     export_provider_historian_review_workbook,
     export_run,
 )
-from dmw_experiments.studies.haiu_comparison.operations.run_spec import (
-    load_run_spec,
+from dmw_experiments.studies.haiu_comparison.model.run_contract import (
+    load_run_contract,
 )
 from dmw_experiments.studies.haiu_comparison.plot_results_workbooks import (
     plot_workbooks,
@@ -64,7 +64,7 @@ def run_analysis(
             "and quality_reveal_key."
         )
     root = run_dir.expanduser().resolve()
-    spec = load_run_spec(root)
+    spec = load_run_contract(root)
     required = ("academiccloud", "lmstudio")
     missing = [name for name in required if not (root / f"raw-{name}").is_dir()]
     if missing:

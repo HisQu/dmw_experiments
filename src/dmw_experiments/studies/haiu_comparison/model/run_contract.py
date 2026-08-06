@@ -8,6 +8,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from dmw_experiments.studies.haiu_comparison.model.conditions import (
+    CONDITION_IDS,
+    EXECUTION_IDS,
+    RUN_MODES,
+    RunMode,
+)
+
 RUN_NAME = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 STORAGE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]*$")
 BRANCH_NAME = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
@@ -15,12 +22,8 @@ EXECUTION_NAME = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
 STUDY_ID = "haiu_comparison"
 RELEASE_STACK = "published-dmw-1.1.3"
-RUN_SPEC_FILENAME = "run.toml"
-CONDITIONS = (
-    "workflow_full_ontology",
-    "workflow_rag",
-    "haiu_rag_ontologizer",
-)
+RUN_CONTRACT_FILENAME = "run.toml"
+CONDITIONS = CONDITION_IDS
 PROVIDER_PROFILES = frozenset({"academiccloud-qwen36", "lmstudio-qwen36-q6"})
 EXECUTION_PROVIDER_PROFILES = {
     "academiccloud": "academiccloud-qwen36",
@@ -29,7 +32,7 @@ EXECUTION_PROVIDER_PROFILES = {
 
 
 @dataclass(frozen=True, slots=True)
-class ExecutionSpec:
+class ProviderExecutionSpec:
     """Describe one independently supervised provider execution.
 
     :param name: Stable execution slug used in directory and service names.
@@ -85,7 +88,7 @@ class ExecutionSpec:
         if not EXECUTION_NAME.fullmatch(self.name):
             raise ValueError(f"Invalid execution name: {self.name!r}.")
         expected_profile = EXECUTION_PROVIDER_PROFILES.get(self.name)
-        if expected_profile is None:
+        if self.name not in EXECUTION_IDS or expected_profile is None:
             raise ValueError(f"Unsupported execution: {self.name!r}.")
         if self.provider_profile not in PROVIDER_PROFILES:
             raise ValueError(
@@ -128,7 +131,7 @@ class ExecutionSpec:
 
 
 @dataclass(frozen=True, slots=True)
-class HeaderSublemmaRunSpec:
+class RunContract:
     """Describe one copied smoke or full multi-provider run.
 
     :param schema_version: Supported TOML contract version.
@@ -156,10 +159,10 @@ class HeaderSublemmaRunSpec:
     max_output_tokens: int
     output_safety_margin_tokens: int
     ontology_example_limit: int
-    executions: tuple[ExecutionSpec, ...]
+    executions: tuple[ProviderExecutionSpec, ...]
 
     @property
-    def enabled_executions(self) -> tuple[ExecutionSpec, ...]:
+    def enabled_executions(self) -> tuple[ProviderExecutionSpec, ...]:
         """Return enabled executions in TOML declaration order.
 
         :return: Non-empty tuple of enabled provider executions.
@@ -168,7 +171,7 @@ class HeaderSublemmaRunSpec:
             execution for execution in self.executions if execution.enabled
         )
 
-    def execution(self, name: str) -> ExecutionSpec:
+    def execution(self, name: str) -> ProviderExecutionSpec:
         """Return one declared execution by name.
 
         :param name: Stable execution slug.
@@ -191,7 +194,7 @@ class HeaderSublemmaRunSpec:
             raise ValueError("Unsupported run.toml schema version.")
         if self.study != STUDY_ID:
             raise ValueError(f"study must be {STUDY_ID!r}.")
-        if self.mode not in {"smoke", "full"}:
+        if self.mode not in RUN_MODES:
             raise ValueError("mode must be 'smoke' or 'full'.")
         if self.release_stack != RELEASE_STACK:
             raise ValueError(f"release_stack must be {RELEASE_STACK!r}.")
@@ -204,7 +207,7 @@ class HeaderSublemmaRunSpec:
                 f"Run directory {run_root.name!r} must match run_id "
                 f"{self.run_id!r}."
             )
-        expected_limit = 1 if self.mode == "smoke" else 0
+        expected_limit = 1 if self.mode == RunMode.SMOKE else 0
         if self.limit != expected_limit:
             raise ValueError(
                 f"{self.mode} mode requires limit={expected_limit}."
@@ -254,7 +257,7 @@ class HeaderSublemmaRunSpec:
             raise ValueError("Run template is missing run.env.")
 
 
-def load_header_sublemma_run_spec(path: Path) -> HeaderSublemmaRunSpec:
+def load_run_contract_file(path: Path) -> RunContract:
     """Load one strict TOML run contract.
 
     :param path: ``run.toml`` path inside a copied run directory.
@@ -295,7 +298,7 @@ def load_header_sublemma_run_spec(path: Path) -> HeaderSublemmaRunSpec:
         for name, value in executions_payload.items()
     )
     try:
-        return HeaderSublemmaRunSpec(
+        return RunContract(
             schema_version=int(payload["schema_version"]),
             study=str(payload["study"]),
             mode=str(payload["mode"]),
@@ -317,19 +320,19 @@ def load_header_sublemma_run_spec(path: Path) -> HeaderSublemmaRunSpec:
         ) from error
 
 
-def load_run_spec(run_root: Path) -> HeaderSublemmaRunSpec:
+def load_run_contract(run_root: Path) -> RunContract:
     """Load and validate the contract belonging to ``run_root``.
 
     :param run_root: Complete copied run directory.
     :return: Validated immutable run specification.
     """
     resolved = run_root.expanduser().resolve()
-    spec = load_header_sublemma_run_spec(resolved / RUN_SPEC_FILENAME)
+    spec = load_run_contract_file(resolved / RUN_CONTRACT_FILENAME)
     spec.validate(resolved)
     return spec
 
 
-def _execution_from_payload(name: str, payload: Any) -> ExecutionSpec:
+def _execution_from_payload(name: str, payload: Any) -> ProviderExecutionSpec:
     """Parse one exact ``executions.<name>`` table.
 
     :param name: Execution table key.
@@ -356,7 +359,7 @@ def _execution_from_payload(name: str, payload: Any) -> ExecutionSpec:
         enabled = payload["enabled"]
         if not isinstance(enabled, bool):
             raise TypeError("enabled must be boolean")
-        return ExecutionSpec(
+        return ProviderExecutionSpec(
             name=name,
             enabled=enabled,
             provider_profile=str(payload["provider_profile"]),
@@ -388,7 +391,7 @@ def _string_list(payload: dict[str, Any], key: str) -> list[str]:
 
 
 def _validate_execution_storage_isolation(
-    executions: tuple[ExecutionSpec, ...],
+    executions: tuple[ProviderExecutionSpec, ...],
 ) -> None:
     """Ensure no provider execution reuses writable DMW identities.
 

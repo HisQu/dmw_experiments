@@ -2,7 +2,7 @@ from dmw_experiments.studies.haiu_comparison.comparison_experiment.direct_condit
     direct_trace_to_result,
 )
 from haiu.clients.llm.generation_budget import GenerationBudget
-from dmw_experiments.studies.haiu_comparison.haiu_ontologizer.models import (
+from dmw_experiments.studies.haiu_comparison.model.traces import (
     DirectRunTrace,
     DirectStageTrace,
     PromptBundle,

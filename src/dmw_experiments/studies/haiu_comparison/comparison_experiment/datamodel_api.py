@@ -8,7 +8,7 @@ from typing import Any
 
 import httpx
 
-from dmw_experiments.studies.haiu_comparison.haiu_ontologizer.models import (
+from dmw_experiments.studies.haiu_comparison.model.traces import (
     RegestText,
 )
 

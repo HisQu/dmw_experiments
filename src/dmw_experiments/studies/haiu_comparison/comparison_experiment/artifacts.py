@@ -17,13 +17,13 @@ import haiu.utils as ut
 from dmw_experiments.studies.haiu_comparison.comparison_experiment.metrics import (
     summarize_rows,
 )
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.models import (
+from dmw_experiments.studies.haiu_comparison.model.results import (
     ExperimentResult,
 )
-from dmw_experiments.studies.haiu_comparison.haiu_ontologizer.models import (
+from dmw_experiments.studies.haiu_comparison.model.traces import (
     RegestText,
 )
-from dmw_experiments.studies.haiu_comparison.operations.run_spec import (
+from dmw_experiments.studies.haiu_comparison.model.run_contract import (
     CONDITIONS,
 )
 

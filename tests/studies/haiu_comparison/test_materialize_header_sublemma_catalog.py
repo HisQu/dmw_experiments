@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from dmw_experiments.studies.haiu_comparison.materialize_header_sublemma_catalog import (
+from dmw_experiments.studies.haiu_comparison.preparation.input_catalog import (
     materialize_catalogue,
     write_catalogue,
 )

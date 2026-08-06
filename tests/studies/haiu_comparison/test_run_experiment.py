@@ -16,24 +16,24 @@ from haiu import HaiuRC
 from dmw_experiments.studies.haiu_comparison.comparison_experiment.annotation_runner import (
     FrozenAnnotationError,
 )
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.models import (
+from dmw_experiments.studies.haiu_comparison.model.results import (
     ExperimentResult,
 )
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.provider_profiles import (
+from dmw_experiments.studies.haiu_comparison.model.providers import (
     provider_profile,
 )
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.input_catalog import (
+from dmw_experiments.studies.haiu_comparison.model.inputs import (
     canonical_json_sha256,
     load_dmw_pair_import_manifest,
     load_header_sublemma_catalog,
 )
-from dmw_experiments.studies.haiu_comparison.haiu_ontologizer.models import (
+from dmw_experiments.studies.haiu_comparison.model.traces import (
     RegestText,
 )
 from dmw_experiments.studies.haiu_comparison.paths import (
     TEMPLATE_INPUT_ROOT,
 )
-from dmw_experiments.studies.haiu_comparison.prepare_header_sublemma_environment import (
+from dmw_experiments.studies.haiu_comparison.preparation.dmw_storage import (
     PairEnvironmentSpec,
     build_import_manifest,
     write_manifest,

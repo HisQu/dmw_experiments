@@ -12,8 +12,8 @@ from pathlib import Path
 from dmw_experiments.shared.config.runtime_environment import (
     validate_run_environment_contract,
 )
-from dmw_experiments.studies.haiu_comparison.operations.run_spec import (
-    load_run_spec,
+from dmw_experiments.studies.haiu_comparison.model.run_contract import (
+    load_run_contract,
 )
 
 
@@ -46,7 +46,7 @@ def prepare_promotion(
     :raises ValueError: If contracts, terminal counts, or output state fail.
     """
     root = run_root.expanduser().resolve()
-    spec = load_run_spec(root)
+    spec = load_run_contract(root)
     for execution in spec.executions:
         validate_run_environment_contract(root, execution)
     expected_units = (

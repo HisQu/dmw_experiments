@@ -5,7 +5,7 @@ import pytest
 
 from haiu import HaiuRC
 
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.provider_profiles import (
+from dmw_experiments.studies.haiu_comparison.model.providers import (
     provider_profile,
 )
 from dmw_experiments.studies.haiu_comparison.run_experiment import (

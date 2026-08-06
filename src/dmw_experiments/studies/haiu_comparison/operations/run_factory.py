@@ -7,10 +7,10 @@ import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
-from dmw_experiments.studies.haiu_comparison.operations.run_spec import (
+from dmw_experiments.studies.haiu_comparison.model.run_contract import (
     EXECUTION_PROVIDER_PROFILES,
     RUN_NAME,
-    load_run_spec,
+    load_run_contract,
 )
 from dmw_experiments.studies.haiu_comparison.paths import (
     FULL_RUNS_ROOT,
@@ -72,7 +72,7 @@ def create_run(request: NewRunRequest) -> Path:
     shutil.copytree(RUN_TEMPLATE_ROOT, destination)
     _initialize_run_toml(destination / "run.toml", request=request)
     _initialize_readme(destination / "README.md", request=request)
-    spec = load_run_spec(destination)
+    spec = load_run_contract(destination)
     if tuple(execution.name for execution in spec.enabled_executions) != (
         request.executions
     ):

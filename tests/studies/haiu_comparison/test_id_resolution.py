@@ -10,7 +10,7 @@ from dmw_experiments.studies.haiu_comparison.comparison_experiment.id_resolution
     MissingRegestIdsError,
     resolve_available_regest_ids,
 )
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.ids import (
+from dmw_experiments.studies.haiu_comparison.model.identifiers import (
     ParsedRegestId,
 )
 

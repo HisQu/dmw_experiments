@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dmw_experiments.studies.haiu_comparison.haiu_ontologizer.models import (
+from dmw_experiments.studies.haiu_comparison.model.traces import (
     PromptBundle,
     RegestText,
 )

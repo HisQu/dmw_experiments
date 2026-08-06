@@ -16,8 +16,8 @@ from dmw_experiments.studies.haiu_comparison.operations.run_factory import (
     NewRunRequest,
     create_run,
 )
-from dmw_experiments.studies.haiu_comparison.operations.run_spec import (
-    load_run_spec,
+from dmw_experiments.studies.haiu_comparison.model.run_contract import (
+    load_run_contract,
 )
 
 
@@ -37,7 +37,7 @@ def test_create_run_copies_the_template_into_the_selected_area(
             executions=("academiccloud",),
         )
     )
-    spec = load_run_spec(created)
+    spec = load_run_contract(created)
 
     assert created == smoke_root / "provider-smoke"
     assert spec.limit == 1
@@ -59,7 +59,7 @@ def test_prepare_promotion_replaces_template_placeholder_with_distributions(
             executions=("academiccloud",),
         )
     )
-    spec = load_run_spec(run_root)
+    spec = load_run_contract(run_root)
     execution = spec.execution("academiccloud")
     for condition in spec.conditions:
         result_dir = (

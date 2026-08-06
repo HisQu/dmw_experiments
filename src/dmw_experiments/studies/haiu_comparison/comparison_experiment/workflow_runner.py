@@ -19,7 +19,7 @@ from dmw_experiments.studies.haiu_comparison.comparison_experiment.metrics impor
     turtle_syntax_fields,
     turtle_generation_input_tokens,
 )
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.models import (
+from dmw_experiments.studies.haiu_comparison.model.results import (
     ExperimentResult,
 )
 from haiu.llm_specs import llm_spec

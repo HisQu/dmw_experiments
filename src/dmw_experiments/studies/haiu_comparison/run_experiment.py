@@ -60,20 +60,20 @@ from dmw_experiments.studies.haiu_comparison.comparison_experiment.id_resolution
     MissingRegestIdsError,
     resolve_available_regest_ids,
 )
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.ids import (
+from dmw_experiments.studies.haiu_comparison.model.identifiers import (
     parse_regest_id_entries,
 )
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.input_catalog import (
+from dmw_experiments.studies.haiu_comparison.model.inputs import (
     DmwPairImportManifest,
     HeaderSublemmaCatalog,
     PairInputCandidate,
     load_dmw_pair_import_manifest,
     load_header_sublemma_catalog,
 )
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.models import (
+from dmw_experiments.studies.haiu_comparison.model.results import (
     ExperimentResult,
 )
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.provider_profiles import (
+from dmw_experiments.studies.haiu_comparison.model.providers import (
     PROVIDER_PROFILES,
     ProviderProfile,
     provider_profile,
@@ -84,7 +84,7 @@ from dmw_experiments.studies.haiu_comparison.comparison_experiment.workflow_runn
 from dmw_experiments.studies.haiu_comparison.haiu_ontologizer.direct_runner import (
     DirectRunConfig,
 )
-from dmw_experiments.studies.haiu_comparison.haiu_ontologizer.models import (
+from dmw_experiments.studies.haiu_comparison.model.traces import (
     RegestText,
 )
 from dmw_experiments.studies.haiu_comparison.paths import (
