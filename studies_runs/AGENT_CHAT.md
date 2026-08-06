@@ -63,3 +63,13 @@ starting a new run with fresh storage. This does not patch DMW or HAIU.
 Please approve or reject that input normalization. Until then I will keep the
 0-cell run paused and will not weaken the guard or silently change scientific
 inputs.
+
+### 2026-08-07T01:10:00+02:00 — Agent
+
+Clarification: applying RG_data's cleaner to every catalogue string would also
+normalize harmless whitespace in 364 units. I do not recommend that broader
+rewrite. The minimal repair is to invoke the same cleaner only for fields that
+contain a legacy control. That changes exactly the 44 affected headers, leaves
+the other 436 units byte-for-byte unchanged, removes all legacy controls, and
+keeps all IDs, ordering, and source lineage. Please treat this narrower option
+as the approval request above.
