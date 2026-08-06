@@ -14,6 +14,7 @@ import hashlib
 import json
 import re
 import subprocess
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -96,10 +97,10 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--dmw-repo",
         type=Path,
-        default=Path("../datamodel-workflow"),
+        required=True,
     )
-    parser.add_argument("--opa-repo", type=Path, default=Path("../OPA"))
-    parser.add_argument("--gta-repo", type=Path, default=Path("../GTA"))
+    parser.add_argument("--opa-repo", type=Path, required=True)
+    parser.add_argument("--gta-repo", type=Path, required=True)
     parser.add_argument("--haiu-repo", type=Path, required=True)
     parser.add_argument(
         "--experiment-repo",
@@ -113,7 +114,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--dmw-python",
         type=Path,
-        default=Path("../datamodel-workflow/.venv/bin/python"),
+        default=Path(sys.executable),
         help="Python executable serving DMW; its path is never recorded.",
     )
     parser.add_argument(
@@ -226,7 +227,7 @@ def _frozen_experiment_harness(repo: Path) -> dict[str, Any]:
     evidence. The experiment branch may advance without changing the runtime
     package used by the measured conditions.
 
-    :param repo: Haiu checkout containing this experiment directory.
+    :param repo: Clean ``dmw_experiments`` checkout containing the harness.
     :return: Commit and branch identity without a local path.
     :raises SystemExit: If the checkout is absent or dirty.
     """

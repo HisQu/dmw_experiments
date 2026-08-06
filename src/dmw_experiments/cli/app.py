@@ -4,19 +4,29 @@ from __future__ import annotations
 
 import logging
 import sys
+from collections.abc import Callable
+from dataclasses import asdict
+from datetime import datetime
 from importlib import metadata
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, TypeVar
 
 import apprc as rc
 import typer
 
 import dmw_experiments
 from dmw_experiments.config import APP_RC
+from dmw_experiments.config import AppRuntimeConfig
+from dmw_experiments.execution import ExperimentLifecycle
+from dmw_experiments.studies.datamodel_workflow_haiu_comparison.paths import (
+    REPOSITORY_ROOT,
+    SPEC_ROOT,
+)
 
 PACKAGE_NAME = "dmw_experiments"
 VERSION_FALLBACK = "0.1.0"
 LOG = logging.getLogger(__name__)
+T = TypeVar("T")
 
 app = typer.Typer(
     add_completion=True,
@@ -178,6 +188,175 @@ def diagnose_cmd(
         rc.cli.dump_json(payload)
         return
     _echo_diagnose_payload(payload)
+
+
+def _lifecycle() -> ExperimentLifecycle:
+    """Construct the application lifecycle from resolved AppRC settings.
+
+    :return: Lifecycle facade for the current CLI invocation.
+    """
+    return ExperimentLifecycle(config=AppRuntimeConfig())
+
+
+def _run_lifecycle(action: Callable[[], T]) -> T:
+    """Run one lifecycle operation with concise terminal diagnostics.
+
+    :param action: Zero-argument callable containing one requested operation.
+    :return: Operation result.
+    """
+    try:
+        return action()
+    except (OSError, RuntimeError, ValueError) as error:
+        typer.echo(f"Error: {error}", err=True)
+        raise typer.Exit(code=2) from error
+
+
+def _analysis_output_root() -> Path:
+    """Resolve the configured generated-analysis directory.
+
+    :return: Absolute parent for timestamped analysis exports.
+    """
+    storage_root = AppRuntimeConfig().storage_root.expanduser()
+    if not storage_root.is_absolute():
+        storage_root = REPOSITORY_ROOT / storage_root
+    return storage_root.resolve() / "analyses"
+
+
+@app.command("validate")
+def validate_cmd(
+    spec: Annotated[
+        Path,
+        typer.Option(
+            "--spec",
+            help="Tracked run specification to validate without launching.",
+        ),
+    ] = SPEC_ROOT / "academiccloud-header-sublemma-smoke.json",
+) -> None:
+    """Validate the scientific, storage, and local runtime contract."""
+    payload = _run_lifecycle(lambda: _lifecycle().validate(spec))
+    rc.cli.dump_json(payload)
+
+
+@app.command("smoke")
+def smoke_cmd(
+    spec: Annotated[
+        Path,
+        typer.Option("--spec", help="Disposable one-unit smoke contract."),
+    ] = SPEC_ROOT / "academiccloud-header-sublemma-smoke.json",
+) -> None:
+    """Prepare and start the isolated one-unit AcademicCloud smoke."""
+    workspace = _run_lifecycle(
+        lambda: _lifecycle().launch(spec, expected_mode="smoke")
+    )
+    typer.echo(f"Smoke started: {workspace.root}")
+    typer.echo(f"Babysit log: {workspace.babysit_log}")
+
+
+@app.command("run")
+def run_cmd(
+    spec: Annotated[
+        Path,
+        typer.Option("--spec", help="Complete experiment run contract."),
+    ] = SPEC_ROOT / "academiccloud-header-sublemma-full.json",
+) -> None:
+    """Prepare and start the complete isolated AcademicCloud matrix."""
+    workspace = _run_lifecycle(
+        lambda: _lifecycle().launch(spec, expected_mode="full")
+    )
+    typer.echo(f"Run started: {workspace.root}")
+    typer.echo(f"Babysit log: {workspace.babysit_log}")
+
+
+@app.command("resume")
+def resume_cmd(
+    spec: Annotated[
+        Path,
+        typer.Option(
+            "--spec", help="Original contract of the interrupted run."
+        ),
+    ] = SPEC_ROOT / "academiccloud-header-sublemma-full.json",
+) -> None:
+    """Resume the same run from durable checkpoints and frozen settings."""
+    workspace = _run_lifecycle(lambda: _lifecycle().resume(spec))
+    typer.echo(f"Run resumed: {workspace.root}")
+    typer.echo(f"Babysit log: {workspace.babysit_log}")
+
+
+@app.command("pause")
+def pause_cmd(
+    spec: Annotated[
+        Path,
+        typer.Option("--spec", help="Original contract of the active run."),
+    ] = SPEC_ROOT / "academiccloud-header-sublemma-full.json",
+) -> None:
+    """Stop an active run in checkpoint-safe service order."""
+    status = _run_lifecycle(lambda: _lifecycle().pause(spec))
+    rc.cli.dump_json(asdict(status))
+
+
+@app.command("status")
+def status_cmd(
+    spec: Annotated[
+        Path,
+        typer.Option("--spec", help="Original contract of the run to inspect."),
+    ] = SPEC_ROOT / "academiccloud-header-sublemma-full.json",
+) -> None:
+    """Report durable cell counts and current service states."""
+    status = _run_lifecycle(lambda: _lifecycle().status(spec))
+    rc.cli.dump_json(asdict(status))
+
+
+@app.command("analyze")
+def analyze_cmd(
+    academiccloud_run: Annotated[
+        Path,
+        typer.Option(
+            "--academiccloud-run",
+            help="AcademicCloud run directory containing raw observations.",
+        ),
+    ],
+    lmstudio_run: Annotated[
+        Path,
+        typer.Option(
+            "--lmstudio-run",
+            help="LM Studio run directory containing raw observations.",
+        ),
+    ],
+    quality_review_workbook: Annotated[
+        Path | None,
+        typer.Option(help="Optional evaluated historian-review workbook."),
+    ] = None,
+    quality_reveal_key: Annotated[
+        Path | None,
+        typer.Option(help="Reveal key matching the evaluated review workbook."),
+    ] = None,
+    allow_partial: Annotated[
+        bool,
+        typer.Option(help="Permit explicitly labelled partial exports."),
+    ] = False,
+) -> None:
+    """Regenerate workbooks, review packets, and plots from raw data."""
+    from dmw_experiments.studies.datamodel_workflow_haiu_comparison.run_analysis import (
+        run_analysis,
+    )
+
+    timestamp = datetime.now().astimezone().strftime("%Y%m%dT%H%M%S%Z")
+    output_root = _analysis_output_root() / timestamp
+    review = output_root / "historian_quality_review.xlsx"
+    artifacts = _run_lifecycle(
+        lambda: run_analysis(
+            academiccloud_run_dir=academiccloud_run,
+            lmstudio_run_dir=lmstudio_run,
+            provider_review_workbook=review,
+            output_root=output_root,
+            allow_partial=allow_partial,
+            overwrite=False,
+            timestamp=timestamp,
+            quality_review_workbook=quality_review_workbook,
+            quality_reveal_key=quality_reveal_key,
+        )
+    )
+    typer.echo(f"Analysis written: {artifacts.plots.parent}")
 
 
 def main() -> None:

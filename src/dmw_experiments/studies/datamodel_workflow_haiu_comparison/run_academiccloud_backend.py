@@ -7,6 +7,7 @@ import importlib
 import os
 import re
 from collections.abc import Callable, Sequence
+from pathlib import Path
 from typing import Any, Protocol, cast
 
 SAFE_COLLECTION_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]*$")
@@ -34,23 +35,28 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--max-tokens", type=int, default=60_000)
+    parser.add_argument("--env-file", type=Path, action="append", required=True)
     return parser
 
 
-def _load_dmw_dotenv_layers() -> None:
-    """Load DMW's documented repository configuration before application import.
+def _load_runtime_dotenv_layers(environment_files: Sequence[Path]) -> None:
+    """Load explicit ignored runtime configuration before application import.
 
     The installed DMW application requires these layers to resolve MongoDB and
     the AcademicCloud provider. The raw-collection override is installed
     separately because DMW reloads dotenv files during its own bootstrap.
 
-    :return: ``None`` after loading the required environment layers.
+    :param environment_files: Runtime dotenv files in precedence order.
+    :return: ``None`` after loading the explicit environment layers.
     """
     from dotenv import load_dotenv
 
-    load_dotenv(".env.mk", override=True)
-    load_dotenv(".env", override=True)
-    load_dotenv("../haiu/.env", override=False)
+    for environment_file in environment_files:
+        if not environment_file.is_file():
+            raise SystemExit(
+                f"Runtime environment file does not exist: {environment_file}"
+            )
+        load_dotenv(environment_file, override=True)
 
 
 def _install_raw_collection_override(
@@ -116,7 +122,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.max_tokens <= 0:
         raise SystemExit("--max-tokens must be positive.")
 
-    _load_dmw_dotenv_layers()
+    _load_runtime_dotenv_layers(args.env_file)
     _install_raw_collection_override(
         raw_collection=args.raw_collection,
         max_tokens=args.max_tokens,

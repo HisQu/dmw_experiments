@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import os
 from collections.abc import Sequence
+from pathlib import Path
 from typing import Any
 
 
@@ -20,6 +21,15 @@ def _parser() -> argparse.ArgumentParser:
         )
     )
     parser.add_argument("--lmstudio-base-url", required=True)
+    parser.add_argument(
+        "--env-file",
+        action="append",
+        required=True,
+        help=(
+            "Ignored dotenv file containing DMW, MongoDB, Haiu, and remote "
+            "embedding-provider configuration. May be repeated."
+        ),
+    )
     parser.add_argument("--model", default="qwen/qwen3.6-27b")
     parser.add_argument(
         "--lmstudio-model-id",
@@ -114,21 +124,25 @@ def _load_dmw_app() -> Any:
     return app
 
 
-def _load_dmw_dotenv_layers() -> None:
-    """Load the repository configuration required before importing DMW.
+def _load_dmw_dotenv_layers(environment_files: Sequence[Path]) -> None:
+    """Load explicit private configuration before importing DMW.
 
-    The academic backend starts with these layers so DMW can initialize MongoDB
-    and the remote embedding client during application import. The LM Studio
-    launcher needs the same pre-import environment; it changes only the chat
-    provider after the application is available.
+    The LM Studio launcher changes only the chat provider after the published
+    DMW application initializes. Explicit files keep the launcher independent
+    from sibling source-repository layouts.
 
+    :param environment_files: Ignored dotenv files in precedence order.
     :return: ``None`` after loading the documented repository dotenv layers.
+    :raises SystemExit: If a requested environment file is missing.
     """
     from dotenv import load_dotenv
 
-    load_dotenv(".env.mk", override=True)
-    load_dotenv(".env", override=True)
-    load_dotenv("../haiu/.env", override=False)
+    for environment_file in environment_files:
+        if not environment_file.is_file():
+            raise SystemExit(
+                f"Environment file does not exist: {environment_file}"
+            )
+        load_dotenv(environment_file, override=True)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -145,7 +159,9 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     # > DMW initializes MongoDB during application import, before the local
     # > chat-provider split can safely replace only generation settings.
-    _load_dmw_dotenv_layers()
+    _load_dmw_dotenv_layers(
+        tuple(Path(value).expanduser() for value in args.env_file)
+    )
     app = _load_dmw_app()
 
     _apply_provider_split(

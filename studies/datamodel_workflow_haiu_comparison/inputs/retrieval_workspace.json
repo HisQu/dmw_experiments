@@ -1,0 +1,8 @@
+{
+  "snapshot_schema": 1,
+  "workspace_identity": "Workdir--qwen3-embedding-4b/canonical",
+  "reference_source_sha256": "b628d85fdef3fa176d8fd4dc03fb8f787d333238823f3f7a35697deb1447d510",
+  "embedding_model": "qwen3-embedding-4b",
+  "retrieval_mode": "hybrid",
+  "note": "Portable identity snapshot for the canonical Haiu retrieval workspace; source files remain on the execution host."
+}

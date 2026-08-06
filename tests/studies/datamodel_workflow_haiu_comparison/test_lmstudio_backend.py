@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import sys
+from pathlib import Path
 from types import ModuleType
 
 import pytest
@@ -9,6 +10,7 @@ import pytest
 from dmw_experiments.studies.datamodel_workflow_haiu_comparison.run_lmstudio_backend import (
     _apply_provider_split,
     _load_dmw_app,
+    _load_dmw_dotenv_layers,
     _parser,
 )
 
@@ -20,11 +22,30 @@ def test_parser_requires_explicit_local_endpoint() -> None:
 
 def test_parser_defaults_to_dmw_catalogued_model_name() -> None:
     args = _parser().parse_args(
-        ["--lmstudio-base-url", "http://local.example/v1"]
+        [
+            "--lmstudio-base-url",
+            "http://local.example/v1",
+            "--env-file",
+            "runtime.env",
+        ]
     )
 
     assert args.model == "qwen/qwen3.6-27b"
     assert args.max_tokens == 60_000
+
+
+def test_explicit_environment_file_is_loaded(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The launcher does not infer configuration from sibling repositories."""
+    environment = tmp_path / "runtime.env"
+    environment.write_text("DMW_TEST_RUNTIME_VALUE=loaded\n", encoding="utf-8")
+    monkeypatch.delenv("DMW_TEST_RUNTIME_VALUE", raising=False)
+
+    _load_dmw_dotenv_layers((environment,))
+
+    assert os.environ["DMW_TEST_RUNTIME_VALUE"] == "loaded"
 
 
 def test_provider_split_keeps_remote_embeddings(

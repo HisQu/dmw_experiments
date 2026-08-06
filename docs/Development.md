@@ -76,7 +76,7 @@ reasonable fit.
 
 > [!NOTE]
 > Related: use [project paths](References.md#project-paths) for source file
-> owners and [package layout](Explanations.md#package-layout) for import
+> owners and [ownership model](Explanations.md#ownership-model) for import
 > boundaries.
 
 <br>
@@ -386,5 +386,4 @@ Before committing:
 5. Write a commit message that names the user-facing behavior.
 
 > [!NOTE]
-> Related: use [How-To User Guides: run tests](How-To-User-Guides.md#run-tests)
-> for the short command recipe.
+> Related: use [verification](#verification) for the short command recipe.

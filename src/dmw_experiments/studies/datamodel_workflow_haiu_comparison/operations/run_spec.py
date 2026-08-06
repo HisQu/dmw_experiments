@@ -154,7 +154,7 @@ class HeaderSublemmaRunSpec:
 def load_header_sublemma_run_spec(path: Path) -> HeaderSublemmaRunSpec:
     """Load and validate one non-secret header--sublemma run specification.
 
-    :param path: JSON file containing schema-version-1 run settings.
+    :param path: JSON file containing schema-version-2 run settings.
     :return: Parsed immutable run specification.
     :raises ValueError: If the JSON shape is not the supported specification.
     """

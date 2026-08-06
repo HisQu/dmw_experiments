@@ -1,262 +1,154 @@
+# DMW experiments
 
+`dmw_experiments` owns reproducible experiment execution, supervision, raw
+artifacts, analysis, and plots for the DMW technology stack. It is separate
+from Haiu so experiment tooling can change without publishing a new Haiu
+release.
 
-<!-- This is a comment -->
+## Table of contents
 
-<!-- ============================================================== -->
-<!-- == Header ==================================================== -->
-<div align="center">
+1. [DMW experiments](#dmw-experiments)
+   1. [Table of contents](#table-of-contents)
+   2. [Repository map](#repository-map)
+   3. [Install](#install)
+   4. [Configure](#configure)
+   5. [Run an experiment](#run-an-experiment)
+   6. [Inspect and resume](#inspect-and-resume)
+   7. [Analyze raw data](#analyze-raw-data)
+   8. [Development](#development)
 
-<!-- --- Title ---------------------------------------------------- -->
-# `dmw_experiments`: A Template
+## Repository map
 
+| Path | Contents |
+| --- | --- |
+| `studies/` | Tracked scientific inputs, run specifications, and release contracts. |
+| `src/dmw_experiments/` | Runner, lifecycle, supervision, analysis, and CLI code. |
+| `output/` | The only default location for generated runs, logs, workbooks, and plots. |
+| `tests/` | Offline regression and lifecycle tests. |
+| `docs/` | Operational procedures, architecture, and exact interfaces. |
+| `requirements-runtime.lock` | Plain-pip runtime lock for published and analysis dependencies. |
 
-<!-- --- Logo ----------------------------------------------------- -->
-*Part of:*
+The active study is
+[`studies/datamodel_workflow_haiu_comparison`](studies/datamodel_workflow_haiu_comparison/README.md).
+Its full AcademicCloud header--sublemma run contains 480 input units and three
+conditions, or 1,440 terminal cells.
 
-<a href="https://hisqu.de" target="_blank">
-  <img 
-  src="https://avatars.githubusercontent.com/u/196629600?s=200&v=4" 
-  width="100px" alt="logo"
-  style="margin-top: -10px;"> 
-</a>
+## Install
 
-<br>
+Python 3.12 or 3.13 is required. The release lock retrieves the published DMW
+1.1.3, OPA 2.1.2, GTA 0.2.4, Haiu 1.8.0, MongoDBAPI 1.0.2, and analysis stack
+from their remote package or Git sources. Sibling repository clones are not
+required.
 
-<!-- --- Badges --------------------------------------------------- -->
-[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
-[![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](https://www.python.org/downloads/)
-
-[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![Pyright](https://img.shields.io/badge/type%20checked-pyright-blue)](https://microsoft.github.io/pyright/)
-[![pytest](https://img.shields.io/badge/tested%20with-pytest-0A9EDC)](https://docs.pytest.org/)
-<!-- [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/HisQu/haiu/blob/main/LICENSE) -->
-
-
-
-
-</div>
-
-<!-- --- URLs --------------------------------------------------- -->
-[`direnv`]: https://direnv.net/
-[`just`]: https://github.com/casey/just?tab=readme-ov-file#packages
-[`uv`]: https://github.com/astral-sh/uv?tab=readme-ov-file#uv
-
-
-<!-- ============================================================== -->
-<!-- ============================================================== -->
-
-<div style="width: 85%; margin: 2rem auto; text-align: justify;">
-<hr>
-
-###  `dmw_experiments` ...
-<!-- Summarize the top 3 features -->
-- ... integrates cool things like lorem ipsum dolor
-- ... standardizes Dolor sit amet dolor blah bla
-- ... Ipsum dolor sit amet 
-
-
-#### Main dependencies:
-<!-- List your main dependencies here and explain why they're important. -->
-- **`apprc`**: Runtime config, generated `config` CLI, and Textual editor.
-
-<hr>
-</div>
-
-
-<!-- Graphical Abstract goes here: -->
-
-<!-- | ![Graphical abstract](./assets/figures/graphical-abstract_init-proj-graphviz.svg) |
-|:--:|
-| **Fig. 1 - Graphical Abstract:** Buildben creates scaffolds for Python projects adhering to Python PEP standards. |
-
-<br> -->
-
-<!-- HTML-version of Graphical Abstract -->
-<!-- 
-<div align="center">
-  <img src="https://github.com/HisQu/buildben/raw/main/assets/figures/diagram-graphviz.svg"
-       width="800px" alt="Management of Virtual Environments & Dependencies" >
-  <p><em> 
-  <b> Graphical Abstract: </b> 
-  Management of Virtual Environments & Dependencies. Red dashed lines are Dependencies.
-  </em></p>
-</div> 
-
-
-
-
--->
-
-
-
-
-<!-- ============================================================== -->
-<!-- ============================================================== -->
-### Table of Contents
-
-<!-- toc -->
-
-1. [`dmw_experiments`: A Template](#my_project-a-template)
-   1. [📦 Installation](#-installation)
-   2. [🚀 Usage](#-usage)
-   3. [💻  Development](#--development)
-   4. [📚  Examples / Documentation](#--examples--documentation)
-
-<!-- tocstop -->
-<!-- /toc -->
-
-<br>
-
-<!-- ============================================================== -->
-<!-- ============================================================== -->
-## 📦 Installation
-
-### Prerequisites:
-- Python >=3.12,<3.13
-- `git`
-- [`uv`] (optional)
-
-
-### Install with `pip`:
-#### 1. Install system dependencies:
-``` bash
-apt update
-apt install python3.12
-```
-<!-- git clone https://github.com/markur4/dmw_experiments.git -->
-#### 2. Clone & Install `dmw_experiments`:
-``` bash
-git clone https://github.com/HisQu/dmw_experiments.git
-cd dmw_experiments
-python -m pip install -e "."              # Core runtime dependencies
-python -m pip install -e ".[rag]"         # Core + published RAG extra
-python -m pip install -e "." --group dev  # Core + local dev tools
-python -m pip install -e ".[rag]" --group dev
-```
-The `rag` commands apply after the commented `rag` extra in `pyproject.toml` is
-uncommented and populated.
-
-#### ✅ Verify installation: 
 ```bash
-python -m dmw_experiments --help
-dmw_experiments version
-dmw_experiments config setup --yes --storage-root ./local-storage
-export DMW_EXPERIMENTS_STORAGE="$(pwd)/local-storage"
+python -m venv .venv
+.venv/bin/python -m pip install --no-deps -r requirements-runtime.lock
+.venv/bin/python -m pip install --no-deps -e "."
+```
+
+The explicit `--no-deps` is required because NER 0.1.2 and OPA 2.1.2 publish
+stale Git requirements that disagree with the DMW 1.1.3 release contract. The
+runtime lock already contains every resolved dependency and therefore must be
+installed as a complete set.
+
+`uv` is an optional convenience. It applies the same two metadata corrections
+and installs the locked runtime plus development tools:
+
+```bash
+uv sync --locked --all-groups --python 3.12
+```
+
+## Configure
+
+Create one ignored dotenv file below `output/private/`. It must contain the
+DMW, MongoDB, Haiu, and AcademicCloud values required by the published stack,
+including these experiment-owned names:
+
+```dotenv
+DATAMODEL_LOGIN="..."
+DATAMODEL_PASSWORD="..."
+```
+
+Point AppRC at that file and the generated-output root:
+
+```bash
+export DMW_EXPERIMENTS_STORAGE="output"
+export DMW_EXPERIMENTS_ACADEMICCLOUD_ENV_FILE="output/private/academiccloud.env"
 dmw_experiments config doctor
 ```
 
+> [!CAUTION]
+> Never commit the runtime dotenv file. `output/` is ignored, and launch
+> commands retain only its path. Credentials are not copied into manifests,
+> service arguments, logs, or BABYSIT journals.
 
-<br>
+## Run an experiment
 
-<!-- ============================================================== -->
-<!-- ============================================================== -->
-## 🚀 Usage
-
-<!-- Present a minimal example of the most important feature! -->
-
-### Show the command tree:
-```bash
-dmw_experiments --help
-dmw_experiments diagnose
-dmw_experiments diagnose --json
-```
-
-### Initialize local configuration:
-```bash
-dmw_experiments config setup --yes --storage-root /absolute/path/to/storage
-export DMW_EXPERIMENTS_STORAGE="/absolute/path/to/storage"
-dmw_experiments config doctor
-dmw_experiments config show --json
-```
- 
-### Edit local configuration:
-```bash
-dmw_experiments config set app.message "Hello local storage" --scope storage
-dmw_experiments config edit
-```
-
-
-
-<br>
-
-<!-- ============================================================== -->
-<!-- ============================================================== -->
-## 💻  Development 
-
-### Dev-Hints:
-- **Issues:** Open an issue on GitHub!
-- **Contribute:** Feel free to fork this repo and submit a PR!
-
-
-
-<!-- --- Testing ------------------------------------------------- -->
-
-<details><summary> <h3> <i> Testing </i> </h3> </summary>
-
-*!! Pytest not yet Implemented!*
-```bash
-python -m pip install -e "." --group dev  # Install testing tools from [dependency-groups]
-pytest                                    # Run tests
-```
-</details>
-
-
-<!-- --- Diagrams ------------------------------------------------- -->
-
-<details><summary> <h3> <i> Class Diagram </i> </h3> </summary>
-<blockquote>
-
-<!-- Make a mermaid class diagram / flowchart! -->
-
-<!-- <img src="https://raw.githubusercontent.com/markur4/plotastic/main/class_diagram.svg" alt="logo"> -->
-
-</blockquote></details>
-
-
-
-<br>
-
-<!-- ============================================================== -->
-<!-- ============================================================== -->
-## 📚  Examples / Documentation 
-
-Longer project docs live in [`docs/README.md`](docs/README.md). Start there
-when you need task recipes, maintainer workflow, exact references, or system
-explanations.
-
-- **[`docs/How-To-User-Guides.md`](docs/How-To-User-Guides.md)**: commands in order.
-- **[`docs/Development.md`](docs/Development.md)**: maintainer workflow and verification.
-- **[`docs/References.md`](docs/References.md)**: exact paths, commands, and public names.
-- **[`docs/Explanations.md`](docs/Explanations.md)**: architecture and design context.
-
-<!-- This is a presentation / documentation of **specific** options. 
-If available, link to files (e.g. .ipynb) in the examples folder! -->
-
-<details><summary> <h3> <i> Example 1 </i> </h3> </summary>
-<blockquote>
+Validate the complete local and scientific contract without changing storage:
 
 ```bash
-# Create a local storage root and inspect the resolved config
-dmw_experiments config setup --yes --storage-root ./local-storage
-export DMW_EXPERIMENTS_STORAGE="$(pwd)/local-storage"
-dmw_experiments config show --json
+dmw_experiments validate
 ```
 
-</blockquote></details>
-
-
-<!-- --- Separator ------------------------------------------------ -->
-
-<details><summary> <h3> <i> Example 1 </i> </h3> </summary>
-<blockquote>
-
+Start the disposable one-unit smoke:
 
 ```bash
-# Print local package and Python diagnostics
-dmw_experiments diagnose
+dmw_experiments smoke
 ```
 
-</blockquote></details>
+Inspect its three terminal cells. Only then start the independent full run:
 
+```bash
+dmw_experiments status \
+  --spec studies/datamodel_workflow_haiu_comparison/specs/academiccloud-header-sublemma-smoke.json
+dmw_experiments run
+```
 
-<br>
+Each launch creates one self-contained directory at
+`output/runs/<run-id>/`. It freezes the run specification before preparing
+isolated DMW storage, captures schema-v2 release provenance, and starts the
+backend, runner, and watchdog as user-systemd services.
+
+> [!IMPORTANT]
+> Context, length, and other terminal model failures are experimental evidence.
+> The lifecycle preserves them and does not use recovery-amendment flags.
+
+## Inspect and resume
+
+```bash
+dmw_experiments status --spec PATH_TO_ORIGINAL_SPEC
+dmw_experiments pause --spec PATH_TO_ORIGINAL_SPEC
+dmw_experiments resume --spec PATH_TO_ORIGINAL_SPEC
+```
+
+`pause` stops watchdog, runner, and backend in that order. `resume` accepts
+only the byte-identical run specification and frozen run artifacts. See the
+run-local `logs/BABYSIT-*.md` for readable handoff notes and
+`operations/events.jsonl` for machine-readable lifecycle events.
+
+## Analyze raw data
+
+The analysis command rebuilds provider workbooks, an ungraded historian review,
+and plots from raw observations:
+
+```bash
+dmw_experiments analyze \
+  --academiccloud-run output/runs/ACADEMICCLOUD_RUN_ID \
+  --lmstudio-run output/runs/LMSTUDIO_RUN_ID
+```
+
+Derived files are written below `output/analyses/<timestamp>/`. Human grades
+remain separate inputs and are never overwritten.
+
+## Development
+
+```bash
+.venv/bin/ruff format .
+.venv/bin/ruff check .
+.venv/bin/pyright
+.venv/bin/pytest
+```
+
+Use [the how-to guide](docs/How-To-User-Guides.md) for full operational
+recipes, [the architecture explanation](docs/Explanations.md) for ownership
+boundaries, and [the reference](docs/References.md) for exact names.

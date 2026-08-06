@@ -147,6 +147,29 @@ class _ConditionWallClockTimeout(BaseException):
     """Interrupt a condition that exceeds the runner's hard time limit."""
 
 
+def _load_runtime_environment(
+    *,
+    provider_environment_files: tuple[Path, ...],
+) -> None:
+    """Load explicit ignored runtime dotenv files in one place.
+
+    Long-running services receive only file paths on their command line. This
+    keeps provider and DMW credentials out of process arguments while retaining
+    the dotenv precedence used by the published comparison runs.
+
+    :param provider_environment_files: Ignored experiment-specific dotenv files.
+    :return: ``None`` after populating the process environment.
+    """
+    from dotenv import load_dotenv
+
+    for environment_file in provider_environment_files:
+        if not environment_file.is_file():
+            raise SystemExit(
+                f"Provider environment file does not exist: {environment_file}"
+            )
+        load_dotenv(environment_file, override=True)
+
+
 def main(argv: list[str] | None = None) -> int:
     """CLI entrypoint.
 
@@ -154,6 +177,11 @@ def main(argv: list[str] | None = None) -> int:
     :return: Process exit code.
     """
     args = _build_parser().parse_args(argv)
+    _load_runtime_environment(
+        provider_environment_files=tuple(
+            Path(path).expanduser() for path in args.env_file
+        ),
+    )
     profile = provider_profile(args.provider_profile)
     _validate_profile_model_overrides(args=args, profile=profile)
     input_catalog = _load_requested_input_catalog(args)
@@ -257,6 +285,12 @@ def main(argv: list[str] | None = None) -> int:
         has_existing_results=bool(existing_rows),
     )
 
+    login = args.login or os.getenv("DATAMODEL_LOGIN", "")
+    if not login:
+        raise SystemExit(
+            "Missing login. Set DATAMODEL_LOGIN in the ignored provider "
+            "environment file."
+        )
     password = args.password or os.getenv("DATAMODEL_PASSWORD", "")
     if not password:
         raise SystemExit(
@@ -276,7 +310,7 @@ def main(argv: list[str] | None = None) -> int:
     rows: list[dict] = []
     client = DatamodelClient(
         base_url=args.base_url,
-        login=args.login,
+        login=login,
         password=password,
         timeout_seconds=args.timeout_seconds,
     )
@@ -1085,7 +1119,10 @@ def main(argv: list[str] | None = None) -> int:
     print("Completed experiment.")
     for label, path in output_paths.items():
         print(f"- {label}: {path}")
-    return 0 if all(bool(row.get("success")) for row in rows) else 1
+    # > Terminal model failures are measured observations. The process has
+    # > completed its work once every scheduled cell has a durable row, even
+    # > when one or more rows report an unsuccessful generation.
+    return 0
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -1093,7 +1130,7 @@ def _build_parser() -> argparse.ArgumentParser:
         description="Compare direct Haiu ontology generation with datamodel-workflow modes."
     )
     parser.add_argument("--base-url", default="http://localhost:8000")
-    parser.add_argument("--login", required=True)
+    parser.add_argument("--login", default="")
     parser.add_argument("--password", default="")
     parser.add_argument("--timeout-seconds", type=float, default=1800.0)
     input_group = parser.add_mutually_exclusive_group()

@@ -1,223 +1,153 @@
-<!-- ======================================================== -->
-## Table Of Contents
-<!-- ======================================================== -->
+# How-to guides
 
-1. [How-To User Guides](#1-how-to-user-guides)
-   1. [Recipe Map](#recipe-map)
-2. [First-Time Setup](#2-first-time-setup)
-   1. [Install The Package](#install-the-package)
-   2. [Run The First Command](#run-the-first-command)
-3. [Common Workflows](#3-common-workflows)
-   1. [Sync Dependencies](#sync-dependencies)
-   2. [Run Tests](#run-tests)
-   3. [Inspect The Project](#inspect-the-project)
-4. [Troubleshooting](#4-troubleshooting)
-   1. [Environment Problems](#environment-problems)
-   2. [Command Problems](#command-problems)
+## Table of contents
 
-<br>
+1. [Prepare a machine](#prepare-a-machine)
+2. [Validate without mutation](#validate-without-mutation)
+3. [Run the required smoke](#run-the-required-smoke)
+4. [Start the full matrix](#start-the-full-matrix)
+5. [Pause before a restart](#pause-before-a-restart)
+6. [Resume after an interruption](#resume-after-an-interruption)
+7. [Hand off babysitting](#hand-off-babysitting)
+8. [Regenerate analyses](#regenerate-analyses)
 
-# 1. How-To User Guides
+## Prepare a machine
 
-<!-- ======================================================== -->
-## Recipe Map
-<!-- ======================================================== -->
-
-Use this file when you want commands in order. Use
-[References](References.md) when you need exact names and
-[Explanations](Explanations.md) when you need the system model.
-
-> [!NOTE]
-> Related: use [documentation standards](Development.md#4-documentation-standards)
-> when adding new recipes so headings, callouts, and links stay consistent.
-
-<br>
-
-# 2. First-Time Setup
-
-<!-- ======================================================== -->
-## Install The Package
-<!-- ======================================================== -->
-
-Use this recipe from the project root.
-
-1. Create or activate a Python environment.
-2. Install the package for runtime use:
+Install the locked Python 3.12 environment:
 
 ```bash
-python -m pip install -e "."
+uv sync --locked --all-groups --python 3.12
 ```
 
-3. Install the maintainer tools when you plan to edit the project:
+Plain `pip` uses the exported release lock and does not need `uv` or sibling
+repository clones:
 
 ```bash
-python -m pip install -e "." --group dev
+python -m venv .venv
+.venv/bin/python -m pip install --no-deps -r requirements-runtime.lock
+.venv/bin/python -m pip install --no-deps -e "."
 ```
 
-4. If you use `uv`, sync the locked maintainer environment:
+Do not omit the first command or remove `--no-deps`. The lock is the resolved
+runtime contract; ordinary dependency resolution sees incompatible legacy
+MongoDBAPI and GTA URLs in the published OPA and NER metadata.
+
+Create `output/private/academiccloud.env`. Merge every runtime variable needed
+by the published DMW application, MongoDBAPI, Haiu, and AcademicCloud into this
+single ignored file. Add `DATAMODEL_LOGIN` and `DATAMODEL_PASSWORD` for DMW API
+authentication.
 
 ```bash
-just sync
-```
-
-> [!NOTE]
-> Related: use [dependency surfaces](References.md#dependency-surfaces) for the
-> difference between runtime dependencies, optional extras, and dependency
-> groups.
-
-<br>
-
-<!-- ======================================================== -->
-## Run The First Command
-<!-- ======================================================== -->
-
-Show the command tree through the console script:
-
-```bash
-dmw_experiments --help
-```
-
-The module entry point should show the same command tree:
-
-```bash
-python -m dmw_experiments --help
-```
-
-Run the starter commands:
-
-```bash
-dmw_experiments version
-dmw_experiments diagnose
-dmw_experiments diagnose --json
-```
-
-Initialize AppRC storage before commands that need local runtime state:
-
-```bash
-dmw_experiments config setup --yes --storage-root ./local-storage
-export DMW_EXPERIMENTS_STORAGE="$(pwd)/local-storage"
+export DMW_EXPERIMENTS_STORAGE="output"
+export DMW_EXPERIMENTS_ACADEMICCLOUD_ENV_FILE="output/private/academiccloud.env"
 dmw_experiments config doctor
-dmw_experiments config show --json
 ```
+
+> [!IMPORTANT]
+> The smoke and full specs have different run IDs, DMW branches, raw
+> collections, annotation collections, and ontology collections. Never reuse a
+> smoke identity for the full matrix.
+
+## Validate without mutation
+
+```bash
+dmw_experiments validate \
+  --spec studies/datamodel_workflow_haiu_comparison/specs/academiccloud-header-sublemma-smoke.json
+```
+
+Validation checks the schema-v2 contract, smoke/full isolation, required
+inputs, interpreter, and ignored runtime file. It does not connect to MongoDB,
+start DMW, or call a model.
+
+## Run the required smoke
+
+First confirm no AcademicCloud experiment is active:
+
+```bash
+systemctl --user list-units '*academiccloud*.service'
+```
+
+Then run:
+
+```bash
+dmw_experiments smoke
+```
+
+The command performs these actions in order:
+
+1. Freezes `run_spec.json` inside the run directory.
+2. Creates or verifies the isolated DMW branch and collections.
+3. Clones ignored release-evidence checkouts from the four public tags.
+4. Captures `provenance/environment_lock.json` with schema version 2.
+5. Starts backend, runner, and watchdog as user-systemd services.
+6. Records every intervention in the run-local BABYSIT journal.
+
+Use `dmw_experiments status --spec ...smoke.json` until all three cells are
+terminal. A terminal model failure remains a smoke result; it is not silently
+retried as an amendment.
+
+## Start the full matrix
+
+After reviewing the smoke, start the fresh 480-unit environment:
+
+```bash
+dmw_experiments run
+```
+
+The full run uses `--limit 0` and schedules all three conditions. The command
+refuses a smoke spec and refuses to start while another AcademicCloud unit is
+active.
+
+## Pause before a restart
+
+```bash
+dmw_experiments pause \
+  --spec studies/datamodel_workflow_haiu_comparison/specs/academiccloud-header-sublemma-full.json
+```
+
+The command stops the watchdog, sends SIGINT to the runner, waits for an
+orderly checkpoint, and then stops runner and backend. Do not delete raw or
+attempt files.
+
+## Resume after an interruption
+
+```bash
+dmw_experiments resume \
+  --spec studies/datamodel_workflow_haiu_comparison/specs/academiccloud-header-sublemma-full.json
+```
+
+Resume requires the byte-identical specification, its SHA-256 sidecar, DMW
+input manifest, schema-v2 environment lock, and immutable runner manifest. It
+passes only `--resume`; recovery-amendment selectors are deliberately absent.
+
+## Hand off babysitting
+
+Give the next operator these paths from one run directory:
+
+- `run_spec.json` defines exactly what may resume.
+- `operations/services.json` names the owned service units.
+- `operations/events.jsonl` lists structured lifecycle events.
+- `logs/BABYSIT-*.md` contains readable checkpoints and interventions.
+- `logs/backend.log`, `logs/runner.log`, and `logs/watchdog.log` contain process
+  output.
+- `raw/`, `attempts/`, and `annotation_attempts/` are authoritative progress.
+
+Run `dmw_experiments status --spec PATH` instead of inferring completion from
+log text. Strict analysis can proceed only when every scheduled cell has a raw
+record and no cell is `retry_pending`.
+
+## Regenerate analyses
+
+```bash
+dmw_experiments analyze \
+  --academiccloud-run output/runs/ACADEMICCLOUD_RUN_ID \
+  --lmstudio-run output/runs/LMSTUDIO_RUN_ID
+```
+
+For a diagnostic snapshot of an incomplete source matrix, add
+`--allow-partial`. For graded plots, pass both
+`--quality-review-workbook PATH` and `--quality-reveal-key PATH`.
 
 > [!NOTE]
-> Related: use [public interfaces](References.md#public-interfaces) for the
-> commands and import paths users can rely on.
-
-<br>
-
-# 3. Common Workflows
-
-<!-- ======================================================== -->
-## Sync Dependencies
-<!-- ======================================================== -->
-
-Use `just sync` to install the full maintainer environment from `uv.lock`:
-
-```bash
-just sync
-```
-
-Use plain `pip` when you only need the package and do not want `uv`:
-
-```bash
-python -m pip install -e "."
-```
-
-> [!NOTE]
-> Related: use [configuration and dependency model](Explanations.md#configuration-and-dependency-model)
-> for why runtime installs and maintainer installs are documented separately.
-
-<br>
-
-<!-- ======================================================== -->
-## Run Tests
-<!-- ======================================================== -->
-
-Run the focused tests first:
-
-```bash
-python -m pytest tests
-```
-
-Run the quality tools before finishing a code change:
-
-```bash
-ruff format .
-ruff check .
-pyright
-python -m pytest
-```
-
-> [!NOTE]
-> Related: use [Development: verification](Development.md#verification) for
-> the maintainer checklist before a commit.
-
-<br>
-
-<!-- ======================================================== -->
-## Inspect The Project
-<!-- ======================================================== -->
-
-Use these commands when you need to understand the current shape:
-
-```bash
-rg --files
-git status --short
-dmw_experiments diagnose
-dmw_experiments config doctor
-python -m dmw_experiments --help
-```
-
-When a command fails, copy the exact command, current directory, exit code, and
-stderr into the issue or debugging note.
-
-> [!NOTE]
-> Related links:
-> - Use [project paths](References.md#project-paths) for the main source and docs locations.
-> - Use [system model](Explanations.md#system-model) for the package and tooling boundaries.
-
-<br>
-
-# 4. Troubleshooting
-
-<!-- ======================================================== -->
-## Environment Problems
-<!-- ======================================================== -->
-
-Check the active Python and environment first:
-
-```bash
-python --version
-python -c "import sys; print(sys.executable)"
-python -c "import dmw_experiments; print(dmw_experiments.__file__)"
-```
-
-If the package imports from an unexpected location, reinstall it from the
-project root.
-
-> [!NOTE]
-> Related: use [failure model](Explanations.md#failure-model) for the normal
-> order of checks when a command behaves differently across machines.
-
-<br>
-
-<!-- ======================================================== -->
-## Command Problems
-<!-- ======================================================== -->
-
-When a `just` recipe fails:
-
-1. Run `just --list`.
-2. Run the underlying command manually.
-3. Check whether the virtual environment is active.
-4. Check whether the command exists in `.venv/bin`.
-
-```bash
-just --list
-ls .venv/bin
-```
-
-> [!NOTE]
-> Related: use [command reference](References.md#command-reference) for the
-> expected commands and their owners.
+> Analysis files are derived. Regenerate them from raw data; do not hand-edit
+> generated workbooks or plots.

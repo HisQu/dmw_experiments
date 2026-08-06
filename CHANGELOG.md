@@ -31,7 +31,7 @@ All notable changes to `dmw_experiments` will be documented in this file.
 1. [Changelog](#changelog)
    1. [Table Of Contents](#table-of-contents)
 2. [\[Unreleased\]](#unreleased)
-3. [{initial\_version} - {scaffold\_date}](#initial_version---scaffold_date)
+3. [0.1.0 - 2026-08-06](#010---2026-08-06)
 
 <br>
 
@@ -45,12 +45,17 @@ All notable changes to `dmw_experiments` will be documented in this file.
 
 <br>
 
-### 💥 Breaking Change Summary
+### 💥 Breaking changes
 
 - Breaking: Removed the scaffold-only `app.message` configuration field.
   Affected: Users of the initial project scaffold.
   Migration: Remove `DMW_EXPERIMENTS_MESSAGE`; configure the experiment
   storage and runtime fields instead.
+- Breaking: Replaced the scaffold command surface with the experiment
+  lifecycle commands `validate`, `smoke`, `run`, `status`, `pause`, `resume`,
+  and `analyze`.
+  Affected: Users invoking the 0.1.0 example command.
+  Migration: Use the command matching the required run-lifecycle action.
 
 <br>
 
@@ -59,13 +64,20 @@ All notable changes to `dmw_experiments` will be documented in this file.
 - Added the packaged DMW--Haiu comparison execution and analysis harness.
 - Added immutable header--sublemma inputs, isolated smoke/full specifications,
   the published DMW-stack contract, and the ignored `output/` workspace.
-- Added locked publication and analysis dependency sets for Python 3.12.
+- Added run-local service logs, BABYSIT journals, lifecycle events, frozen
+  specifications, and schema-v2 provenance artifacts.
+- Added one user-systemd owner for the backend, resumable runner, and
+  progress watchdog of each run.
+- Added locked core publication and analysis dependencies for Python 3.12 and
+  3.13, including a plain-pip runtime export.
 <br>
 
 ### 💔 Changed
 
 - Changed experiment ownership from Haiu to the standalone
   `dmw_experiments` package while preserving the tested scientific behavior.
+- Changed release-stack provenance checkouts to clone ignored published tags
+  automatically instead of requiring neighboring source repositories.
 <br>
 
 ### ⚠️ Deprecated

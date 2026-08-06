@@ -26,7 +26,7 @@ from matplotlib.patches import Rectangle
 from matplotlib.text import Text
 from openpyxl import load_workbook
 
-import haiu.utils as ut
+import dmw_experiments.analysis as ut
 from dmw_experiments.studies.datamodel_workflow_haiu_comparison.quality_grade_analysis import (
     CONDITION_LABELS as QUALITY_CONDITION_LABELS,
     CONDITION_ORDER as QUALITY_CONDITION_ORDER,

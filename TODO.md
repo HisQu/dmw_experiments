@@ -90,3 +90,23 @@ Treat this as the parking lot for actionable problems discovered while working b
 ---
 
 <br>
+
+# 2026-08-06
+
+## P2 / E1 [Tooling] - *Repair stale dependency URLs in published stack metadata*
+- **Area:** `pyproject.toml` and the published OPA/NER package metadata
+- **Observed while:** Verifying that the core DMW stack installs without `uv`.
+- **Why not fixed now:** Correcting transitive metadata requires coordinated
+  upstream patch releases and a new published-stack contract.
+- **Evidence:** Plain pip reports incompatible MongoDBAPI Git requirements from
+  DMW 1.1.3 and NER 0.1.2. NER also declares an older GTA commit. The current
+  release environment therefore needs uv overrides or the exported
+  `requirements-runtime.lock` installed with `--no-deps`.
+- **Context:** The experiment still uses the required DMW 1.1.3 / OPA 2.1.2 /
+  GTA 0.2.4 / Haiu 1.8.0 stack. Local sibling clones are not required. The
+  workaround freezes the intended remote releases but package installers
+  should eventually resolve them without metadata correction.
+- **Suggested next step:** Publish compatible OPA and NER patch releases, then
+  update the experiment stack contract and remove both override paths.
+
+<br>

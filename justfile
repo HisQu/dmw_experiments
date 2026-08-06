@@ -78,7 +78,7 @@ clean:
 reset-venv:
     @echo "♻ Rebuilding virtual environment..."
     uv venv --seed --clear
-    uv sync --frozen --all-extras --all-groups
+    uv sync --frozen --all-groups
 
 # ---------------------------------------------------------------
 # Install flows
@@ -86,7 +86,6 @@ reset-venv:
 # Key rule: CI and teammates should *not* relock by accident.
 # We therefore install with `--locked` which errors if uv.lock is stale.
 # If it errors, you intentionally run `just lock` or `just upgrade`.
-# > --all-extras: Install all published extras from [project.optional-dependencies], such as rag.
 # > --all-groups: Install all local groups from [dependency-groups], such as dev.
 # > --no-default-groups: Skip uv's default groups, including dev, for runtime-only installs.
 # > --frozen: Sync from uv.lock while ignoring pyproject.toml
@@ -98,7 +97,7 @@ reset-venv:
 sync:
     just _note-direnv
     just _check-uv
-    uv sync --all-extras --all-groups --locked
+    uv sync --all-groups --locked
 alias install := sync
 
 # ---------------------------------------------------------------
@@ -114,11 +113,12 @@ lock *ARGS:
     just _check-uv
     uv lock {{ARGS}}
     uv export -o pylock.toml --all-extras --all-groups --quiet
+    uv export -o requirements-runtime.lock --no-dev --no-emit-project --no-hashes --quiet
 
 # Re-lock with --upgrade & install from the new lock.
 upgrade *ARGS:
     just lock --upgrade {{ARGS}}
-    uv sync --all-extras --all-groups --locked
+    uv sync --all-groups --locked
 
 
 # Re-lock with --upgrade ONLY git-based dependencies & uv sync from the new lock.
@@ -238,7 +238,7 @@ diagnose:
     just _check-uv
     uv --version
     uv python list || true
-    uv sync --check --all-extras --all-groups
+    uv sync --check --all-groups
 
 
 # ---------------------------------------------------------------

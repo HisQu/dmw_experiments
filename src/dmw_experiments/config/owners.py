@@ -16,6 +16,8 @@ import apprc as rc
 # == Internal ================================
 from dmw_experiments.config.app import APP_RC
 
+UNSET_PATH = Path(".not-configured")
+
 
 @APP_RC.config(
     "app",
@@ -36,9 +38,9 @@ class AppRuntimeConfig(rc.Config):
         ),
         editable=False,
     )
-    publication_python: Path | None = rc.field(
+    publication_python: Path = rc.field(
         "DMW_EXPERIMENTS_PUBLICATION_PYTHON",
-        default=None,
+        default=UNSET_PATH,
         title="Published DMW Python",
         explanation_short="Python executable containing the frozen DMW stack.",
         explanation_long=(
@@ -46,21 +48,17 @@ class AppRuntimeConfig(rc.Config):
             "DMW 1.1.3, OPA 2.1.2, GTA 0.2.4, and Haiu 1.8.0 releases."
         ),
     )
-    repositories_root: Path | None = rc.field(
-        "DMW_EXPERIMENTS_REPOSITORIES_ROOT",
-        default=None,
-        title="Repository checkouts root",
-        explanation_short="Parent of clean release checkouts used for provenance.",
-    )
-    academiccloud_env_file: Path | None = rc.field(
+    academiccloud_env_file: Path = rc.field(
         "DMW_EXPERIMENTS_ACADEMICCLOUD_ENV_FILE",
-        default=None,
+        default=UNSET_PATH,
         title="AcademicCloud environment file",
-        explanation_short="Ignored local provider configuration and credentials.",
+        explanation_short=(
+            "Ignored DMW, MongoDB, and AcademicCloud runtime configuration."
+        ),
     )
-    lmstudio_env_file: Path | None = rc.field(
+    lmstudio_env_file: Path = rc.field(
         "DMW_EXPERIMENTS_LMSTUDIO_ENV_FILE",
-        default=None,
+        default=UNSET_PATH,
         title="LM Studio environment file",
         explanation_short="Ignored local LM Studio provider configuration.",
     )
