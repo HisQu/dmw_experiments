@@ -44,6 +44,7 @@ def test_loads_both_isolated_provider_executions(tmp_path: Path) -> None:
     assert spec.execution("lmstudio").ontology_collection == (
         "ontologies__template_lmstudio"
     )
+    assert spec.ontology_example_limit == 0
 
 
 def test_run_directory_owns_cell_paths(tmp_path: Path) -> None:

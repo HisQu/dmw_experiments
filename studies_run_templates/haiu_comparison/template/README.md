@@ -32,6 +32,8 @@ template README when they are not already implemented there.
 - `INPUTS/retrieval_workspace.json` is the authoritative branch-aware
   reference-index identity shared by DMW + HAIU and standalone HAIU. The
   runner validates and prepares it before condition timing begins.
+- `ontology_example_limit = 0` is deliberate. The published example index is
+  keyed by complete-regest IDs and does not support synthetic pair IDs.
 
 Never assign real credentials or absolute machine paths in this directory.
 

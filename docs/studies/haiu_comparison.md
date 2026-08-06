@@ -39,6 +39,13 @@ the shared branch-aware canonical index. This preparation is outside condition
 duration, so randomized condition order does not assign one-time indexing to
 one condition.
 
+`ontology_example_limit = 0` disables DMW's separate whole-regest example
+retrieval for this study. The published FAISS example index is keyed by numeric
+complete-regest IDs and does not define queries for synthetic header--sublemma
+units. Sending a nonzero limit would therefore declare an example that OPA
+cannot retrieve. The ontology-context condition remains the only intended
+context difference between DMW + Full Ontology and DMW + HAIU.
+
 ## Run template and storage
 
 The complete data template lives at

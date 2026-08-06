@@ -32,3 +32,14 @@ Message text.
 
 Channel created. AcademicCloud smoke testing and the subsequent full
 header–sublemma run remain under active supervision.
+
+### 2026-08-07T00:10:00+02:00 — Agent
+
+Smoke testing found that published OPA's separate ontology-example search is
+defined only for numeric complete-regest IDs, not the synthetic
+header–sublemma IDs. It safely fell back to zero examples, but that disagreed
+with the configured limit of one. I am making the full run's declared limit
+zero so its configuration matches the effective prompt. Both DMW conditions
+remain identical on this setting; their intended difference is still full
+ontology versus HAIU retrieval context. No published stack dependency is being
+patched.

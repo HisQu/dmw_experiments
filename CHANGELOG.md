@@ -109,6 +109,9 @@ All notable changes to `dmw_experiments` will be documented in this file.
 - Added strict workbook and plot export for the provider executions enabled by
   a run, including AcademicCloud-only studies. Cross-provider review export is
   retained when both providers are enabled.
+- Declared zero DMW ontology examples for the header--sublemma study because
+  the published whole-regest FAISS index has no query identity for synthetic
+  pair IDs. This keeps the configured contract equal to the effective prompt.
 
 <br>
 

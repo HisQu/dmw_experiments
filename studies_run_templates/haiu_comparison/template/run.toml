@@ -12,7 +12,7 @@ conditions = [
 ]
 max_output_tokens = 60000
 output_safety_margin_tokens = 4096
-ontology_example_limit = 1
+ontology_example_limit = 0
 
 [executions.academiccloud]
 enabled = true

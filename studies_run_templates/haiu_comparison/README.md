@@ -72,3 +72,6 @@ captions stay below `plots/`; service logs and BABYSIT journals stay below
   conditions must use the ontology ref in `INPUTS/retrieval_workspace.json`;
   neither condition should inherit one-time indexing work from execution
   order.
+- Keep `ontology_example_limit = 0` for header--sublemma runs. The published
+  whole-regest FAISS index has no query identity for synthetic pair IDs, so a
+  nonzero value cannot provide the declared example.
