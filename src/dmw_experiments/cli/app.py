@@ -21,7 +21,7 @@ from dmw_experiments.studies.haiu_comparison import (
 )
 
 PACKAGE_NAME = "dmw_experiments"
-VERSION_FALLBACK = "0.3.0"
+VERSION_FALLBACK = "0.4.0"
 LOG = logging.getLogger(__name__)
 T = TypeVar("T")
 

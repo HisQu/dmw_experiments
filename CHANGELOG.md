@@ -31,9 +31,10 @@ All notable changes to `dmw_experiments` will be documented in this file.
 1. [Changelog](#changelog)
    1. [Table Of Contents](#table-of-contents)
 2. [\[Unreleased\]](#unreleased)
-3. [0.3.0 - 2026-08-06](#030---2026-08-06)
-4. [0.2.0 - 2026-08-06](#020---2026-08-06)
-5. [0.1.0 - 2026-08-06](#010---2026-08-06)
+3. [0.4.0 - 2026-08-06](#040---2026-08-06)
+4. [0.3.0 - 2026-08-06](#030---2026-08-06)
+5. [0.2.0 - 2026-08-06](#020---2026-08-06)
+6. [0.1.0 - 2026-08-06](#010---2026-08-06)
 
 <br>
 
@@ -44,6 +45,44 @@ All notable changes to `dmw_experiments` will be documented in this file.
 <!-- ======================================================== -->
 
 # [Unreleased]
+
+<br>
+
+### 💥 Breaking changes
+
+<br>
+
+### ➕ Added
+
+<br>
+
+### 💔 Changed
+
+<br>
+
+### ⚠️ Deprecated
+
+<br>
+
+### 🗑️ Removed
+
+<br>
+
+### 🔨 Fixed
+
+<br>
+
+### 🔒 Security
+
+<br>
+
+---
+
+<br>
+
+<!-- ======================================================== -->
+
+# 0.4.0 - 2026-08-06
 
 <br>
 
@@ -79,24 +118,12 @@ All notable changes to `dmw_experiments` will be documented in this file.
 
 <br>
 
-### ⚠️ Deprecated
-
-<br>
-
 ### 🗑️ Removed
 
 - Removed the v0.2 finalizer and raw-materialization wrappers, which read an
   obsolete run layout and were not used by the v0.3 lifecycle.
 - Removed the Haiu 1.7.3 preliminary exporter and separate-provider historian
   CLI wrapper. Current analysis starts from one copied schema-v3 run.
-
-<br>
-
-### 🔨 Fixed
-
-<br>
-
-### 🔒 Security
 
 <br>
 
