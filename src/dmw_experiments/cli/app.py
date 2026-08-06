@@ -24,7 +24,7 @@ from dmw_experiments.studies.datamodel_workflow_haiu_comparison.paths import (
 )
 
 PACKAGE_NAME = "dmw_experiments"
-VERSION_FALLBACK = "0.1.0"
+VERSION_FALLBACK = "0.2.0"
 LOG = logging.getLogger(__name__)
 T = TypeVar("T")
 

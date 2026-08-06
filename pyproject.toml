@@ -10,7 +10,7 @@ build-backend = "setuptools.build_meta"
 # =====================================================================
 [project]
 name        = "dmw_experiments"
-version     = "0.1.0"
+version     = "0.2.0"
 description = "Reproducible experiment orchestration and analysis for the DMW stack."
 authors     = [{ name = "HisQu" }]
 readme      = "README.md"

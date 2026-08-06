@@ -31,7 +31,8 @@ All notable changes to `dmw_experiments` will be documented in this file.
 1. [Changelog](#changelog)
    1. [Table Of Contents](#table-of-contents)
 2. [\[Unreleased\]](#unreleased)
-3. [0.1.0 - 2026-08-06](#010---2026-08-06)
+3. [0.2.0 - 2026-08-06](#020---2026-08-06)
+4. [0.1.0 - 2026-08-06](#010---2026-08-06)
 
 <br>
 
@@ -42,6 +43,44 @@ All notable changes to `dmw_experiments` will be documented in this file.
 <!-- ======================================================== -->
 
 # [Unreleased]
+
+<br>
+
+### 💥 Breaking changes
+
+<br>
+
+### ➕ Added
+
+<br>
+
+### 💔 Changed
+
+<br>
+
+### ⚠️ Deprecated
+
+<br>
+
+### 🗑️ Removed
+
+<br>
+
+### 🔨 Fixed
+
+<br>
+
+### 🔒 Security
+
+<br>
+
+---
+
+<br>
+
+<!-- ======================================================== -->
+
+# 0.2.0 - 2026-08-06
 
 <br>
 
@@ -78,14 +117,6 @@ All notable changes to `dmw_experiments` will be documented in this file.
   `dmw_experiments` package while preserving the tested scientific behavior.
 - Changed release-stack provenance checkouts to clone ignored published tags
   automatically instead of requiring neighboring source repositories.
-<br>
-
-### ⚠️ Deprecated
-
-<br>
-
-### 🗑️ Removed
-
 <br>
 
 ### 🔨 Fixed
