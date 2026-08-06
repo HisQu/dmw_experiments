@@ -1,4 +1,25 @@
+<div align="center">
+
 # DMW experiments
+
+*Part of:*
+
+<a href="https://hisqu.de" target="_blank">
+  <img
+    src="https://avatars.githubusercontent.com/u/196629600?s=200&v=4"
+    width="100px" alt="HisQu logo">
+</a>
+
+<br>
+
+[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](https://www.python.org/downloads/)
+
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![Pyright](https://img.shields.io/badge/type%20checked-pyright-blue)](https://microsoft.github.io/pyright/)
+[![pytest](https://img.shields.io/badge/tested%20with-pytest-0A9EDC)](https://docs.pytest.org/)
+
+</div>
 
 `dmw_experiments` owns reproducible experiment execution, supervision, raw
 artifacts, analysis, and plots for the DMW technology stack. It is separate
