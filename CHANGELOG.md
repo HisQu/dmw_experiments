@@ -133,6 +133,9 @@ All notable changes to `dmw_experiments` will be documented in this file.
   package table returned by environment-lock capture.
 - Fixed provider launch so every fresh execution receives isolated run-owned
   Haiu storage and LMStudio uses the endpoint resolved from its run environment.
+- Completed the exhaustive run environment with DMW's ontology repository and
+  app-wide GitHub credential settings so annotation guideline retrieval cannot
+  silently target an undefined repository.
 - Allowed the header--sublemma publication protocol to collect the complete
   three-condition matrix with either registered provider profile.
 - Made pause tolerate the short systemd restart interval in which a supervised

@@ -72,8 +72,8 @@ releases retain only the remote version pins in `pyproject.toml`.
 
 Each copied run is one AppRC storage. Its storage-local file is `run.env`.
 That tracked-with-the-run file names every relevant setting, but assigns no
-real credential. Put real credentials and the machine-local
-`FAISS_INDEX_PATH` in AppRC's app-wide environment:
+real credential. Put real credentials, including `GITHUB_TOKEN`, and the
+machine-local `FAISS_INDEX_PATH` in AppRC's app-wide environment:
 
 ```bash
 dmw_experiments config app init

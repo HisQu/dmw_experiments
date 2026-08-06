@@ -49,6 +49,7 @@ RUN_ENV_SECRET_KEYS = frozenset(
         "DATAMODEL_PASSWORD",
         "JWT_SECRET",
         "MONGO_URI",
+        "GITHUB_TOKEN",
         "KISSKI_API_KEY",
         "HAIU_OPENAI_API_KEY",
         "HAIU_EMBEDDING_API_KEY",
@@ -82,6 +83,7 @@ RUN_ENV_REQUIRED_KEYS = frozenset(
         "COOKIE_SECURE",
         "COOKIE_SAMESITE",
         "JWT_ISSUER",
+        "GITHUB_ONTOLOGY_REPO_NAME",
         "SEND_EMAILS",
         "ALLOWED_ORIGINS",
         "UVICORN_WORKERS",
@@ -178,6 +180,7 @@ class ResolvedRunEnvironment:
             "dmw_login",
             "mongo",
             "jwt",
+            "github",
             "provider",
             "ner",
             "haiu",
@@ -357,6 +360,7 @@ def _validate_secret_origins(
         (config.dmw_login, "password"),
         (config.mongo, "uri"),
         (config.jwt, "secret"),
+        (config.github, "token"),
     )
     if execution.name == "academiccloud":
         required += (

@@ -70,9 +70,10 @@ exhaustive shared non-secret runtime contract. Provider files contain only
 execution-specific overrides.
 
 Each run is selected as one AppRC storage and uses `run.env` as its
-storage-local environment. Real credentials and the machine-local NER index
-path belong to AppRC's app-wide environment. Launch evidence records redacted
-setting origins and derived storage identities, not credential values.
+storage-local environment. Real credentials, including `GITHUB_TOKEN`, and the
+machine-local NER index path belong to AppRC's app-wide environment. Launch
+evidence records redacted setting origins and derived storage identities, not
+credential values.
 
 Smoke and full runs require different run directories, DMW branches, raw
 collections, annotation collections, ontology collections, and Haiu storage.

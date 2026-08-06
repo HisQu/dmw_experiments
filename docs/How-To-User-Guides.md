@@ -20,8 +20,8 @@ dmw_experiments config edit
 ```
 
 Put `DATAMODEL_LOGIN`, `DATAMODEL_PASSWORD`, `MONGO_URI`, `JWT_SECRET`,
-provider keys, and the absolute `FAISS_INDEX_PATH` in AppRC's app-wide
-environment. Do not put them in a run directory.
+`GITHUB_TOKEN`, provider keys, and the absolute `FAISS_INDEX_PATH` in AppRC's
+app-wide environment. Do not put them in a run directory.
 
 ## Create a run
 

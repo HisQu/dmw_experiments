@@ -91,6 +91,23 @@ class JwtRuntimeConfig(rc.Config):
     )
 
 
+@APP_RC.config("github", prefix="GITHUB_", title="DMW GitHub integration")
+class GithubRuntimeConfig(rc.Config):
+    """Settings used to read versioned DMW ontology artifacts."""
+
+    ontology_repo_name: str = rc.field(
+        "GITHUB_ONTOLOGY_REPO_NAME",
+        required=True,
+        title="Ontology repository",
+    )
+    token: str = rc.field(
+        "GITHUB_TOKEN",
+        required=True,
+        secret=True,
+        title="GitHub token",
+    )
+
+
 @APP_RC.config("provider", prefix="KISSKI_", title="Generation provider")
 class ProviderRuntimeConfig(rc.Config):
     """OpenAI-compatible GTA provider settings used by OPA."""
@@ -216,6 +233,7 @@ class StudyRuntimeConfig:
     dmw_login: DatamodelLoginConfig
     mongo: MongoRuntimeConfig
     jwt: JwtRuntimeConfig
+    github: GithubRuntimeConfig
     provider: ProviderRuntimeConfig
     ner: NerRuntimeConfig
     haiu: HaiuStudyRuntimeConfig
