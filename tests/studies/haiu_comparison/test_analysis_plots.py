@@ -11,17 +11,19 @@ from openpyxl import Workbook
 from dmw_experiments.studies.haiu_comparison.analysis.plots.results import (
     PROVIDER_COLORS,
     _classify_failure,
-    _plot_false_assignment_incidence,
-    _plot_false_assignment_error_profile,
-    _quality_pair_grade_panel_data,
     _plot_outcomes,
     _plot_paired_absolute_metrics,
-    _plot_pairwise_quality_grade_trajectories,
-    _plot_quality_grade_provider_interaction,
-    _plot_quality_grade_overview,
     _status_text,
     load_workbook_results,
     plot_workbooks,
+)
+from dmw_experiments.studies.haiu_comparison.analysis.plots.quality import (
+    _plot_false_assignment_error_profile,
+    _plot_false_assignment_incidence,
+    _plot_pairwise_quality_grade_trajectories,
+    _plot_quality_grade_overview,
+    _plot_quality_grade_provider_interaction,
+    _quality_pair_grade_panel_data,
 )
 from dmw_experiments.studies.haiu_comparison.analysis.quality.grades import (
     build_quality_grade_analysis,

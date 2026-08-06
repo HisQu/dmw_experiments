@@ -11,6 +11,7 @@ import pytest
 from dmw_experiments.studies.haiu_comparison.data_collection import (
     runner as run_experiment,
 )
+from dmw_experiments.studies.haiu_comparison.data_collection import retry_policy
 from dmw_experiments.studies.haiu_comparison.data_collection.arguments import (
     build_parser as _build_parser,
 )
@@ -43,18 +44,20 @@ from dmw_experiments.studies.haiu_comparison.preparation.dmw_storage import (
 )
 from dmw_experiments.studies.haiu_comparison.data_collection.runner import (
     _annotation_preparation_failure_result,
-    _annotation_preparation_exhaustion_error,
     _condition_order_for_index,
     _experiment_result_from_row,
-    _is_annotation_preparation_retry_exhausted,
-    _is_terminal_result_payload,
     _ordered_rows,
     _run_condition_once,
     _run_condition_with_retries,
     _run_manifest,
     _selected_model_entry,
-    _workflow_conditions_require_annotation,
     _workflow_config,
+)
+from dmw_experiments.studies.haiu_comparison.data_collection.retry_policy import (
+    _annotation_preparation_exhaustion_error,
+    _is_annotation_preparation_retry_exhausted,
+    _is_terminal_result_payload,
+    _workflow_conditions_require_annotation,
 )
 
 
@@ -411,11 +414,11 @@ def test_output_cap_recovery_selects_only_unconstrained_fixed_cap_stops() -> (
         },
     }
 
-    assert run_experiment._is_output_cap_recovery_candidate(
+    assert retry_policy._is_output_cap_recovery_candidate(
         fixed_cap_failure,
         recovery_cap=20_000,
     )
-    assert not run_experiment._is_output_cap_recovery_candidate(
+    assert not retry_policy._is_output_cap_recovery_candidate(
         context_limited_failure,
         recovery_cap=20_000,
     )
@@ -438,14 +441,14 @@ def test_output_cap_recovery_requires_explicit_resume_amendment() -> None:
     )
 
     with pytest.raises(SystemExit, match="requires --resume"):
-        run_experiment._validate_output_cap_recovery_arguments(
+        retry_policy._validate_output_cap_recovery_arguments(
             args=args,
             has_existing_results=True,
         )
     args.resume = True
     args.max_output_tokens = 20_000
     with pytest.raises(SystemExit, match="must exceed"):
-        run_experiment._validate_output_cap_recovery_arguments(
+        retry_policy._validate_output_cap_recovery_arguments(
             args=args,
             has_existing_results=True,
         )
@@ -480,17 +483,17 @@ def test_provider_timeout_recovery_selects_only_exhausted_cap_replays() -> None:
         },
     }
 
-    assert run_experiment._is_provider_timeout_recovery_candidate(
+    assert retry_policy._is_provider_timeout_recovery_candidate(
         timeout_replay,
         expected_output_cap_recovery_id="output-cap-60000",
         required_attempts=3,
     )
-    assert not run_experiment._is_provider_timeout_recovery_candidate(
+    assert not retry_policy._is_provider_timeout_recovery_candidate(
         mixed_failure,
         expected_output_cap_recovery_id="output-cap-60000",
         required_attempts=3,
     )
-    assert not run_experiment._is_provider_timeout_recovery_candidate(
+    assert not retry_policy._is_provider_timeout_recovery_candidate(
         already_replayed_timeout,
         expected_output_cap_recovery_id="output-cap-60000",
         required_attempts=3,
@@ -513,7 +516,7 @@ def test_provider_timeout_recovery_requires_cap_recovery_chain() -> None:
     )
 
     with pytest.raises(SystemExit, match="preceding --output-cap-recovery-id"):
-        run_experiment._validate_provider_timeout_recovery_arguments(
+        retry_policy._validate_provider_timeout_recovery_arguments(
             args=args,
             has_existing_results=True,
         )
@@ -543,15 +546,15 @@ def test_connection_recovery_selects_only_exhausted_transport_failures() -> (
         "connection_recovery": {"amendment_id": "connection-20260730"},
     }
 
-    assert run_experiment._is_connection_recovery_candidate(
+    assert retry_policy._is_connection_recovery_candidate(
         connection_failure,
         required_attempts=3,
     )
-    assert not run_experiment._is_connection_recovery_candidate(
+    assert not retry_policy._is_connection_recovery_candidate(
         context_failure,
         required_attempts=3,
     )
-    assert not run_experiment._is_connection_recovery_candidate(
+    assert not retry_policy._is_connection_recovery_candidate(
         already_replayed_connection,
         required_attempts=3,
     )
@@ -573,7 +576,7 @@ def test_connection_recovery_requires_cap_recovery_chain() -> None:
     )
 
     with pytest.raises(SystemExit, match="preceding --output-cap-recovery-id"):
-        run_experiment._validate_connection_recovery_arguments(
+        retry_policy._validate_connection_recovery_arguments(
             args=args,
             has_existing_results=True,
         )
@@ -621,23 +624,23 @@ def test_local_runtime_recovery_selects_only_approved_failures() -> None:
         },
     }
 
-    assert run_experiment._is_local_runtime_recovery_candidate(
+    assert retry_policy._is_local_runtime_recovery_candidate(
         context_failure,
         required_attempts=3,
     )
-    assert run_experiment._is_local_runtime_recovery_candidate(
+    assert retry_policy._is_local_runtime_recovery_candidate(
         stale_model_failure,
         required_attempts=3,
     )
-    assert run_experiment._is_local_runtime_recovery_candidate(
+    assert retry_policy._is_local_runtime_recovery_candidate(
         http_502_failure,
         required_attempts=3,
     )
-    assert not run_experiment._is_local_runtime_recovery_candidate(
+    assert not retry_policy._is_local_runtime_recovery_candidate(
         length_failure,
         required_attempts=3,
     )
-    assert not run_experiment._is_local_runtime_recovery_candidate(
+    assert not retry_policy._is_local_runtime_recovery_candidate(
         already_replayed,
         required_attempts=3,
     )
@@ -659,7 +662,7 @@ def test_local_runtime_recovery_requires_cap_recovery_chain() -> None:
     )
 
     with pytest.raises(SystemExit, match="preceding --output-cap-recovery-id"):
-        run_experiment._validate_local_runtime_recovery_arguments(
+        retry_policy._validate_local_runtime_recovery_arguments(
             args=args,
             has_existing_results=True,
         )
@@ -714,7 +717,7 @@ def test_recovery_metadata_is_attached_to_retry_checkpoints() -> None:
         ),
     }
 
-    run_experiment._attach_recovery_metadata(
+    retry_policy._attach_recovery_metadata(
         payload,
         key=key,
         args=args,
@@ -882,11 +885,11 @@ def test_retry_exhaustion_skips_annotation_without_rewriting_evidence() -> None:
         "attempt": 3,
     }
 
-    assert run_experiment._is_retry_budget_exhausted(
+    assert retry_policy._is_retry_budget_exhausted(
         exhausted,
         max_attempts=3,
     )
-    assert run_experiment._is_resume_complete_result(
+    assert retry_policy._is_resume_complete_result(
         exhausted,
         max_attempts=3,
     )
@@ -913,7 +916,7 @@ def test_retry_exhaustion_skips_annotation_without_rewriting_evidence() -> None:
 
 
 def test_terminal_attempt_state_preserves_retry_exhaustion() -> None:
-    payload = run_experiment._terminal_attempt_state_payload(
+    payload = retry_policy._terminal_attempt_state_payload(
         condition="workflow_rag",
         regest_id="1",
         result={"success": False, "attempt": 3},
