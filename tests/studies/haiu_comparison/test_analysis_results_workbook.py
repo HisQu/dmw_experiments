@@ -9,7 +9,7 @@ from openpyxl import load_workbook
 from rdflib import Literal, URIRef
 from rdflib.namespace import RDF, RDFS
 
-from dmw_experiments.studies.haiu_comparison.export_results_workbook import (
+from dmw_experiments.studies.haiu_comparison.analysis.workbooks.results import (
     _SourceOrderedGraph,
     _historian_review_headers,
     _human_readable_main_entry,

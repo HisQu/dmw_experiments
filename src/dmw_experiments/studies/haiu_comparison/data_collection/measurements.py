@@ -13,22 +13,15 @@ from haiu.clients.llm.llm_metrics import LLMCallMeta
 
 from dmw_experiments.studies.haiu_comparison.model.results import (
     TokenMeasurement,
+    provider_prompt_token_measurement,
 )
 from dmw_experiments.studies.haiu_comparison.model.traces import (
     PromptBundle,
 )
 
-_TURTLE_PREFIXES = """
-@prefix : <http://hisqu.de/rg_ontology/ontology/> .
-@prefix owl: <http://www.w3.org/2002/07/owl#> .
-@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
-@prefix xml: <http://www.w3.org/XML/1998/namespace/> .
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix rg: <http://hisqu.de/rg_ontology/ontology/> .
-@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
-@base <http://hisqu.de/rg_ontology/ontology/> .
-""".strip()
+from dmw_experiments.studies.haiu_comparison.model.ontology import (
+    TURTLE_PREFIXES,
+)
 
 
 def estimate_tokens(text: str, *, model: str) -> TokenMeasurement:
@@ -49,21 +42,6 @@ def estimate_tokens(text: str, *, model: str) -> TokenMeasurement:
         return TokenMeasurement(
             tokens=max(1, (len(text) + 3) // 4), source="estimated"
         )
-
-
-def provider_prompt_token_measurement(
-    prompt_tokens: object,
-) -> TokenMeasurement | None:
-    """Normalize one provider-reported input-token count.
-
-    :param prompt_tokens: Token count at the dynamic provider-response
-        boundary.
-    :return: Exact provider measurement, or ``None`` when the value is absent
-        or malformed.
-    """
-    if not isinstance(prompt_tokens, int) or isinstance(prompt_tokens, bool):
-        return None
-    return TokenMeasurement(tokens=prompt_tokens, source="provider")
 
 
 def turtle_generation_input_tokens(
@@ -210,7 +188,7 @@ def turtle_syntax_fields(
     parse_input = (
         cleaned
         if "@prefix" in cleaned
-        else "\n\n".join((_TURTLE_PREFIXES, cleaned))
+        else "\n\n".join((TURTLE_PREFIXES, cleaned))
     )
     try:
         graph = haiu.parse_rdf_data(parse_input, format="turtle", log=False)

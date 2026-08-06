@@ -1,10 +1,10 @@
 import pandas as pd
 import pytest
 
-from dmw_experiments.studies.haiu_comparison.export_results_workbook import (
+from dmw_experiments.studies.haiu_comparison.analysis.workbooks.results import (
     HISTORIAN_REVIEW_HEADERS,
 )
-from dmw_experiments.studies.haiu_comparison.recover_historian_reveal_key import (
+from dmw_experiments.studies.haiu_comparison.analysis.quality.reveal_key import (
     _recover_reveal_key_from_sheets,
 )
 

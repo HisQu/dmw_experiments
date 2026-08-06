@@ -185,6 +185,9 @@ Follow these rules for normal edits:
   [src/dmw_experiments/shared](../src/dmw_experiments/shared).
 - Keep scientific behavior in the matching package below
   [src/dmw_experiments/studies](../src/dmw_experiments/studies).
+- Organize study code by lifecycle ownership. For the Haiu comparison, use
+  `model`, `preparation`, `data_collection`, `operations`, `analysis`, and
+  `entrypoints`; route supported orchestration through `study.py`.
 - Keep CLI behavior in `src/dmw_experiments/cli/app.py`; keep
   `src/dmw_experiments/main.py` wrapper-only.
 - Keep tests in [tests](../tests).
@@ -196,7 +199,7 @@ Follow these rules for normal edits:
   environment variables, or user-visible workflows.
 
 > [!NOTE]
-> Related: use [public interfaces](References.md#public-interfaces) for the
+> Related: use [the Python interface](References.md#python-interface) for the
 > surfaces that need stable names and documentation.
 
 <br>

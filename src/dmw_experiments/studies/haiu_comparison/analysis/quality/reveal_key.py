@@ -13,15 +13,15 @@ from typing import Any
 
 import pandas as pd
 
-from dmw_experiments.studies.haiu_comparison.export_results_workbook import (
+from dmw_experiments.studies.haiu_comparison.analysis.workbooks.results import (
     HISTORIAN_REVIEW_FALSE_ASSERTIONS_HEADER,
     HISTORIAN_REVIEW_FALSE_INTERPRETATIONS_HEADER,
     HISTORIAN_REVIEW_HEADERS,
 )
-from dmw_experiments.studies.haiu_comparison.quality_grade_inputs import (
+from dmw_experiments.studies.haiu_comparison.analysis.quality.inputs import (
     load_json_object,
 )
-from dmw_experiments.studies.haiu_comparison.quality_grade_analysis import (
+from dmw_experiments.studies.haiu_comparison.analysis.quality.grades import (
     CONDITION_ORDER,
 )
 

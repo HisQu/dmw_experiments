@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-from dmw_experiments.studies.haiu_comparison.export_results_workbook import (
+from dmw_experiments.studies.haiu_comparison.analysis.workbooks.results import (
     ExportPaths,
     HistorianProviderComparisonPaths,
     export_provider_historian_review_workbook,
@@ -17,7 +17,7 @@ from dmw_experiments.studies.haiu_comparison.export_results_workbook import (
 from dmw_experiments.studies.haiu_comparison.model.run_contract import (
     load_run_contract,
 )
-from dmw_experiments.studies.haiu_comparison.plot_results_workbooks import (
+from dmw_experiments.studies.haiu_comparison.analysis.plots.results import (
     plot_workbooks,
 )
 

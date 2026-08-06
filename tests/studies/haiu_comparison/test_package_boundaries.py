@@ -46,3 +46,15 @@ def test_collection_does_not_import_analysis() -> None:
     imports = _imports_below(PACKAGE_ROOT / "data_collection")
 
     assert not any(".analysis" in name for name in imports)
+
+
+def test_analysis_does_not_import_collection_or_operations() -> None:
+    """Derived reporting depends on preserved evidence and domain models."""
+    imports = _imports_below(PACKAGE_ROOT / "analysis")
+
+    forbidden = (".data_collection", ".entrypoints", ".operations")
+    offenders = sorted(
+        name for name in imports if any(marker in name for marker in forbidden)
+    )
+
+    assert offenders == []

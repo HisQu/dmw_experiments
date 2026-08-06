@@ -10,10 +10,10 @@ from typing import Any, cast
 import pandas as pd
 import xlsxwriter
 
-from dmw_experiments.studies.haiu_comparison.quality_error_analysis import (
+from dmw_experiments.studies.haiu_comparison.analysis.quality.errors import (
     QualityErrorAnalysis,
 )
-from dmw_experiments.studies.haiu_comparison.quality_grade_analysis import (
+from dmw_experiments.studies.haiu_comparison.analysis.quality.grades import (
     QualityGradeAnalysis,
 )
 

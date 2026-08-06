@@ -4,13 +4,13 @@ import pandas as pd
 import pytest
 from openpyxl import load_workbook
 
-from dmw_experiments.studies.haiu_comparison.quality_error_analysis import (
+from dmw_experiments.studies.haiu_comparison.analysis.quality.errors import (
     build_quality_error_analysis,
 )
-from dmw_experiments.studies.haiu_comparison.quality_grade_analysis import (
+from dmw_experiments.studies.haiu_comparison.analysis.quality.grades import (
     build_quality_grade_analysis,
 )
-from dmw_experiments.studies.haiu_comparison.quality_grade_workbook import (
+from dmw_experiments.studies.haiu_comparison.analysis.workbooks.quality import (
     export_quality_grade_analysis_workbook,
 )
 

@@ -9,7 +9,7 @@ from typing import cast
 import pandas as pd
 
 import haiu.utils as ut
-from dmw_experiments.studies.haiu_comparison.quality_grade_analysis import (
+from dmw_experiments.studies.haiu_comparison.analysis.quality.grades import (
     CONDITION_LABELS,
     CONDITION_ORDER,
     QUALITY_COMPARISONS,

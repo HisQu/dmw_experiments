@@ -29,6 +29,19 @@ class TokenMeasurement:
         }
 
 
+def provider_prompt_token_measurement(
+    prompt_tokens: object,
+) -> TokenMeasurement | None:
+    """Normalize one provider-reported input-token count.
+
+    :param prompt_tokens: Value returned at the provider-response boundary.
+    :return: Exact measurement, or ``None`` when absent or malformed.
+    """
+    if not isinstance(prompt_tokens, int) or isinstance(prompt_tokens, bool):
+        return None
+    return TokenMeasurement(tokens=prompt_tokens, source="provider")
+
+
 @dataclass(slots=True)
 class ExperimentResult:
     """Normalized result for one condition and regest.

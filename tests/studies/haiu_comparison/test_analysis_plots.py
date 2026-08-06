@@ -8,7 +8,7 @@ import pytest
 from matplotlib.colors import to_rgba
 from openpyxl import Workbook
 
-from dmw_experiments.studies.haiu_comparison.plot_results_workbooks import (
+from dmw_experiments.studies.haiu_comparison.analysis.plots.results import (
     PROVIDER_COLORS,
     _classify_failure,
     _plot_false_assignment_incidence,
@@ -23,10 +23,10 @@ from dmw_experiments.studies.haiu_comparison.plot_results_workbooks import (
     load_workbook_results,
     plot_workbooks,
 )
-from dmw_experiments.studies.haiu_comparison.quality_grade_analysis import (
+from dmw_experiments.studies.haiu_comparison.analysis.quality.grades import (
     build_quality_grade_analysis,
 )
-from dmw_experiments.studies.haiu_comparison.quality_error_analysis import (
+from dmw_experiments.studies.haiu_comparison.analysis.quality.errors import (
     build_quality_error_analysis,
 )
 

@@ -3,10 +3,11 @@
 ## Table of contents
 
 1. [Ownership model](#ownership-model)
-2. [Why the run is the unit of organization](#why-the-run-is-the-unit-of-organization)
-3. [Configuration model](#configuration-model)
-4. [Execution and failure model](#execution-and-failure-model)
-5. [Promotion model](#promotion-model)
+2. [Study package lifecycle](#study-package-lifecycle)
+3. [Why the run is the unit of organization](#why-the-run-is-the-unit-of-organization)
+4. [Configuration model](#configuration-model)
+5. [Execution and failure model](#execution-and-failure-model)
+6. [Promotion model](#promotion-model)
 
 ## Ownership model
 
@@ -18,6 +19,30 @@ never copied into a run.
 Runs and smoke tests are generated data, so their normal roots are ignored.
 This prevents half-finished experiments, secrets, provider logs, and large raw
 artifacts from entering Git by accident.
+
+## Study package lifecycle
+
+The Haiu comparison package follows the order in which a scientist uses it:
+
+```text
+haiu_comparison/
+├── model/             # Stable IDs, run contracts, inputs, results, and paths
+├── preparation/       # Frozen input catalogue and isolated DMW storage
+├── data_collection/   # DMW and standalone Haiu condition adapters
+├── operations/        # Validation, supervision, status, locks, and promotion
+├── analysis/          # Workbooks, quality review, and plots
+├── entrypoints/       # Processes started by user-systemd
+└── study.py           # Supported HaiuComparisonStudy façade
+```
+
+`model` does not import a lifecycle implementation. `data_collection` does
+not import analysis. Analysis reads preserved evidence and model contracts; it
+does not call collection or operational code. `entrypoints` only bootstraps
+supervised processes. Architecture tests enforce these directions.
+
+The CLI and Python callers use `HaiuComparisonStudy`. Internal module imports
+may change when the study implementation is refactored; the façade is the
+supported orchestration boundary.
 
 ## Why the run is the unit of organization
 

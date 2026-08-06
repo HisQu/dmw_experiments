@@ -62,6 +62,8 @@ All notable changes to `dmw_experiments` will be documented in this file.
 
 - Added typed condition, execution, run-contract, and copied-run models so all
   lifecycle phases resolve artifacts through one validated run directory.
+- Added `HaiuComparisonStudy` as the supported Python façade for the same run
+  lifecycle exposed by the CLI.
 
 <br>
 
@@ -71,6 +73,9 @@ All notable changes to `dmw_experiments` will be documented in this file.
   operations, and analysis implementations.
 - Moved provider process launchers below `entrypoints` and separated runtime,
   environment-lock, status, and repository-path ownership below `operations`.
+- Separated derived reporting into `analysis.workbooks`, `analysis.quality`,
+  and `analysis.plots`, with import-boundary tests between domain, collection,
+  operations, and analysis code.
 
 <br>
 
@@ -82,6 +87,8 @@ All notable changes to `dmw_experiments` will be documented in this file.
 
 - Removed the v0.2 finalizer and raw-materialization wrappers, which read an
   obsolete run layout and were not used by the v0.3 lifecycle.
+- Removed the Haiu 1.7.3 preliminary exporter and separate-provider historian
+  CLI wrapper. Current analysis starts from one copied schema-v3 run.
 
 <br>
 

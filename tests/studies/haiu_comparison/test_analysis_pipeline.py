@@ -8,7 +8,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from dmw_experiments.studies.haiu_comparison import run_analysis
+from dmw_experiments.studies.haiu_comparison.analysis import (
+    pipeline as run_analysis,
+)
 from dmw_experiments.studies.haiu_comparison.operations.repository_paths import (
     RUN_TEMPLATE_ROOT,
 )

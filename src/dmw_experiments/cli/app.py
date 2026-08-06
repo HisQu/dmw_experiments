@@ -16,15 +16,8 @@ import typer
 import dmw_experiments
 from dmw_experiments.shared.config import APP_RC
 from dmw_experiments.shared.config import AppRuntimeConfig
-from dmw_experiments.studies.haiu_comparison.operations.lifecycle import (
-    ExperimentLifecycle,
-)
-from dmw_experiments.studies.haiu_comparison.operations.run_factory import (
-    NewRunRequest,
-    create_run,
-)
-from dmw_experiments.studies.haiu_comparison.operations.promotion import (
-    prepare_promotion,
+from dmw_experiments.studies.haiu_comparison import (
+    HaiuComparisonStudy,
 )
 
 PACKAGE_NAME = "dmw_experiments"
@@ -194,12 +187,12 @@ def diagnose_cmd(
     _echo_diagnose_payload(payload)
 
 
-def _lifecycle() -> ExperimentLifecycle:
-    """Construct the application lifecycle from resolved AppRC settings.
+def _study() -> HaiuComparisonStudy:
+    """Construct the supported study façade from resolved AppRC settings.
 
-    :return: Lifecycle facade for the current CLI invocation.
+    :return: Complete Haiu comparison lifecycle for this invocation.
     """
-    return ExperimentLifecycle(config=AppRuntimeConfig())
+    return HaiuComparisonStudy(config=AppRuntimeConfig())
 
 
 def _run_lifecycle(action: Callable[[], T]) -> T:
@@ -247,12 +240,10 @@ def new_run_cmd(
     if study != "haiu_comparison":
         raise typer.BadParameter("Only haiu_comparison is available.")
     path = _run_lifecycle(
-        lambda: create_run(
-            NewRunRequest(
-                run_id=run_id,
-                mode=mode,
-                executions=_execution_filter(execution),
-            )
+        lambda: _study().new_run(
+            run_id=run_id,
+            mode=mode,
+            executions=_execution_filter(execution),
         )
     )
     typer.echo(path)
@@ -268,9 +259,9 @@ def validate_cmd(
 ) -> None:
     """Validate the run, AppRC sources, storage identities, and runtime."""
     payload = _run_lifecycle(
-        lambda: _lifecycle().validate(
+        lambda: _study().validate(
             run_dir,
-            execution_names=_execution_filter(execution),
+            executions=_execution_filter(execution),
         )
     )
     rc.cli.dump_json(payload)
@@ -286,9 +277,9 @@ def start_cmd(
 ) -> None:
     """Prepare fresh storage and start selected provider services."""
     workspaces = _run_lifecycle(
-        lambda: _lifecycle().start(
+        lambda: _study().start(
             run_dir,
-            execution_names=_execution_filter(execution),
+            executions=_execution_filter(execution),
         )
     )
     for workspace in workspaces:
@@ -305,9 +296,9 @@ def resume_cmd(
 ) -> None:
     """Resume the same run from durable checkpoints and frozen settings."""
     workspaces = _run_lifecycle(
-        lambda: _lifecycle().resume(
+        lambda: _study().resume(
             run_dir,
-            execution_names=_execution_filter(execution),
+            executions=_execution_filter(execution),
         )
     )
     for workspace in workspaces:
@@ -324,9 +315,9 @@ def pause_cmd(
 ) -> None:
     """Stop an active run in checkpoint-safe service order."""
     status = _run_lifecycle(
-        lambda: _lifecycle().pause(
+        lambda: _study().pause(
             run_dir,
-            execution_names=_execution_filter(execution),
+            executions=_execution_filter(execution),
         )
     )
     rc.cli.dump_json(asdict(status))
@@ -342,9 +333,9 @@ def status_cmd(
 ) -> None:
     """Report durable cell counts and current service states."""
     status = _run_lifecycle(
-        lambda: _lifecycle().status(
+        lambda: _study().status(
             run_dir,
-            execution_names=_execution_filter(execution),
+            executions=_execution_filter(execution),
         )
     )
     rc.cli.dump_json(asdict(status))
@@ -382,13 +373,9 @@ def analyze_cmd(
     ] = True,
 ) -> None:
     """Regenerate workbooks, review packets, and plots from raw data."""
-    from dmw_experiments.studies.haiu_comparison.run_analysis import (
-        run_analysis,
-    )
-
     artifacts = _run_lifecycle(
-        lambda: run_analysis(
-            run_dir=run_dir,
+        lambda: _study().analyze(
+            run_dir,
             allow_partial=allow_partial,
             audit_csv=audit_csv,
             overwrite=overwrite,
@@ -409,7 +396,10 @@ def prepare_promotion_cmd(
 ) -> None:
     """Validate a run and build its experiment-package artifacts."""
     result = _run_lifecycle(
-        lambda: prepare_promotion(run_dir, allow_partial=allow_partial)
+        lambda: _study().prepare_promotion(
+            run_dir,
+            allow_partial=allow_partial,
+        )
     )
     typer.echo(
         f"Prepared {result.terminal_cells}/{result.expected_cells} cells."

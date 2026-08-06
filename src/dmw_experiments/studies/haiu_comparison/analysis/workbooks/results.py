@@ -20,8 +20,10 @@ import xlsxwriter
 from rdflib import BNode, Graph, Literal, URIRef
 from rdflib.namespace import OWL, RDF, RDFS, SKOS
 
-from dmw_experiments.studies.haiu_comparison.data_collection.measurements import (
-    _TURTLE_PREFIXES,
+from dmw_experiments.studies.haiu_comparison.model.ontology import (
+    TURTLE_PREFIXES,
+)
+from dmw_experiments.studies.haiu_comparison.model.results import (
     provider_prompt_token_measurement,
 )
 from haiu.rdf.fmt_utils import frag_uri
@@ -1460,7 +1462,7 @@ def _raw_turtle_from_row(row: dict[str, Any]) -> str:
 def _parse_generated_turtle(turtle: str) -> Graph:
     graph = Graph()
     payload = (
-        turtle if "@prefix" in turtle else f"{_TURTLE_PREFIXES}\n\n{turtle}"
+        turtle if "@prefix" in turtle else f"{TURTLE_PREFIXES}\n\n{turtle}"
     )
     graph.parse(data=payload, format="turtle")
     return graph

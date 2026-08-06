@@ -1,8 +1,10 @@
 from dmw_experiments.studies.haiu_comparison.data_collection.measurements import (
-    provider_prompt_token_measurement,
     summarize_rows,
     turtle_generation_input_tokens,
     turtle_syntax_fields,
+)
+from dmw_experiments.studies.haiu_comparison.model.results import (
+    provider_prompt_token_measurement,
 )
 
 

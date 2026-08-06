@@ -27,22 +27,22 @@ from matplotlib.text import Text
 from openpyxl import load_workbook
 
 import dmw_experiments.shared.analysis as ut
-from dmw_experiments.studies.haiu_comparison.quality_grade_analysis import (
+from dmw_experiments.studies.haiu_comparison.analysis.quality.grades import (
     CONDITION_LABELS as QUALITY_CONDITION_LABELS,
     CONDITION_ORDER as QUALITY_CONDITION_ORDER,
     QUALITY_COMPARISONS,
     QualityGradeAnalysis,
     build_quality_grade_analysis,
 )
-from dmw_experiments.studies.haiu_comparison.quality_error_analysis import (
+from dmw_experiments.studies.haiu_comparison.analysis.quality.errors import (
     QualityErrorAnalysis,
     build_quality_error_analysis,
 )
-from dmw_experiments.studies.haiu_comparison.quality_grade_inputs import (
+from dmw_experiments.studies.haiu_comparison.analysis.quality.inputs import (
     load_historian_quality_error_counts,
     load_historian_quality_grades,
 )
-from dmw_experiments.studies.haiu_comparison.quality_grade_workbook import (
+from dmw_experiments.studies.haiu_comparison.analysis.workbooks.quality import (
     export_quality_grade_analysis_workbook,
 )
 

@@ -32,7 +32,8 @@ everything needed to start, resume, inspect, analyze, and publish that run.
 3. [Configure AppRC](#configure-apprc)
 4. [Create and operate a run](#create-and-operate-a-run)
 5. [Analyze and promote](#analyze-and-promote)
-6. [Development and releases](#development-and-releases)
+6. [Python API and study package](#python-api-and-study-package)
+7. [Development and releases](#development-and-releases)
 
 ## Repository map
 
@@ -144,6 +145,25 @@ dmw_experiments prepare-promotion --run-dir "$PWD"
 Review the run, then copy it to
 `studies_runs/haiu_comparison/git_tracked/<run-id>/` in a separate commit.
 `locks/dist/` contains the matching experiment wheel and source archive.
+
+## Python API and study package
+
+`HaiuComparisonStudy` is the supported Python entry point. It exposes the same
+`new_run`, `validate`, `start`, `status`, `pause`, `resume`, `analyze`, and
+`prepare_promotion` lifecycle used by the CLI:
+
+```python
+from dmw_experiments.shared.config import AppRuntimeConfig
+from dmw_experiments.studies.haiu_comparison import HaiuComparisonStudy
+
+study = HaiuComparisonStudy(AppRuntimeConfig())
+status = study.status(run_dir)
+```
+
+Study internals are organized by lifecycle: `model`, `preparation`,
+`data_collection`, `operations`, `analysis`, and `entrypoints`. External code
+should not import those implementations when the façade provides the required
+operation.
 
 ## Development and releases
 

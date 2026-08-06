@@ -37,6 +37,10 @@ The complete data template lives at
 [`studies_run_templates/haiu_comparison/template`](../../studies_run_templates/haiu_comparison/template/README.md).
 Python behavior stays in
 [`src/dmw_experiments/studies/haiu_comparison`](../../src/dmw_experiments/studies/haiu_comparison).
+That package follows the experiment lifecycle: `model`, `preparation`,
+`data_collection`, `operations`, `analysis`, and `entrypoints`.
+`HaiuComparisonStudy` in `study.py` is the supported Python orchestration
+interface.
 
 A copied run has flat provider areas:
 

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from dmw_experiments.studies.haiu_comparison.plot_results_workbooks import (
+from dmw_experiments.studies.haiu_comparison.analysis.plots.results import (
     _is_configuration_invalid_outcome_error,
     _local_runtime_recovery_cells,
 )

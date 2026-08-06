@@ -18,6 +18,9 @@ destinations, and operator scripts.
 ## Template contract
 
 - Keep all Python logic in `src/dmw_experiments/studies/haiu_comparison/`.
+- Keep that Python package organized by lifecycle: `model`, `preparation`,
+  `data_collection`, `operations`, `analysis`, and `entrypoints`. Route CLI and
+  external Python orchestration through `HaiuComparisonStudy` in `study.py`.
 - Keep the three condition names identical to `run.toml`.
 - Keep `run.env` exhaustive and keep real credentials in AppRC's app-wide
   configuration.

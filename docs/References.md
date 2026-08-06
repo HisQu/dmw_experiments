@@ -3,10 +3,12 @@
 ## Table of contents
 
 1. [Project paths](#project-paths)
-2. [Commands](#commands)
-3. [Run files](#run-files)
-4. [Configuration layers](#configuration-layers)
-5. [Release commands](#release-commands)
+2. [Haiu comparison package](#haiu-comparison-package)
+3. [Python interface](#python-interface)
+4. [Commands](#commands)
+5. [Run files](#run-files)
+6. [Configuration layers](#configuration-layers)
+7. [Release commands](#release-commands)
 
 ## Project paths
 
@@ -19,6 +21,31 @@
 | `studies_runs/haiu_comparison/git_tracked/` | User-promoted runs. |
 | `studies_runs_smoketests/haiu_comparison/` | Ignored smoke runs. |
 | `docs/studies/haiu_comparison.md` | Synchronized study overview. |
+
+## Haiu comparison package
+
+| Path | Responsibility |
+| --- | --- |
+| `model/` | Condition IDs, input population, run contract, results, and copied-run paths. |
+| `preparation/` | Catalogue materialization and isolated DMW storage preparation. |
+| `data_collection/dmw/` | DMW client, annotation, and workflow conditions. |
+| `data_collection/haiu/` | Standalone Haiu retrieval, prompts, and generation. |
+| `data_collection/runner.py` | Provider-cell scheduling, retries, and checkpoints. |
+| `operations/` | Lifecycle, runtime, status, environment locks, run creation, and promotion. |
+| `analysis/workbooks/` | Raw-result, pairwise, and quality-review workbooks. |
+| `analysis/quality/` | Blinded grade and error analysis. |
+| `analysis/plots/` | Diagnostic and publication plot exports. |
+| `entrypoints/` | Backend, runner bootstrap, and LM Studio proxy processes. |
+| `study.py` | Supported lifecycle façade. |
+
+## Python interface
+
+Construct
+`dmw_experiments.studies.haiu_comparison.HaiuComparisonStudy` with
+`AppRuntimeConfig`. Its public methods are `new_run`, `validate`, `start`,
+`status`, `pause`, `resume`, `analyze`, and `prepare_promotion`. The Typer CLI
+calls this façade. The lifecycle packages above are implementation modules,
+not a second public orchestration interface.
 
 ## Commands
 
