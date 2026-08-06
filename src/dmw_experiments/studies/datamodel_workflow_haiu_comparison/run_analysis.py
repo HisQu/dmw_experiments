@@ -54,8 +54,8 @@ def run_analysis(
     review may gain packets as a run progresses, so this function never
     overwrites a human-evaluated review or its corresponding reveal key.
 
-    :param academiccloud_run_dir: AcademicCloud ``RESULTS/<run-id>`` directory.
-    :param lmstudio_run_dir: LM Studio ``RESULTS/<run-id>`` directory.
+    :param academiccloud_run_dir: AcademicCloud ``output/runs/<run-id>`` directory.
+    :param lmstudio_run_dir: LM Studio ``output/runs/<run-id>`` directory.
     :param provider_review_workbook: New ungraded review-workbook destination.
     :param output_root: Parent directory for timestamped plot exports.
     :param allow_partial: Label exports as diagnostic while either run remains
@@ -132,12 +132,12 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "academiccloud_run_dir",
         type=Path,
-        help="AcademicCloud RESULTS/<run-id> directory.",
+        help="AcademicCloud output/runs/<run-id> directory.",
     )
     parser.add_argument(
         "lmstudio_run_dir",
         type=Path,
-        help="LM Studio RESULTS/<run-id> directory.",
+        help="LM Studio output/runs/<run-id> directory.",
     )
     parser.add_argument(
         "--provider-review-output",
@@ -215,7 +215,7 @@ def _default_output_root(
     if academiccloud_parent != lmstudio_parent:
         raise ValueError(
             "Use --output-root when provider run directories do not share "
-            "one direct RESULTS parent."
+            "one direct runs parent."
         )
     return academiccloud_parent
 

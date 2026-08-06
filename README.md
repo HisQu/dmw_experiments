@@ -138,7 +138,9 @@ dmw_experiments analyze \
 ```
 
 Derived files are written below `output/analyses/<timestamp>/`. Human grades
-remain separate inputs and are never overwritten.
+remain separate inputs and are never overwritten. The command replaces only
+exporter-owned per-run workbooks by default; pass `--no-overwrite` to require
+empty derived-output locations.
 
 ## Development
 

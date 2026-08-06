@@ -36,6 +36,11 @@
 | `dmw_experiments analyze ...` | Rebuild workbooks, review packets, and plots. |
 | `dmw_experiments config doctor` | Diagnose AppRC runtime configuration. |
 
+`analyze` overwrites known exporter-owned per-run files by default. It never
+overwrites a supplied historian-grade workbook or an existing timestamped plot
+directory. Use `--no-overwrite` for a fail-if-present export and `--audit-csv`
+for raw-derived CSV tables.
+
 ## Environment variables
 
 | Variable | Meaning |

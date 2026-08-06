@@ -334,6 +334,21 @@ def analyze_cmd(
         bool,
         typer.Option(help="Permit explicitly labelled partial exports."),
     ] = False,
+    audit_csv: Annotated[
+        bool,
+        typer.Option(help="Also export raw-derived audit CSV tables."),
+    ] = False,
+    overwrite: Annotated[
+        bool,
+        typer.Option(
+            "--overwrite/--no-overwrite",
+            help=(
+                "Replace exporter-owned derived run files. Human grade "
+                "inputs and existing timestamped plot directories remain "
+                "immutable."
+            ),
+        ),
+    ] = True,
 ) -> None:
     """Regenerate workbooks, review packets, and plots from raw data."""
     from dmw_experiments.studies.datamodel_workflow_haiu_comparison.run_analysis import (
@@ -350,7 +365,8 @@ def analyze_cmd(
             provider_review_workbook=review,
             output_root=output_root,
             allow_partial=allow_partial,
-            overwrite=False,
+            audit_csv=audit_csv,
+            overwrite=overwrite,
             timestamp=timestamp,
             quality_review_workbook=quality_review_workbook,
             quality_reveal_key=quality_reveal_key,
