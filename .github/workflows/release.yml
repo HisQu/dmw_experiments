@@ -1,0 +1,84 @@
+name: Release
+
+run-name: ${{ github.actor }} - ${{ github.ref_name }} - Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+concurrency:
+  group: dmw-experiments-release
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    name: Full CI
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit
+
+  build:
+    name: Build release artifacts
+    needs: checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v5
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.12"
+          enable-cache: auto
+
+      - name: Install just
+        uses: extractions/setup-just@v4
+        with:
+          just-version: "1.56.0"
+
+      - name: Build and validate release bundle
+        run: just _release-artifact-check release/release-notes.md
+
+      - name: Preserve release bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-bundle-${{ github.ref_name }}
+          path: |
+            dist/*.whl
+            dist/*.tar.gz
+            release/release-notes.md
+          if-no-files-found: error
+          retention-days: 14
+
+  github-release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Restore release bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: release-bundle-${{ github.ref_name }}
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          release_version="${GITHUB_REF_NAME#v}"
+          gh release create "$GITHUB_REF_NAME" \
+            dist/*.whl \
+            dist/*.tar.gz \
+            --repo "$GITHUB_REPOSITORY" \
+            --verify-tag \
+            --latest \
+            --title "dmw_experiments ${release_version}" \
+            --notes-file release/release-notes.md

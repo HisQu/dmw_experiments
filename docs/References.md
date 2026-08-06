@@ -16,12 +16,14 @@
 
 | Path | Owner |
 | --- | --- |
-| `src/dmw_experiments/` | Importable execution, supervision, and analysis code. |
+| `src/dmw_experiments/shared/` | Reusable execution, supervision, artifact, configuration, and analysis code. |
+| `src/dmw_experiments/studies/` | Study-specific scientific code. |
 | `studies/` | Tracked scientific inputs, run specs, and release contracts. |
 | `output/runs/` | Generated raw runs, logs, and provenance. |
 | `output/analyses/` | Generated cross-run workbooks and figures. |
 | `tests/` | Offline regression and lifecycle verification. |
 | `docs/` | User and maintainer documentation. |
+| `docs/studies/` | Scientific study summaries synchronized with tracked study READMEs. |
 
 ## Commands
 
@@ -72,17 +74,23 @@ under [Commands](#commands). Python modules below
 `dmw_experiments.studies` are experiment implementation details unless a study
 document names them explicitly.
 
+Reusable Python modules live below `dmw_experiments.shared`. The root
+`dmw_experiments.cli` package is the application boundary, not a utility
+owner.
+
 ## Study files
 
 | Path | Meaning |
 | --- | --- |
-| `studies/datamodel_workflow_haiu_comparison/inputs/header_sublemma_input_catalog.json` | Frozen 480-unit population. |
-| `studies/datamodel_workflow_haiu_comparison/inputs/reference_ontology.ttl` | Frozen reference ontology used by the measured conditions. |
-| `studies/datamodel_workflow_haiu_comparison/inputs/retrieval_workspace.json` | Portable retrieval-workspace identity. |
-| `studies/datamodel_workflow_haiu_comparison/inputs/annotation_guidelines.md` | Immutable annotation instructions. |
-| `studies/datamodel_workflow_haiu_comparison/specs/academiccloud-header-sublemma-smoke.json` | Canonical `limit=1` smoke contract. |
-| `studies/datamodel_workflow_haiu_comparison/specs/academiccloud-header-sublemma-full.json` | Canonical `limit=0` full contract. |
-| `studies/datamodel_workflow_haiu_comparison/locks/published-dmw-stack-1.1.3.json` | Published stack contract. |
+| `studies/haiu_comparison/inputs/header_sublemma_input_catalog.json` | Frozen 480-unit population. |
+| `studies/haiu_comparison/inputs/reference_ontology.ttl` | Frozen reference ontology used by the measured conditions. |
+| `studies/haiu_comparison/inputs/retrieval_workspace.json` | Portable retrieval-workspace identity. |
+| `studies/haiu_comparison/inputs/annotation_guidelines.md` | Immutable annotation instructions. |
+| `studies/haiu_comparison/specs/academiccloud-header-sublemma-smoke.json` | Canonical `limit=1` smoke contract. |
+| `studies/haiu_comparison/specs/academiccloud-header-sublemma-full.json` | Canonical `limit=0` full contract. |
+| `studies/haiu_comparison/locks/published-dmw-stack-1.1.3.json` | Published stack contract. |
+| `studies/haiu_comparison/README.md` | Operational study overview beside the tracked contract. |
+| `docs/studies/haiu_comparison.md` | Narrative scientific and repository overview. |
 
 ## Generated run files
 
@@ -117,6 +125,6 @@ model failures exits normally and therefore does not restart.
 ## Figure visual tokens
 
 Plot defaults are owned by
-`src/dmw_experiments/analysis/plotting/style.py`. Reuse its paper font,
-grid, line, and export settings through `dmw_experiments.analysis` instead of
-redeclaring Matplotlib defaults in individual study plots.
+`src/dmw_experiments/shared/analysis/plotting/style.py`. Reuse its paper font,
+grid, line, and export settings through `dmw_experiments.shared.analysis`
+instead of redeclaring Matplotlib defaults in individual study plots.

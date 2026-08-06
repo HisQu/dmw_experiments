@@ -1,0 +1,69 @@
+name: CI
+
+run-name: ${{ github.actor }} - ${{ github.event_name }} - CI
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+  workflow_call:
+    secrets:
+      HISQU_GH_PAT:
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Ubuntu / Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.12"
+          - "3.13"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+          enable-cache: auto
+
+      - name: Configure Git for private DMW-stack dependencies
+        env:
+          HISQU_GH_PAT: ${{ secrets.HISQU_GH_PAT }}
+        run: |
+          git config --global url."https://oauth2:${HISQU_GH_PAT}@github.com/HisQu/".insteadOf "https://github.com/HisQu/"
+          git config --global url."https://oauth2:${HISQU_GH_PAT}@github.com/hisqu/".insteadOf "https://github.com/hisqu/"
+
+      - name: Install project from uv.lock
+        run: uv sync --locked --all-groups
+
+      - name: Check lockfile
+        run: uv lock --check
+
+      - name: Check formatting
+        run: uv run --locked ruff format . --check
+
+      - name: Lint
+        run: uv run --locked ruff check .
+
+      - name: Type check
+        run: uv run --locked pyright
+
+      - name: Test
+        env:
+          MPLBACKEND: Agg
+          NO_COLOR: "1"
+          _TYPER_FORCE_DISABLE_TERMINAL: "1"
+        run: uv run --locked pytest
+
+      - name: Compile sources
+        run: uv run --locked python -m compileall -q src tests

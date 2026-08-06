@@ -7,6 +7,7 @@
    1. [Maintainer Loop](#maintainer-loop)
    2. [Repository Routing](#repository-routing)
    3. [Before Editing](#before-editing)
+   4. [GitHub Release Cycle](#github-release-cycle)
 3. [Implementation Standards](#3-implementation-standards)
    1. [Source Editing Rules](#source-editing-rules)
    2. [Documentation Authoring](#documentation-authoring)
@@ -62,9 +63,11 @@ Put changes where the repo already has an owner.
 
 | Change Type | Owner |
 |---|---|
-| Runtime package behavior | [src/dmw_experiments](../src/dmw_experiments) |
-| Tests | [tests](../tests) |
-| Small user-facing examples | [examples](../examples) |
+| Reusable runtime and analysis behavior | [src/dmw_experiments/shared](../src/dmw_experiments/shared) |
+| Scientific behavior | [src/dmw_experiments/studies](../src/dmw_experiments/studies) |
+| Shared tests | [tests/shared](../tests/shared) |
+| Study tests | [tests/studies](../tests/studies) |
+| Immutable study facts | [studies](../studies) |
 | Static assets | [assets](../assets) |
 | Documentation | [docs](.) |
 | Project metadata and dependency declarations | [pyproject.toml](../pyproject.toml) |
@@ -106,6 +109,65 @@ requires checking `src/dmw_experiments/cli/app.py`, the thin wrapper in
 
 <br>
 
+<!-- ======================================================== -->
+## GitHub Release Cycle
+<!-- ======================================================== -->
+
+Tagged releases create GitHub Releases with a validated wheel, source archive,
+and the matching `CHANGELOG.md` section. PyPI publishing is not part of this
+release path.
+
+Prepare and publish a release in this order:
+
+1. Move the current `[Unreleased]` entries into the next version section in
+   `CHANGELOG.md`. Leave every `[Unreleased]` category present and empty.
+2. Commit the changelog and all intended source changes.
+3. Run the complete local rehearsal:
+
+   ```bash
+   just release-check
+   ```
+
+4. Prepare the version commit and annotated tag. Choose the semantic version
+   level explicitly:
+
+   ```bash
+   just release patch
+   # or: just release minor
+   # or: just release major
+   ```
+
+5. Review the generated version commit and local tag.
+6. Push `main` and the tag together:
+
+   ```bash
+   git push origin main vX.Y.Z
+   ```
+
+The `release` recipe does not upload anything. A pushed `v*` tag starts
+`.github/workflows/release.yml`. GitHub reruns the Python 3.12 and 3.13 CI
+matrix, rebuilds and smoke-checks the wheel and source archive, extracts the
+matching changelog section, and creates the GitHub Release only after every
+gate passes. A failed workflow leaves the tag visible but does not publish a
+Release object.
+
+| Recipe | Purpose |
+| --- | --- |
+| `just release-check` | Run both supported Python environments and validate release artifacts without uploading. |
+| `just release patch\|minor\|major` | Prepare the checked version commit and annotated local tag. |
+| `just build` | Rebuild the wheel and source archive for inspection. |
+
+> [!IMPORTANT]
+> Do not create or push a release tag manually before the changelog section and
+> version files agree. The workflow deliberately refuses missing release notes
+> or incorrectly named artifacts.
+
+> [!NOTE]
+> Related: use the [dependency surfaces](References.md#dependency-surfaces) to
+> verify which lock files belong in the version commit.
+
+<br>
+
 # 3. Implementation Standards
 
 <!-- ======================================================== -->
@@ -114,7 +176,10 @@ requires checking `src/dmw_experiments/cli/app.py`, the thin wrapper in
 
 Follow these rules for normal edits:
 
-- Keep runtime behavior in [src/dmw_experiments](../src/dmw_experiments).
+- Keep reusable runtime and analysis behavior in
+  [src/dmw_experiments/shared](../src/dmw_experiments/shared).
+- Keep scientific behavior in the matching package below
+  [src/dmw_experiments/studies](../src/dmw_experiments/studies).
 - Keep CLI behavior in `src/dmw_experiments/cli/app.py`; keep
   `src/dmw_experiments/main.py` wrapper-only.
 - Keep tests in [tests](../tests).
@@ -144,12 +209,14 @@ When editing docs:
 3. Put maintainer workflow in [Development](Development.md).
 4. Put exact names in [References](References.md).
 5. Put system concepts in [Explanations](Explanations.md).
-6. Use separator comments before major sections.
-7. Add direct links to source files when a reader may need to edit them.
-8. Add `[!NOTE]` related-link callouts from concept sections to task recipes.
-9. Use [figure visual tokens](References.md#figure-visual-tokens) before
+6. Keep each file below [docs/studies](studies) synchronized with its
+   operational README below the root [studies](../studies) directory.
+7. Use separator comments before major sections.
+8. Add direct links to source files when a reader may need to edit them.
+9. Add `[!NOTE]` related-link callouts from concept sections to task recipes.
+10. Use [figure visual tokens](References.md#figure-visual-tokens) before
    choosing reusable figure colors, strokes, fills, and typography.
-10. Update figure assets when prose changes a diagrammed concept.
+11. Update figure assets when prose changes a diagrammed concept.
 
 > [!NOTE]
 > Related links:

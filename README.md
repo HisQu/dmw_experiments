@@ -22,16 +22,21 @@ release.
 | Path | Contents |
 | --- | --- |
 | `studies/` | Tracked scientific inputs, run specifications, and release contracts. |
-| `src/dmw_experiments/` | Runner, lifecycle, supervision, analysis, and CLI code. |
+| `src/dmw_experiments/shared/` | Reusable lifecycle, supervision, artifacts, configuration, and plotting code. |
+| `src/dmw_experiments/studies/` | Scientific execution and analysis code, separated by study. |
 | `output/` | The only default location for generated runs, logs, workbooks, and plots. |
 | `tests/` | Offline regression and lifecycle tests. |
-| `docs/` | Operational procedures, architecture, and exact interfaces. |
+| `docs/` | Operational procedures, architecture, study summaries, and exact interfaces. |
 | `requirements-runtime.lock` | Plain-pip runtime lock for published and analysis dependencies. |
 
 The active study is
-[`studies/datamodel_workflow_haiu_comparison`](studies/datamodel_workflow_haiu_comparison/README.md).
+[`studies/haiu_comparison`](studies/haiu_comparison/README.md).
 Its full AcademicCloud header--sublemma run contains 480 input units and three
 conditions, or 1,440 terminal cells.
+
+The narrative study overview is
+[`docs/studies/haiu_comparison.md`](docs/studies/haiu_comparison.md). Update it
+with the operational study README whenever the study contract changes.
 
 ## Install
 
@@ -105,7 +110,7 @@ Inspect its three terminal cells. Only then start the independent full run:
 
 ```bash
 dmw_experiments status \
-  --spec studies/datamodel_workflow_haiu_comparison/specs/academiccloud-header-sublemma-smoke.json
+  --spec studies/haiu_comparison/specs/academiccloud-header-sublemma-smoke.json
 dmw_experiments run
 ```
 
@@ -159,3 +164,5 @@ empty derived-output locations.
 Use [the how-to guide](docs/How-To-User-Guides.md) for full operational
 recipes, [the architecture explanation](docs/Explanations.md) for ownership
 boundaries, and [the reference](docs/References.md) for exact names.
+Maintainers use the CI-backed tagged release cycle in
+[the development guide](docs/Development.md#github-release-cycle).

@@ -15,10 +15,12 @@ import apprc as rc
 import typer
 
 import dmw_experiments
-from dmw_experiments.config import APP_RC
-from dmw_experiments.config import AppRuntimeConfig
-from dmw_experiments.execution import ExperimentLifecycle
-from dmw_experiments.studies.datamodel_workflow_haiu_comparison.paths import (
+from dmw_experiments.shared.config import APP_RC
+from dmw_experiments.shared.config import AppRuntimeConfig
+from dmw_experiments.studies.haiu_comparison.operations.lifecycle import (
+    ExperimentLifecycle,
+)
+from dmw_experiments.studies.haiu_comparison.paths import (
     REPOSITORY_ROOT,
     SPEC_ROOT,
 )
@@ -351,7 +353,7 @@ def analyze_cmd(
     ] = True,
 ) -> None:
     """Regenerate workbooks, review packets, and plots from raw data."""
-    from dmw_experiments.studies.datamodel_workflow_haiu_comparison.run_analysis import (
+    from dmw_experiments.studies.haiu_comparison.run_analysis import (
         run_analysis,
     )
 

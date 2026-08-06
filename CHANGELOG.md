@@ -48,13 +48,39 @@ All notable changes to `dmw_experiments` will be documented in this file.
 
 ### 💥 Breaking changes
 
+- Breaking: Moved reusable modules below `dmw_experiments.shared`, including
+  `analysis`, `artifacts`, `config`, `execution`, `supervision`, and `utils`.
+  Affected: Python callers importing these modules from the package root.
+  Migration: Insert `.shared` after `dmw_experiments` in those imports.
+- Breaking: Renamed the `datamodel_workflow_haiu_comparison` study, Python
+  package, test tree, tracked data directory, and run-spec study identifier to
+  `haiu_comparison`.
+  Affected: Custom scripts, imports, and run specifications using the former
+  study name; active runs created with 0.2.0.
+  Migration: Replace the old study name in paths and imports. Finish or resume
+  an active 0.2.0 run with the v0.2.0 checkout because frozen run identities
+  are intentionally not rewritten during an upgrade.
+
 <br>
 
 ### ➕ Added
 
+- Added Python 3.12 and 3.13 CI plus a tag-triggered workflow that validates
+  artifacts and creates a GitHub Release from the matching changelog section.
+- Added `just release-check` and `just release patch|minor|major` as the single
+  local release preparation path.
+- Added synchronized study overviews below `docs/studies/` and
+  `studies/haiu_comparison/` with the scientific design, source/output map,
+  published repositories, and evidence rules.
+
 <br>
 
 ### 💔 Changed
+
+- Separated reusable Python code under `dmw_experiments.shared` from
+  scientific code under `dmw_experiments.studies`.
+- Assigned fresh 2026-08-07 smoke and full-run storage identities after the
+  earlier disposable smoke was paused during provider congestion.
 
 <br>
 
@@ -63,6 +89,9 @@ All notable changes to `dmw_experiments` will be documented in this file.
 <br>
 
 ### 🗑️ Removed
+
+- Removed scaffold PyPI publishing and alternative version-tag recipes so a
+  release tag can only follow the documented GitHub Release preparation path.
 
 <br>
 

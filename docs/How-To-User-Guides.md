@@ -53,7 +53,7 @@ dmw_experiments config doctor
 
 ```bash
 dmw_experiments validate \
-  --spec studies/datamodel_workflow_haiu_comparison/specs/academiccloud-header-sublemma-smoke.json
+  --spec studies/haiu_comparison/specs/academiccloud-header-sublemma-smoke.json
 ```
 
 Validation checks the schema-v2 contract, smoke/full isolation, required
@@ -78,7 +78,7 @@ The command performs these actions in order:
 
 1. Freezes `run_spec.json` inside the run directory.
 2. Creates or verifies the isolated DMW branch and collections.
-3. Clones ignored release-evidence checkouts from the four public tags.
+3. Clones ignored release-evidence checkouts from the four pinned tags.
 4. Captures `provenance/environment_lock.json` with schema version 2.
 5. Starts backend, runner, and watchdog as user-systemd services.
 6. Records every intervention in the run-local BABYSIT journal.
@@ -103,7 +103,7 @@ active.
 
 ```bash
 dmw_experiments pause \
-  --spec studies/datamodel_workflow_haiu_comparison/specs/academiccloud-header-sublemma-full.json
+  --spec studies/haiu_comparison/specs/academiccloud-header-sublemma-full.json
 ```
 
 The command stops the watchdog, sends SIGINT to the runner, waits for an
@@ -114,7 +114,7 @@ attempt files.
 
 ```bash
 dmw_experiments resume \
-  --spec studies/datamodel_workflow_haiu_comparison/specs/academiccloud-header-sublemma-full.json
+  --spec studies/haiu_comparison/specs/academiccloud-header-sublemma-full.json
 ```
 
 Resume requires the byte-identical specification, its SHA-256 sidecar, DMW

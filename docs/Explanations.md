@@ -21,11 +21,16 @@ Package responsibilities are narrow:
 
 | Package | Responsibility |
 | --- | --- |
-| `artifacts` | Durable run-directory layout and operational journals. |
-| `execution` | Validate, launch, pause, resume, and report status. |
-| `supervision` | user-systemd process ownership and stall detection. |
-| `studies.datamodel_workflow_haiu_comparison` | Scientific conditions, runner, exports, and study-specific analysis. |
-| `analysis.plotting` | Plot formatting frozen with this repository. |
+| `shared.artifacts` | Durable run-directory layout and operational journals. |
+| `shared.execution` | Published-stack checkout and validation support. |
+| `shared.supervision` | user-systemd process ownership and stall detection. |
+| `shared.analysis.plotting` | Plot formatting frozen with this repository. |
+| `studies.haiu_comparison` | Scientific conditions, runner, exports, and study-specific analysis. |
+| `studies.haiu_comparison.operations` | Validate, launch, pause, resume, and report this study's status. |
+
+The root `cli` package is a thin application boundary. Reusable behavior must
+not accumulate there. Shared modules must not import a concrete study; the CLI
+and lifecycle select a study explicitly at the orchestration boundary.
 
 The DMW, OPA, GTA, and Haiu repositories do not own this harness. Their
 published packages are measured dependencies.

@@ -46,6 +46,8 @@ references, and conceptual explanations.
   variables, config files, and public interfaces.
 - **[Explanations](Explanations.md):** package layout, configuration model,
   dependency model, and failure model.
+- **[Study documentation](studies/README.md):** scientific questions,
+  conditions, repository ownership, published stacks, and evidence rules.
 
 The first reading path is:
 
@@ -53,7 +55,9 @@ The first reading path is:
 2. Use [How-To User Guides](How-To-User-Guides.md) for commands in order.
 3. Use [References](References.md) when you need exact names.
 4. Use [Explanations](Explanations.md) when you need the system model.
-5. Use [Development](Development.md) before changing source files.
+5. Use [Study documentation](studies/README.md) for the experiment design and
+   its code/data/output map.
+6. Use [Development](Development.md) before changing source files.
 
 > [!NOTE]
 > Related links:
@@ -74,6 +78,8 @@ Use these terms the same way in every docs file:
 |---|---|---|
 | `project root` | The repository directory that contains `pyproject.toml`, `README.md`, and `src`. | [References: project paths](References.md#project-paths) |
 | `package source` | The importable Python package under `src/dmw_experiments`. | [References: project paths](References.md#project-paths) |
+| `shared package code` | Reusable non-scientific behavior under `src/dmw_experiments/shared`. | [Explanations: ownership model](Explanations.md#ownership-model) |
+| `study package code` | Scientific behavior under `src/dmw_experiments/studies/<study>`. | [Study documentation](studies/README.md) |
 | `maintainer environment` | The local development environment with dependency groups installed. | [Development: maintainer loop](Development.md#maintainer-loop) |
 | `runtime dependency` | A dependency needed by users of the installed package. | [Explanations: dependency model](Explanations.md#dependency-model) |
 | `development dependency` | A dependency used for tests, linting, docs, profiling, or local tooling. | [References: dependency surfaces](References.md#dependency-surfaces) |
