@@ -29,6 +29,9 @@ template README when they are not already implemented there.
 - `run.academiccloud.env` and `run.lmstudio.env` contain provider differences.
 - AppRC app-wide configuration contains every real credential and the
   machine-local NER index path.
+- `INPUTS/retrieval_workspace.json` is the authoritative branch-aware
+  reference-index identity shared by DMW + HAIU and standalone HAIU. The
+  runner validates and prepares it before condition timing begins.
 
 Never assign real credentials or absolute machine paths in this directory.
 

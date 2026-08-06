@@ -121,6 +121,9 @@ from dmw_experiments.studies.haiu_comparison.data_collection.dmw.condition impor
 from dmw_experiments.studies.haiu_comparison.data_collection.haiu.runner import (
     DirectRunConfig,
 )
+from dmw_experiments.studies.haiu_comparison.data_collection.haiu.workspace import (
+    prepare_reference_workspace,
+)
 from dmw_experiments.studies.haiu_comparison.model.traces import (
     RegestText,
 )
@@ -347,6 +350,25 @@ def main(argv: list[str] | None = None) -> int:
                 regest_ids=ids,
                 fetcher=frozen_fetcher,
             )
+        condition_rc = rc
+        reference_workspace_metadata: dict[str, Any] | None = None
+        if (
+            dmw_input_manifest is not None
+            and {"workflow_rag", "haiu_rag_ontologizer"} & selected_conditions
+        ):
+            prepared_workspace = prepare_reference_workspace(
+                base_rc=rc,
+                contract_path=provenance_files["retrieval_workspace"],
+                reference_ontology_path=provenance_files["reference_ontology"],
+                dmw_input_manifest=dmw_input_manifest,
+            )
+            condition_rc = prepared_workspace.rc
+            reference_workspace_metadata = prepared_workspace.manifest_entry()
+            print(
+                "Reference workspace: ready "
+                f"ref={prepared_workspace.ontology_ref.ref_name} "
+                f"synchronized={prepared_workspace.synchronized}"
+            )
         provenance_input_files: dict[str, Path] = {
             "historian_ontology_input": Path(args.ontology_user_input_file),
             "annotation_guidelines": Path(args.annotation_guidelines_file),
@@ -362,6 +384,10 @@ def main(argv: list[str] | None = None) -> int:
         }
         if input_population is not None:
             provenance_metadata["input_population"] = input_population
+        if reference_workspace_metadata is not None:
+            provenance_metadata["reference_workspace"] = (
+                reference_workspace_metadata
+            )
         amendment_path: Path | None = None
         provider_timeout_amendment_path: Path | None = None
         connection_recovery_amendment_path: Path | None = None
@@ -1009,7 +1035,7 @@ def main(argv: list[str] | None = None) -> int:
                 result = _run_condition_with_retries(
                     args=args,
                     client=client,
-                    rc=rc,
+                    rc=condition_rc,
                     regest_id=regest_id,
                     condition=condition,
                     run_id=run_id,

@@ -103,6 +103,9 @@ All notable changes to `dmw_experiments` will be documented in this file.
   lifecycle phases resolve artifacts through one validated run directory.
 - Added `HaiuComparisonStudy` as the supported Python façade for the same run
   lifecycle exposed by the CLI.
+- Added an authoritative branch-aware retrieval-workspace contract. Each
+  pair run now verifies or prepares the shared reference index before timed
+  conditions, so condition order cannot assign indexing work to one RAG path.
 
 <br>
 
@@ -142,6 +145,8 @@ All notable changes to `dmw_experiments` will be documented in this file.
   runner has no current main process.
 - Corrected AppRC setup documentation to use `config app init` and
   `config edit`.
+- Fixed standalone HAIU retrieval attaching to the obsolete default workdir
+  instead of the reference workspace identified by the frozen DMW branch.
 
 <br>
 

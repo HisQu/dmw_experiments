@@ -68,3 +68,7 @@ captions stay below `plots/`; service logs and BABYSIT journals stay below
   remain observations and are not recovery-amended automatically.
 - AcademicCloud and LM Studio executions must be independently supervised so
   either provider can advance without waiting for the other.
+- Prepare the branch-aware reference index before condition timing. Both RAG
+  conditions must use the ontology ref in `INPUTS/retrieval_workspace.json`;
+  neither condition should inherit one-time indexing work from execution
+  order.

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
 import time
 from dataclasses import dataclass
@@ -14,9 +13,9 @@ from haiu.rag import RAGWorkspace
 from dmw_experiments.studies.haiu_comparison.model.traces import (
     RegestText,
 )
-
-
-_RETRIEVAL_LOOP: asyncio.AbstractEventLoop | None = None
+from dmw_experiments.studies.haiu_comparison.data_collection.haiu.workspace import (
+    run_workspace_operation,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -48,13 +47,7 @@ def retrieve_regest_context(
     :param rc: Resolved Haiu runtime configuration.
     :return: Exact retrieval trace for one standalone observation.
     """
-    # LightRAG keeps asyncio locks in its workspace storage. Reusing one loop
-    # for the whole runner prevents later regests from seeing locks bound to a
-    # loop that was closed by ``asyncio.run`` after the previous regest.
-    global _RETRIEVAL_LOOP
-    if _RETRIEVAL_LOOP is None or _RETRIEVAL_LOOP.is_closed():
-        _RETRIEVAL_LOOP = asyncio.new_event_loop()
-    return _RETRIEVAL_LOOP.run_until_complete(
+    return run_workspace_operation(
         _aretrieve_regest_context(regest=regest, rc=rc)
     )
 

@@ -31,6 +31,14 @@ whole multi-sublemma regest as one generation target.
 Each enabled provider schedules all 1,440 cells. Pairwise analysis uses DMW
 versus DMW + HAIU and DMW + HAIU versus HAIU.
 
+Both retrieval conditions use the ontology ref declared in
+`INPUTS/retrieval_workspace.json`. Before the first timed condition, the
+runner checks this ref against the frozen Turtle, DMW import manifest,
+embedding model, and ontology repository setting. It then verifies or builds
+the shared branch-aware canonical index. This preparation is outside condition
+duration, so randomized condition order does not assign one-time indexing to
+one condition.
+
 ## Run template and storage
 
 The complete data template lives at
@@ -84,6 +92,8 @@ Result JSON, YAML, Turtle, provider attempts, prompts, Stage-1 replies,
 retrieval sidecars, environment locks, and run manifests remain in the copied
 run. Terminal context, length, and other model failures are observations.
 Infrastructure interruption resumes only the same frozen contract.
+The run manifest records the stable shared-workspace identity; process logs
+record whether a launch had to synchronize it.
 
 Strict analysis requires every scheduled cell to be terminal. Derived files
 are organized as follows:

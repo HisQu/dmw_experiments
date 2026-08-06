@@ -1,8 +1,17 @@
 {
-  "snapshot_schema": 1,
-  "workspace_identity": "Workdir--qwen3-embedding-4b/canonical",
-  "reference_source_sha256": "b628d85fdef3fa176d8fd4dc03fb8f787d333238823f3f7a35697deb1447d510",
+  "snapshot_schema": 2,
+  "ontology_ref": {
+    "repo": "HisQu/Ontology-Development",
+    "ref_type": "tag",
+    "ref_name": "publication-academiccloud-177-v158_v1.5.8",
+    "base_ref_name": "publication-academiccloud-177-v158",
+    "commit_sha": null,
+    "file_path": "files/processed/rg_ontology.ttl",
+    "ttl_sha256": "b628d85fdef3fa176d8fd4dc03fb8f787d333238823f3f7a35697deb1447d510",
+    "ontology_family_id": "HisQu/Ontology-Development"
+  },
   "embedding_model": "qwen3-embedding-4b",
   "retrieval_mode": "hybrid",
-  "note": "Portable identity snapshot for the canonical Haiu retrieval workspace; source files remain on the execution host."
+  "workspace": "canonical",
+  "note": "Authoritative portable identity for the shared branch-aware reference workspace prepared before condition timing."
 }
