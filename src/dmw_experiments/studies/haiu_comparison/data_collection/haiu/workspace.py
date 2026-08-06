@@ -139,6 +139,7 @@ async def _prepare_workspace(
     ontology_ref: OntologyRef,
     ontology_turtle: str,
 ) -> tuple[bool, dict[str, int] | None]:
+    _ensure_workspace_storage(rc)
     assert_or_register_workdir_identity(ontology_ref, rc=rc)
     embedding_model = rc.rag.haiu_settings.model_embed
     manifest_file = manifest_path(ontology_ref, rc=rc)
@@ -186,6 +187,21 @@ async def _prepare_workspace(
         return synchronized, sync_result
     finally:
         await canonical.aclose()
+
+
+def _ensure_workspace_storage(rc: HaiuRC) -> None:
+    """Create the run-owned root required by Haiu's YAML bundle writer.
+
+    Haiu intentionally refuses to invent its upstream storage root while
+    exporting an RDF-derived CustomKG. A fresh experiment storage has no
+    corpus tree yet, so the harness owns this one-time initialization before
+    asking the published synchronizer to write below it.
+
+    :param rc: Branch-derived Haiu runtime configuration.
+    :return: None.
+    """
+    customkg_root = rc.rag.storage.fpb_customkg_yaml.parent.parent
+    customkg_root.mkdir(parents=True, exist_ok=True)
 
 
 def _load_contract(path: Path) -> dict[str, Any]:

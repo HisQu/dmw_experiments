@@ -99,6 +99,27 @@ def test_preparation_rejects_contract_for_another_reference_snapshot(
         )
 
 
+def test_workspace_preparation_initializes_fresh_corpus_root(
+    tmp_path: Path,
+) -> None:
+    rc = cast(
+        HaiuRC,
+        SimpleNamespace(
+            rag=SimpleNamespace(
+                storage=SimpleNamespace(
+                    fpb_customkg_yaml=(
+                        tmp_path / "Corpus" / "CustomKG" / "custom_kg"
+                    )
+                )
+            )
+        ),
+    )
+
+    workspace_module._ensure_workspace_storage(rc)
+
+    assert (tmp_path / "Corpus").is_dir()
+
+
 def _base_rc() -> HaiuRC:
     return cast(
         HaiuRC,
