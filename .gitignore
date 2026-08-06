@@ -8,6 +8,11 @@ db/
 .alt/
 .old/
 
+# === Experiment output =========================================
+output/*
+!output/.gitignore
+!output/README.md
+
 # === buildben templates ========================================
 # These are ignored until renamed to prevent premature publishing
 *.bb_template*

@@ -27,23 +27,46 @@ class AppRuntimeConfig(rc.Config):
 
     storage_root: Path = rc.field(
         "DMW_EXPERIMENTS_STORAGE",
+        default=Path("output"),
         title="Storage root",
-        explanation_short="Active local data root selected by AppRC.",
+        explanation_short="Root for all runs, analyses, and local logs.",
         explanation_long=(
-            "The storage root is selected through the user-level AppRC "
-            "selector, not by editing a packaged dotenv file."
+            "The default is the repository-local output directory. AppRC may "
+            "select another storage root without changing a run specification."
         ),
         editable=False,
-        required=True,
     )
-    message: str = rc.field(
-        "DMW_EXPERIMENTS_MESSAGE",
-        default="Hello from dmw_experiments",
-        title="Example message",
-        explanation_short="Small editable example setting.",
+    publication_python: Path | None = rc.field(
+        "DMW_EXPERIMENTS_PUBLICATION_PYTHON",
+        default=None,
+        title="Published DMW Python",
+        explanation_short="Python executable containing the frozen DMW stack.",
         explanation_long=(
-            "This field exists so a new scaffold immediately demonstrates "
-            "`dmw_experiments config set app.message VALUE` and the Textual "
-            "config editor. Replace it with real application settings."
+            "Execution commands require an environment containing published "
+            "DMW 1.1.3, OPA 2.1.2, GTA 0.2.4, and Haiu 1.8.0 releases."
         ),
+    )
+    repositories_root: Path | None = rc.field(
+        "DMW_EXPERIMENTS_REPOSITORIES_ROOT",
+        default=None,
+        title="Repository checkouts root",
+        explanation_short="Parent of clean release checkouts used for provenance.",
+    )
+    academiccloud_env_file: Path | None = rc.field(
+        "DMW_EXPERIMENTS_ACADEMICCLOUD_ENV_FILE",
+        default=None,
+        title="AcademicCloud environment file",
+        explanation_short="Ignored local provider configuration and credentials.",
+    )
+    lmstudio_env_file: Path | None = rc.field(
+        "DMW_EXPERIMENTS_LMSTUDIO_ENV_FILE",
+        default=None,
+        title="LM Studio environment file",
+        explanation_short="Ignored local LM Studio provider configuration.",
+    )
+    watchdog_stall_seconds: int = rc.field(
+        "DMW_EXPERIMENTS_WATCHDOG_STALL_SECONDS",
+        default=14_400,
+        title="Watchdog stall limit",
+        explanation_short="Seconds without a checkpoint before interruption.",
     )

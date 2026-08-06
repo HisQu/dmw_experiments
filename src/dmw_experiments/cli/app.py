@@ -92,14 +92,18 @@ def _config_show_payload(state: rc.cli.DefaultConfigCliState) -> dict[str, Any]:
             else str(env_bootstrap.shared_env)
         ),
         "storage": state.storage,
-        "storage_count": 0 if env_bootstrap is None else env_bootstrap.storage_count,
+        "storage_count": 0
+        if env_bootstrap is None
+        else env_bootstrap.storage_count,
         "storage_env": (
             None
             if env_bootstrap is None or env_bootstrap.storage_env is None
             else str(env_bootstrap.storage_env)
         ),
         "storage_env_key": spec.storage_env_key,
-        "storage_name": None if env_bootstrap is None else env_bootstrap.storage_name,
+        "storage_name": None
+        if env_bootstrap is None
+        else env_bootstrap.storage_name,
         "storage_root": (
             None
             if env_bootstrap is None or env_bootstrap.storage_root is None

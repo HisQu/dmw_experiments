@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "stack_id": "published-dmw-1.1.3",
+  "distributions": {
+    "datamodel-workflow": "1.1.3",
+    "opa": "2.1.2",
+    "gta": "0.2.4",
+    "haiu": "1.8.0"
+  },
+  "source_commit": "e027b13fd7ae198354ff58aa04374eb6212725d9"
+}

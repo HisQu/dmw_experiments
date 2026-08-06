@@ -4,7 +4,6 @@ Treat this as the parking lot for actionable problems discovered while working b
 
 
 <br>
-
 > [!CAUTION]
 > This is git-tracked: Never record secrets, absolute paths, credentials, private host data, or speculative security claims. Use only relative paths. 
 
@@ -75,12 +74,6 @@ Treat this as the parking lot for actionable problems discovered while working b
 1. [Todo list](#todo-list)
    1. [Table Of Contents](#table-of-contents)
    2. [Ignore](#ignore)
-2. [\< YYYY-MM-DD \>](#-yyyy-mm-dd-)
-   1. [P3 / E1 \[Code smell\] -  *Lorem ipsum dolor*](#p3--e1-code-smell----lorem-ipsum-dolor)
-   2. [P1 / E3 \[Bug risk\] -  *dolor sit amet*](#p1--e3-bug-risk----dolor-sit-amet)
-3. [YYYY-MM-DD](#yyyy-mm-dd)
-   1. [P3 \[Code smell\] -  *Amet consectetur adipiscing elit*](#p3-code-smell----amet-consectetur-adipiscing-elit)
-   2. [P1 \[Bug risk\] -  *Elit sed do eiusmod*](#p1-bug-risk----elit-sed-do-eiusmod)
 
 <br>
 
@@ -97,32 +90,3 @@ Treat this as the parking lot for actionable problems discovered while working b
 ---
 
 <br>
-
-
-<!-- Example, remove this during first pass -->
-
-# < YYYY-MM-DD >
-
-## P3 / E1 [Code smell] -  *Lorem ipsum dolor*
-- **Area:** `sit/amet`
-- **Observed while:** amet consectetur adipiscing elit
-- **Evidence:** elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua
-- **Why not fixed now:** aliqua ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat
-- **Suggested next step:** Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-
-
-## P1 / E3 [Bug risk] -  *dolor sit amet*
-- **Area:** `amet/consectetur/adipiscing`
-- ...
-
-<br>
-
-# YYYY-MM-DD
-
-## P3 [Code smell] -  *Amet consectetur adipiscing elit*
-- **Area:** `elit/sed/do/eiusmod`
-- ...
-
-## P1 [Bug risk] -  *Elit sed do eiusmod*
-- **Area:** `eiusmod/tempor/incididunt/ut/labore`
-- ...

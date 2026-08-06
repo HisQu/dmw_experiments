@@ -47,16 +47,25 @@ All notable changes to `dmw_experiments` will be documented in this file.
 
 ### 💥 Breaking Change Summary
 
-No breaking changes yet.
+- Breaking: Removed the scaffold-only `app.message` configuration field.
+  Affected: Users of the initial project scaffold.
+  Migration: Remove `DMW_EXPERIMENTS_MESSAGE`; configure the experiment
+  storage and runtime fields instead.
 
 <br>
 
 ### ➕ Added
 
+- Added the packaged DMW--Haiu comparison execution and analysis harness.
+- Added immutable header--sublemma inputs, isolated smoke/full specifications,
+  the published DMW-stack contract, and the ignored `output/` workspace.
+- Added locked publication and analysis dependency sets for Python 3.12.
 <br>
 
 ### 💔 Changed
 
+- Changed experiment ownership from Haiu to the standalone
+  `dmw_experiments` package while preserving the tested scientific behavior.
 <br>
 
 ### ⚠️ Deprecated

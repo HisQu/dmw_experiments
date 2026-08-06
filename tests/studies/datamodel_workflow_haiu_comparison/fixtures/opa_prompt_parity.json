@@ -1,0 +1,34 @@
+{
+  "opa_source": {
+    "path": "src/opa/create_prompt.py",
+    "commit": "fbe22fa122f33cd0c9dd77785f570828cd33f505",
+    "sha256": "882647dd37f722d2e1563260ff74deb31041e84f77fe8b79205ab8d96c554b90"
+  },
+  "stage1_system": "Du bist eine Expertin fuer Ontologie-Engineering im Kontext der Digital Humanities (Repertorium Germanicum).\nDeine Aufgabe ist ein Modellierungsplan: praezise Entscheidungen, nachvollziehbar begruendet, ohne Code.\n\nGrundsaetze:\n- Historikerinnen-Vorgaben haben hoechste Prioritaet.\n- Vollstaendigkeit: Die Petentenvita mit Kopf und Regesten/Rechtsvorgaengen (und ggf. Annotationen) muss vollstaendig abgedeckt werden.\n- Strikte Konsistenz: Falls Referenzontologie oder Beispiele gegeben sind, halte dich stringent an deren Muster.\n- Output: nur Markdown gemaess Formatvorgaben.",
+  "stage2_system": "Du bist eine Expertin fuer RDF und Turtle.\nDu implementierst den Modellierungsplan als eine merge-sichere Turtle-Datei (TTL).\n\nGrundsaetze:\n- Strikte Formatdisziplin: nur TTL, keine Prosa.\n- Strikte Konsistenz: Falls Referenzontologie oder Beispiele gegeben sind, uebernimm deren Benennungen und Muster.\n- Selbsttragendes Snippet: TBox fuer verwendete Terme und komplette ABox fuer die Petentenvita.",
+  "shared_stage1_sections": [
+    "# ROLLE UND ZIEL",
+    "**Planner-Agent**",
+    "# Historikerinnen-Vorgaben (hoechste Prioritaet)",
+    "# Kontextressourcen",
+    "## Referenzontologie (Ausschnitt, Turtle)",
+    "## Konsistenz-Regel (wenn Referenzmaterial vorhanden ist)",
+    "# Aufgabe (Planner)",
+    "## Modus: SUGGEST",
+    "## Striktes Output-Format (Markdown)"
+  ],
+  "shared_stage2_sections": [
+    "# ROLLE UND ZIEL",
+    "**TTL-Coder-Agent**",
+    "# Bindende Grundlage aus diesem Thread",
+    "# Kontextanker",
+    "# Aufgabe (TTL-Ausgabe)",
+    "## Prefix-Definitionen (Verbindlich)",
+    "# --- TBOX ---",
+    "# --- ABOX ---"
+  ],
+  "intentional_standalone_additions": [
+    "raw_regest_text",
+    "historian_annotation_guideline"
+  ]
+}
