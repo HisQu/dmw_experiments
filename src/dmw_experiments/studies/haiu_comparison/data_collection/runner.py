@@ -102,7 +102,9 @@ from dmw_experiments.studies.haiu_comparison.data_collection.haiu.runner import 
 from dmw_experiments.studies.haiu_comparison.model.traces import (
     RegestText,
 )
-from dmw_experiments.studies.haiu_comparison.paths import REPOSITORY_ROOT
+from dmw_experiments.studies.haiu_comparison.operations.repository_paths import (
+    REPOSITORY_ROOT,
+)
 
 
 class _ConditionWallClockTimeout(BaseException):

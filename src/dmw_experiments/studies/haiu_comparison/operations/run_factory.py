@@ -12,7 +12,7 @@ from dmw_experiments.studies.haiu_comparison.model.run_contract import (
     RUN_NAME,
     load_run_contract,
 )
-from dmw_experiments.studies.haiu_comparison.paths import (
+from dmw_experiments.studies.haiu_comparison.operations.repository_paths import (
     FULL_RUNS_ROOT,
     RUN_TEMPLATE_ROOT,
     SMOKE_RUNS_ROOT,

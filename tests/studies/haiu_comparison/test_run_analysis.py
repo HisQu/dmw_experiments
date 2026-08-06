@@ -9,7 +9,9 @@ from types import SimpleNamespace
 import pytest
 
 from dmw_experiments.studies.haiu_comparison import run_analysis
-from dmw_experiments.studies.haiu_comparison.paths import RUN_TEMPLATE_ROOT
+from dmw_experiments.studies.haiu_comparison.operations.repository_paths import (
+    RUN_TEMPLATE_ROOT,
+)
 
 
 def _run(tmp_path: Path) -> Path:

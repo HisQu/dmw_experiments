@@ -8,7 +8,7 @@ from types import ModuleType
 
 import pytest
 
-from dmw_experiments.studies.haiu_comparison.run_academiccloud_backend import (
+from dmw_experiments.studies.haiu_comparison.entrypoints.academiccloud_backend import (
     _install_raw_collection_override,
     _parser,
 )

@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from dmw_experiments.studies.haiu_comparison import (
-    capture_environment_lock,
+from dmw_experiments.studies.haiu_comparison.operations import (
+    environment_lock as capture_environment_lock,
 )
 from dmw_experiments.studies.haiu_comparison.model.inputs import (
     canonical_json_sha256,
@@ -19,7 +19,7 @@ from dmw_experiments.studies.haiu_comparison.preparation.dmw_storage import (
     build_import_manifest,
     write_manifest,
 )
-from dmw_experiments.studies.haiu_comparison.paths import (
+from dmw_experiments.studies.haiu_comparison.operations.repository_paths import (
     TEMPLATE_INPUT_ROOT,
 )
 

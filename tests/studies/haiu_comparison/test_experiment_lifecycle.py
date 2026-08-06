@@ -12,9 +12,13 @@ from dmw_experiments.shared.config import AppRuntimeConfig
 from dmw_experiments.shared.supervision import UserServiceManager
 from dmw_experiments.studies.haiu_comparison.operations.lifecycle import (
     ExperimentLifecycle,
+)
+from dmw_experiments.studies.haiu_comparison.operations.runtime import (
     RuntimePaths,
 )
-from dmw_experiments.studies.haiu_comparison.paths import RUN_TEMPLATE_ROOT
+from dmw_experiments.studies.haiu_comparison.operations.repository_paths import (
+    RUN_TEMPLATE_ROOT,
+)
 
 
 def _inactive_runner(

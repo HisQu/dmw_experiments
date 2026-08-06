@@ -11,7 +11,7 @@ from typing import Any
 from dmw_experiments.shared.config.runtime_environment import (
     load_runtime_environment,
 )
-from dmw_experiments.studies.haiu_comparison.run_academiccloud_backend import (
+from dmw_experiments.studies.haiu_comparison.entrypoints.academiccloud_backend import (
     SAFE_COLLECTION_NAME,
     _install_raw_collection_override,
 )

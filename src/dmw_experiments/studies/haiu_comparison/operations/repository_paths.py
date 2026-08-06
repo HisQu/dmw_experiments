@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 STUDY_ID = "haiu_comparison"
-REPOSITORY_ROOT = Path(__file__).resolve().parents[4]
+REPOSITORY_ROOT = Path(__file__).resolve().parents[5]
 RUN_TEMPLATES_ROOT = REPOSITORY_ROOT / "studies_run_templates"
 STUDY_TEMPLATE_ROOT = RUN_TEMPLATES_ROOT / STUDY_ID
 RUN_TEMPLATE_ROOT = STUDY_TEMPLATE_ROOT / "template"

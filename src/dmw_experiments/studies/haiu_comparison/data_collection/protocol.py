@@ -5,7 +5,9 @@ from __future__ import annotations
 from dmw_experiments.studies.haiu_comparison.model.conditions import (
     CONDITION_IDS,
 )
-from dmw_experiments.studies.haiu_comparison.paths import TEMPLATE_INPUT_ROOT
+from dmw_experiments.studies.haiu_comparison.operations.repository_paths import (
+    TEMPLATE_INPUT_ROOT,
+)
 
 DEFAULT_LOCAL_IDS = TEMPLATE_INPUT_ROOT / "ablaesse_cp_ids.txt"
 DEFAULT_PROMPT_FILE = TEMPLATE_INPUT_ROOT / "historian_ontology_user_input.md"

@@ -13,7 +13,9 @@ from dmw_experiments.studies.haiu_comparison.model.run_contract import (
 from dmw_experiments.studies.haiu_comparison.model.run_directory import (
     HaiuComparisonRun,
 )
-from dmw_experiments.studies.haiu_comparison.paths import RUN_TEMPLATE_ROOT
+from dmw_experiments.studies.haiu_comparison.operations.repository_paths import (
+    RUN_TEMPLATE_ROOT,
+)
 
 
 def _run(tmp_path: Path) -> Path:

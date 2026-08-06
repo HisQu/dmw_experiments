@@ -27,7 +27,7 @@ from dmw_experiments.studies.haiu_comparison.model.inputs import (
     load_dmw_pair_import_manifest,
     load_header_sublemma_catalog,
 )
-from dmw_experiments.studies.haiu_comparison.paths import (
+from dmw_experiments.studies.haiu_comparison.operations.repository_paths import (
     RUN_TEMPLATE_ROOT,
 )
 

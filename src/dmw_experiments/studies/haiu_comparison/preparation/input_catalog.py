@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from dmw_experiments.studies.haiu_comparison.paths import (
+from dmw_experiments.studies.haiu_comparison.operations.repository_paths import (
     REPOSITORY_ROOT,
     RUN_TEMPLATE_ROOT,
     TEMPLATE_INPUT_ROOT,

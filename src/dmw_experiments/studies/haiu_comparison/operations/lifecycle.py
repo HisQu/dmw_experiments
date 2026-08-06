@@ -5,17 +5,16 @@ from __future__ import annotations
 import hashlib
 import json
 import subprocess
-import sys
 import time
 import urllib.error
 import urllib.request
 from collections.abc import Callable, Iterable
-from dataclasses import asdict, dataclass
+from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
 from dmw_experiments.shared.artifacts import RunWorkspace
-from dmw_experiments.shared.config import AppRuntimeConfig, UNSET_PATH
+from dmw_experiments.shared.config import AppRuntimeConfig
 from dmw_experiments.shared.config.runtime_environment import (
     ResolvedRunEnvironment,
     bootstrap_run_environment,
@@ -34,70 +33,22 @@ from dmw_experiments.studies.haiu_comparison.model.run_contract import (
     RunContract,
     load_run_contract,
 )
-from dmw_experiments.studies.haiu_comparison.paths import REPOSITORY_ROOT
+from dmw_experiments.studies.haiu_comparison.operations.repository_paths import (
+    REPOSITORY_ROOT,
+)
+from dmw_experiments.studies.haiu_comparison.operations.runtime import (
+    RuntimePaths,
+)
+from dmw_experiments.studies.haiu_comparison.operations.status import (
+    ExecutionStatus,
+    RunStatus,
+)
 
 CommandRunner = Callable[..., subprocess.CompletedProcess[str]]
 BACKEND_URLS = {
     "academiccloud": "http://127.0.0.1:8000",
     "lmstudio": "http://127.0.0.1:8001",
 }
-
-
-@dataclass(frozen=True, slots=True)
-class RuntimePaths:
-    """Resolve only the interpreter outside a portable run contract.
-
-    :param publication_python: Interpreter containing the released DMW stack.
-    """
-
-    publication_python: Path
-
-    @classmethod
-    def from_config(cls, config: AppRuntimeConfig) -> RuntimePaths:
-        """Use the active interpreter unless an explicit override exists.
-
-        :param config: Experiment-owned AppRC settings.
-        :return: Runtime interpreter without resolving a virtualenv symlink.
-        """
-        configured = config.publication_python.expanduser()
-        if configured == UNSET_PATH:
-            configured = Path(sys.executable)
-        elif not configured.is_absolute():
-            configured = REPOSITORY_ROOT / configured
-        return cls(publication_python=configured.absolute())
-
-    def validate(self) -> None:
-        """Reject a missing publication interpreter before mutation."""
-        if not self.publication_python.is_file():
-            raise ValueError("Published-stack interpreter does not exist.")
-
-
-@dataclass(frozen=True, slots=True)
-class ExecutionStatus:
-    """Summarize one provider execution's durable and service state."""
-
-    execution: str
-    expected_cells: int
-    terminal_cells: int
-    successful_cells: int
-    failed_cells: int
-    retry_pending_cells: int
-    strict_analysis_ready: bool
-    services: dict[str, str]
-
-
-@dataclass(frozen=True, slots=True)
-class RunStatus:
-    """Aggregate enabled provider execution progress for one run."""
-
-    run_id: str
-    expected_cells: int
-    terminal_cells: int
-    successful_cells: int
-    failed_cells: int
-    retry_pending_cells: int
-    strict_analysis_ready: bool
-    executions: dict[str, ExecutionStatus]
 
 
 class ExperimentLifecycle:
@@ -532,7 +483,7 @@ class ExperimentLifecycle:
         resolved: ResolvedRunEnvironment,
         dmw_input_manifest: Path,
     ) -> Path:
-        from dmw_experiments.studies.haiu_comparison.capture_environment_lock import (
+        from dmw_experiments.studies.haiu_comparison.operations.environment_lock import (
             APPROVED_DISTRIBUTIONS,
             _frozen_experiment_harness,
             _package_report,
@@ -875,7 +826,7 @@ def _execution_wrapper_command(
     return [
         str(runtime.publication_python),
         "-m",
-        "dmw_experiments.studies.haiu_comparison.run_execution",
+        "dmw_experiments.studies.haiu_comparison.entrypoints.run_execution",
         "--run-dir",
         str(workspace.root),
         "--execution",

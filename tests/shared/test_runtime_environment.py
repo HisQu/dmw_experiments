@@ -13,7 +13,9 @@ from dmw_experiments.shared.config.runtime_environment import (
 from dmw_experiments.studies.haiu_comparison.model.run_contract import (
     load_run_contract,
 )
-from dmw_experiments.studies.haiu_comparison.paths import RUN_TEMPLATE_ROOT
+from dmw_experiments.studies.haiu_comparison.operations.repository_paths import (
+    RUN_TEMPLATE_ROOT,
+)
 
 
 def _copied_template(tmp_path: Path) -> Path:

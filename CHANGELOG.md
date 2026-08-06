@@ -69,6 +69,8 @@ All notable changes to `dmw_experiments` will be documented in this file.
 
 - Separated Haiu comparison model and preparation code from collection,
   operations, and analysis implementations.
+- Moved provider process launchers below `entrypoints` and separated runtime,
+  environment-lock, status, and repository-path ownership below `operations`.
 
 <br>
 
@@ -77,6 +79,9 @@ All notable changes to `dmw_experiments` will be documented in this file.
 <br>
 
 ### 🗑️ Removed
+
+- Removed the v0.2 finalizer and raw-materialization wrappers, which read an
+  obsolete run layout and were not used by the v0.3 lifecycle.
 
 <br>
 

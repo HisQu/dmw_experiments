@@ -37,11 +37,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             main as component_main,
         )
     elif execution.name == "academiccloud":
-        from dmw_experiments.studies.haiu_comparison.run_academiccloud_backend import (
+        from dmw_experiments.studies.haiu_comparison.entrypoints.academiccloud_backend import (
             main as component_main,
         )
     else:
-        from dmw_experiments.studies.haiu_comparison.run_lmstudio_backend import (
+        from dmw_experiments.studies.haiu_comparison.entrypoints.lmstudio_backend import (
             main as component_main,
         )
     return component_main(remaining)

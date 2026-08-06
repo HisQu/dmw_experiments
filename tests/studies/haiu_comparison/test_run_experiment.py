@@ -33,7 +33,7 @@ from dmw_experiments.studies.haiu_comparison.model.inputs import (
 from dmw_experiments.studies.haiu_comparison.model.traces import (
     RegestText,
 )
-from dmw_experiments.studies.haiu_comparison.paths import (
+from dmw_experiments.studies.haiu_comparison.operations.repository_paths import (
     TEMPLATE_INPUT_ROOT,
 )
 from dmw_experiments.studies.haiu_comparison.preparation.dmw_storage import (

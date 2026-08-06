@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 
-from dmw_experiments.studies.haiu_comparison import (
+from dmw_experiments.studies.haiu_comparison.entrypoints import (
     lmstudio_model_proxy,
 )
 

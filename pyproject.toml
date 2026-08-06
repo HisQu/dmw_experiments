@@ -99,7 +99,7 @@ where = ["src"]                       # < Scan only src/ for packages
 [tool.setuptools.package-data]
 "dmw_experiments.shared.config" = [".env.shared"]
 "dmw_experiments.shared.analysis.plotting" = ["fonts/*.ttf"]
-"dmw_experiments.studies.haiu_comparison" = ["*.ps1"]
+"dmw_experiments.studies.haiu_comparison.entrypoints" = ["*.ps1"]
 
 # === Include data *outside* the package (e.g. top-level docs/) ====
 # > Installs into <sys.prefix>/share/dmw_experiments

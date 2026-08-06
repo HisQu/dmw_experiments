@@ -10,7 +10,7 @@ import pytest
 from dmw_experiments.shared.config.runtime_environment import (
     load_runtime_environment,
 )
-from dmw_experiments.studies.haiu_comparison.run_lmstudio_backend import (
+from dmw_experiments.studies.haiu_comparison.entrypoints.lmstudio_backend import (
     _apply_provider_split,
     _load_dmw_app,
     _parser,
