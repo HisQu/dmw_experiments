@@ -31,7 +31,7 @@ All notable changes to `dmw_experiments` will be documented in this file.
 1. [Changelog](#changelog)
    1. [Table Of Contents](#table-of-contents)
 2. [\[Unreleased\]](#unreleased)
-3. [0.4.0 - 2026-08-06](#040---2026-08-06)
+3. [0.4.0 - 2026-08-07](#040---2026-08-07)
 4. [0.3.0 - 2026-08-06](#030---2026-08-06)
 5. [0.2.0 - 2026-08-06](#020---2026-08-06)
 6. [0.1.0 - 2026-08-06](#010---2026-08-06)
@@ -82,7 +82,7 @@ All notable changes to `dmw_experiments` will be documented in this file.
 
 <!-- ======================================================== -->
 
-# 0.4.0 - 2026-08-06
+# 0.4.0 - 2026-08-07
 
 <br>
 
