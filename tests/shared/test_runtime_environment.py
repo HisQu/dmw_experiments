@@ -1,52 +1,49 @@
-"""Tests for ignored runtime-environment validation."""
+"""Tests for exhaustive run-local environment contracts."""
 
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 
 import pytest
 
 from dmw_experiments.shared.config.runtime_environment import (
-    ACADEMICCLOUD_REQUIRED_KEYS,
-    validate_academiccloud_environment,
+    validate_run_environment_contract,
 )
+from dmw_experiments.studies.haiu_comparison.operations.run_spec import (
+    load_run_spec,
+)
+from dmw_experiments.studies.haiu_comparison.paths import RUN_TEMPLATE_ROOT
 
 
-def _environment_file(tmp_path: Path, *, index_value: str) -> Path:
-    """Write a non-secret complete AcademicCloud test environment.
+def _copied_template(tmp_path: Path) -> Path:
+    root = tmp_path / "template"
+    shutil.copytree(RUN_TEMPLATE_ROOT, root)
+    return root
 
-    :param tmp_path: Isolated pytest directory.
-    :param index_value: FAISS path representation under test.
-    :return: Created dotenv file.
-    """
-    environment = tmp_path / "academiccloud.env"
-    values = {key: "test-value" for key in ACADEMICCLOUD_REQUIRED_KEYS}
-    values["FAISS_INDEX_PATH"] = index_value
-    environment.write_text(
-        "".join(f"{key}={value}\n" for key, value in values.items()),
+
+def test_complete_shared_and_provider_contract_is_accepted(
+    tmp_path: Path,
+) -> None:
+    """The tracked template names every measured setting without secrets."""
+    root = _copied_template(tmp_path)
+    execution = load_run_spec(root).execution("academiccloud")
+
+    shared, provider = validate_run_environment_contract(root, execution)
+
+    assert shared.name == "run.env"
+    assert provider.name == "run.academiccloud.env"
+
+
+def test_active_real_secret_is_rejected(tmp_path: Path) -> None:
+    """Credential values cannot enter a copied run directory."""
+    root = _copied_template(tmp_path)
+    shared = root / "run.env"
+    shared.write_text(
+        shared.read_text(encoding="utf-8") + "\nMONGO_URI=secret\n",
         encoding="utf-8",
     )
-    return environment
+    execution = load_run_spec(root).execution("academiccloud")
 
-
-def test_absolute_existing_ner_index_is_accepted(tmp_path: Path) -> None:
-    """An explicit runtime asset is independent from the service cwd."""
-    index_file = tmp_path / "ner.index"
-    index_file.write_bytes(b"index")
-    environment = _environment_file(
-        tmp_path,
-        index_value=str(index_file),
-    )
-
-    assert validate_academiccloud_environment(environment) == index_file
-
-
-def test_relative_ner_index_is_rejected_before_launch(tmp_path: Path) -> None:
-    """A DMW-repository-relative legacy value cannot reach service launch."""
-    environment = _environment_file(
-        tmp_path,
-        index_value="external_data/ner.index",
-    )
-
-    with pytest.raises(ValueError, match="absolute path"):
-        validate_academiccloud_environment(environment)
+    with pytest.raises(ValueError, match="must not assign secret"):
+        validate_run_environment_contract(root, execution)

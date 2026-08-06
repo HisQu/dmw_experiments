@@ -1,4 +1,4 @@
-"""Resolve repository-owned paths for the DMW--Haiu comparison study."""
+"""Resolve repository and run-template paths for the Haiu comparison."""
 
 from __future__ import annotations
 
@@ -6,22 +6,24 @@ from pathlib import Path
 
 STUDY_ID = "haiu_comparison"
 REPOSITORY_ROOT = Path(__file__).resolve().parents[4]
-STUDY_ROOT = REPOSITORY_ROOT / "studies" / STUDY_ID
-INPUT_ROOT = STUDY_ROOT / "inputs"
-SPEC_ROOT = STUDY_ROOT / "specs"
-LOCK_ROOT = STUDY_ROOT / "locks"
+RUN_TEMPLATES_ROOT = REPOSITORY_ROOT / "studies_run_templates"
+STUDY_TEMPLATE_ROOT = RUN_TEMPLATES_ROOT / STUDY_ID
+RUN_TEMPLATE_ROOT = STUDY_TEMPLATE_ROOT / "template"
+TEMPLATE_INPUT_ROOT = RUN_TEMPLATE_ROOT / "INPUTS"
+FULL_RUNS_ROOT = REPOSITORY_ROOT / "studies_runs" / STUDY_ID
+PROMOTED_RUNS_ROOT = FULL_RUNS_ROOT / "git_tracked"
+SMOKE_RUNS_ROOT = REPOSITORY_ROOT / "studies_runs_smoketests" / STUDY_ID
 
 
-def require_study_root() -> Path:
-    """Return the tracked study directory after validating the checkout.
+def require_run_template() -> Path:
+    """Return the complete tracked template after checking the checkout.
 
-    :return: Directory containing the study inputs and run specifications.
-    :raises RuntimeError: If the installed package is not attached to its
-        research checkout.
+    :return: Copyable Haiu comparison run template.
+    :raises RuntimeError: If package code is detached from its data checkout.
     """
-    if not STUDY_ROOT.is_dir():
+    if not RUN_TEMPLATE_ROOT.is_dir():
         raise RuntimeError(
-            "The DMW--Haiu study requires its repository checkout. "
-            f"Missing study directory: {STUDY_ROOT}"
+            "The Haiu comparison requires its tracked run template. Missing: "
+            f"{RUN_TEMPLATE_ROOT}"
         )
-    return STUDY_ROOT
+    return RUN_TEMPLATE_ROOT

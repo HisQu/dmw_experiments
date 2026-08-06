@@ -20,7 +20,7 @@ inputs, generated output, and external repositories.
 
 ## Synchronization rule
 
-Every study has an operational README below the top-level `studies/`
+Every study has an operational README below `studies_run_templates/`
 directory. Repetition is intentional. Update a study chapter and its
 operational README together whenever scientific behavior, paths, dependency
 releases, or evidence rules change.

@@ -36,10 +36,10 @@ class RecordingRunner:
 
 def test_service_names_are_stable_for_resume() -> None:
     """One run identity always maps to the same three unit names."""
-    units = ServiceUnits.for_run("header-sublemma-smoke")
+    units = ServiceUnits.for_run("header-sublemma-smoke", "academiccloud")
 
     assert units.runner == (
-        "dmw-experiment-header-sublemma-smoke-runner.service"
+        "dmw-experiment-header-sublemma-smoke-academiccloud-runner.service"
     )
     assert units.backend.endswith("-backend.service")
     assert units.watchdog.endswith("-watchdog.service")

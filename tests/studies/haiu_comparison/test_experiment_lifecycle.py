@@ -1,112 +1,80 @@
-"""Tests for lifecycle validation and durable status counting."""
+"""Tests for multi-provider lifecycle status and runtime paths."""
 
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 from pathlib import Path
 from typing import Any
 
-from dmw_experiments.shared.artifacts import RunWorkspace
 from dmw_experiments.shared.config import AppRuntimeConfig
+from dmw_experiments.shared.supervision import UserServiceManager
 from dmw_experiments.studies.haiu_comparison.operations.lifecycle import (
     ExperimentLifecycle,
     RuntimePaths,
 )
-from dmw_experiments.studies.haiu_comparison.operations.run_spec import (
-    load_header_sublemma_run_spec,
-)
-from dmw_experiments.studies.haiu_comparison.paths import (
-    REPOSITORY_ROOT,
-    SPEC_ROOT,
-)
-from dmw_experiments.shared.supervision.systemd_services import (
-    UserServiceManager,
-)
+from dmw_experiments.studies.haiu_comparison.paths import RUN_TEMPLATE_ROOT
 
 
-def _inactive_command_runner(
-    command: list[str],
-    **_: Any,
+def _inactive_runner(
+    command: list[str], **_: Any
 ) -> subprocess.CompletedProcess[str]:
-    """Return systemd's loaded-but-inactive property output.
-
-    :param command: Argument vector retained in the completed record.
-    :param _: Ignored subprocess keyword arguments.
-    :return: Successful inactive service inspection.
-    """
+    """Return a loaded but inactive systemd state."""
     return subprocess.CompletedProcess(command, 0, "loaded\ninactive\n", "")
 
 
-def test_status_distinguishes_success_failure_and_retry(
+def _smoke_run(tmp_path: Path) -> Path:
+    root = tmp_path / "template"
+    shutil.copytree(RUN_TEMPLATE_ROOT, root)
+    contract = root / "run.toml"
+    text = contract.read_text(encoding="utf-8")
+    text = text.replace('mode = "full"', 'mode = "smoke"').replace(
+        "limit = 0", "limit = 1"
+    )
+    contract.write_text(text, encoding="utf-8")
+    return root
+
+
+def test_status_distinguishes_provider_success_failure_and_retry(
     tmp_path: Path,
 ) -> None:
-    """Raw rows are terminal evidence while retry-pending remains provisional."""
-    spec_path = SPEC_ROOT / "academiccloud-header-sublemma-smoke.json"
-    spec = load_header_sublemma_run_spec(spec_path)
-    output = tmp_path / "output"
-    workspace = RunWorkspace.create(spec.result_directory(output), spec_path)
-    first = workspace.root / "raw" / spec.conditions[0] / "unit.json"
-    first.parent.mkdir(parents=True)
-    first.write_text(json.dumps({"success": False}), encoding="utf-8")
-    attempt = workspace.root / "attempts" / spec.conditions[0] / "unit.json"
-    attempt.parent.mkdir(parents=True)
+    """Terminal rows and provisional retry checkpoints remain distinct."""
+    root = _smoke_run(tmp_path)
+    result = (
+        root
+        / "raw-academiccloud"
+        / "result-workflow_full_ontology"
+        / "unit.json"
+    )
+    result.write_text(json.dumps({"success": False}), encoding="utf-8")
+    attempt = (
+        root
+        / "raw-academiccloud"
+        / "intermediates-workflow_full_ontology"
+        / "unit.attempt.json"
+    )
     attempt.write_text(
         json.dumps({"status": "retry_pending"}), encoding="utf-8"
     )
-    environment = tmp_path / "provider.env"
-    environment.write_text("DATAMODEL_LOGIN=test\n", encoding="utf-8")
-    config = AppRuntimeConfig(
-        storage_root=output,
-        academiccloud_env_file=environment,
-    )
     lifecycle = ExperimentLifecycle(
-        config=config,
-        services=UserServiceManager(runner=_inactive_command_runner),
+        config=AppRuntimeConfig(),
+        services=UserServiceManager(runner=_inactive_runner),
     )
 
-    status = lifecycle.status(spec_path)
+    status = lifecycle.status(root, execution_names=("academiccloud",))
 
-    assert status.expected_cells == 3
-    assert status.terminal_cells == 1
-    assert status.failed_cells == 1
-    assert status.retry_pending_cells == 1
-    assert status.strict_analysis_ready is False
-
-
-def test_validate_rejects_smoke_spec_for_full_command(tmp_path: Path) -> None:
-    """The obvious full-run command cannot launch a one-unit contract."""
-    environment = tmp_path / "provider.env"
-    environment.write_text("DATAMODEL_LOGIN=test\n", encoding="utf-8")
-    config = AppRuntimeConfig(
-        storage_root=tmp_path / "output",
-        publication_python=Path(__file__),
-        academiccloud_env_file=environment,
-    )
-    lifecycle = ExperimentLifecycle(
-        config=config,
-        services=UserServiceManager(runner=_inactive_command_runner),
-    )
-
-    try:
-        lifecycle.validate(
-            SPEC_ROOT / "academiccloud-header-sublemma-smoke.json",
-            expected_mode="full",
-        )
-    except ValueError as error:
-        assert "requires a 'full' run spec" in str(error)
-    else:
-        raise AssertionError("Smoke spec unexpectedly passed full validation.")
+    provider = status.executions["academiccloud"]
+    assert provider.expected_cells == 3
+    assert provider.terminal_cells == 1
+    assert provider.failed_cells == 1
+    assert provider.retry_pending_cells == 1
+    assert provider.strict_analysis_ready is False
 
 
-def test_default_python_keeps_virtual_environment_path(tmp_path: Path) -> None:
-    """Service commands must not resolve the venv interpreter symlink."""
-    environment = tmp_path / "provider.env"
-    environment.write_text("DATAMODEL_LOGIN=test\n", encoding="utf-8")
-    runtime = RuntimePaths.from_config(
-        AppRuntimeConfig(academiccloud_env_file=environment)
-    )
+def test_default_python_keeps_active_interpreter_path() -> None:
+    """Service commands retain the active virtual-environment executable."""
+    runtime = RuntimePaths.from_config(AppRuntimeConfig())
 
-    assert runtime.publication_python == (
-        REPOSITORY_ROOT / ".venv" / "bin" / "python"
-    )
+    assert runtime.publication_python.is_absolute()
+    assert runtime.publication_python.name.startswith("python")

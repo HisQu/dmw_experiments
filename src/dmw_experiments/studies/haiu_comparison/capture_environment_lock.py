@@ -28,10 +28,10 @@ from dmw_experiments.studies.haiu_comparison.comparison_experiment.input_catalog
     load_header_sublemma_catalog,
 )
 from dmw_experiments.studies.haiu_comparison.paths import (
-    STUDY_ROOT,
+    RUN_TEMPLATE_ROOT,
 )
 
-EXPERIMENT_ROOT = STUDY_ROOT
+EXPERIMENT_ROOT = RUN_TEMPLATE_ROOT
 
 APPROVED_DISTRIBUTIONS = {
     "datamodel-workflow": {

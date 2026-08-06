@@ -1,5 +1,8 @@
 """Long-running service supervision for experiment runs."""
 
-# ruff: noqa: F401
+from dmw_experiments.shared.supervision.systemd_services import (
+    ServiceUnits,
+    UserServiceManager,
+)
 
-from dmw_experiments.shared.supervision import watch_runner_progress
+__all__ = ["ServiceUnits", "UserServiceManager"]

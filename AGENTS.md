@@ -33,7 +33,7 @@
 - For facade `__init__.py` files, prefer clean batch re-export imports plus file-level `# ruff: noqa: F401`; do not use redundant `symbol as symbol` aliases solely to satisfy Ruff.
 - Update `README.md` or `docs/` if a change affects usage, setup, CLI behavior, public APIs, environment variables, or user-visible workflows.
 - Update `docs/studies/<study_name>.md` and
-  `studies/<study_name>/README.md` together when a study contract, dependency,
+  `studies_run_templates/<study_name>/README.md` together when a study contract, dependency,
   source location, output location, or evidence rule changes.
 - Add minimal `__main__` demo code only when it improves discoverability or manual testing.
 - If a test needs a lighter setup, add or reuse a dedicated test helper instead of widening production code to `Any`.

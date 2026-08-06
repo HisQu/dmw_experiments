@@ -18,8 +18,8 @@ def main(argv: list[str] | None = None) -> int:
     :return: Process exit code.
     """
     args = _build_parser().parse_args(argv)
-    run_dir = args.run_dir.expanduser().resolve()
-    writer = ArtifactWriter(run_dir)
+    output_dir = args.output_dir.expanduser().resolve()
+    writer = ArtifactWriter(output_dir)
     counts = writer.materialize_existing_raw_documents()
     print(
         f"Materialized {counts['stage1']} Stage-1 reply, {counts['ttl']} "
@@ -28,7 +28,7 @@ def main(argv: list[str] | None = None) -> int:
         f"unavailable from preserved evidence; plus "
         f"{counts['retrieved_ttl']} retrieved Turtle and "
         f"{counts['retrieved_yaml']} retrieved YAML artifact(s) under "
-        f"{run_dir}."
+        f"{output_dir}."
     )
     return 0
 
@@ -40,14 +40,14 @@ def _build_parser() -> argparse.ArgumentParser:
     """
     parser = argparse.ArgumentParser(
         description=(
-            "Materialize raw_stage1, raw_ttl, and raw_yaml documents without "
-            "replacing active aggregate checkpoints."
+            "Materialize Stage-1, Turtle, and YAML documents from terminal "
+            "JSON without replacing aggregate checkpoints."
         )
     )
     parser.add_argument(
-        "run_dir",
+        "output_dir",
         type=Path,
-        help="Existing comparison run directory containing raw/*.json.",
+        help="Existing raw-<execution> directory containing result-* JSON.",
     )
     return parser
 

@@ -147,7 +147,7 @@ def test_strict_exporter_still_rejects_legacy_artifact_contract(
 ) -> None:
     run_dir = _legacy_run(tmp_path)
 
-    with pytest.raises(ValueError, match="provenance"):
+    with pytest.raises(ValueError, match="raw-<execution>"):
         export_run(run_dir)
 
 

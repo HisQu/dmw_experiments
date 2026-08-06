@@ -31,7 +31,7 @@ from dmw_experiments.studies.haiu_comparison.haiu_ontologizer.models import (
     RegestText,
 )
 from dmw_experiments.studies.haiu_comparison.paths import (
-    INPUT_ROOT,
+    TEMPLATE_INPUT_ROOT,
 )
 from dmw_experiments.studies.haiu_comparison.prepare_header_sublemma_environment import (
     PairEnvironmentSpec,
@@ -1500,7 +1500,7 @@ def test_workflow_config_requires_reuse_on_first_attempt() -> None:
 
 
 def _pair_input_evidence(tmp_path: Path):
-    catalogue_path = INPUT_ROOT / "header_sublemma_input_catalog.json"
+    catalogue_path = TEMPLATE_INPUT_ROOT / "header_sublemma_input_catalog.json"
     catalog = load_header_sublemma_catalog(catalogue_path)
     spec = PairEnvironmentSpec(
         database_name="UserData",

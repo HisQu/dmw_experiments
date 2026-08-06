@@ -7,11 +7,9 @@ data/
 db/
 .alt/
 .old/
-
-# === Experiment output =========================================
-output/*
-!output/.gitignore
-!output/README.md
+# Archived pre-0.3 experiment data may remain locally but is never a new-run
+# destination.
+output/
 
 # === buildben templates ========================================
 # These are ignored until renamed to prevent premature publishing
@@ -196,6 +194,16 @@ Temporary Items
 ### macOS Patch
 # iCloud generated files
 *.icloud
+
+# === Run-directory policy ======================================
+# Templates are complete tracked copies, including empty destinations.
+!studies_run_templates/**/logs/
+!studies_run_templates/**/logs/.gitkeep
+!studies_run_templates/**/locks/dist/
+!studies_run_templates/**/locks/dist/.gitkeep
+# Promoted runs may intentionally retain the experiment package artifacts.
+!studies_runs/haiu_comparison/git_tracked/**/locks/dist/
+!studies_runs/haiu_comparison/git_tracked/**/locks/dist/**
 
 # === Windows ===================================================
 ~$*

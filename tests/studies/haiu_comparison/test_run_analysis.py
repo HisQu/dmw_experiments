@@ -1,164 +1,69 @@
+"""Tests for the one-run analysis entry point."""
+
+from __future__ import annotations
+
+import shutil
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
-from dmw_experiments.studies.haiu_comparison import (
-    run_analysis,
-)
+from dmw_experiments.studies.haiu_comparison import run_analysis
+from dmw_experiments.studies.haiu_comparison.paths import RUN_TEMPLATE_ROOT
 
 
-def test_run_analysis_delegates_to_existing_exporters(
+def _run(tmp_path: Path) -> Path:
+    root = tmp_path / "template"
+    shutil.copytree(RUN_TEMPLATE_ROOT, root)
+    return root
+
+
+def test_run_analysis_routes_both_executions_into_one_run(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """One command forwards the exact inputs to the existing pipeline layers."""
-    academiccloud_run_dir = tmp_path / "results/academiccloud"
-    lmstudio_run_dir = tmp_path / "results/lmstudio"
-    review_output = tmp_path / "results/fresh_review.xlsx"
-    evaluated_review = tmp_path / "results/evaluated_review.xlsx"
-    reveal_key = tmp_path / "results/evaluated_review_reveal_key.json"
+    """One command derives provider workbooks, review data, and plots."""
+    root = _run(tmp_path)
     calls: list[tuple[object, ...]] = []
 
-    def fake_export_run(
-        run_dir: Path,
-        *,
-        allow_partial: bool,
-        audit_csv: bool,
-        overwrite: bool,
-    ) -> SimpleNamespace:
-        calls.append(
-            ("export_run", run_dir, allow_partial, audit_csv, overwrite)
-        )
-        return SimpleNamespace(workbook=run_dir / "analysis/overview.xlsx")
+    def fake_export_run(run_dir: Path, **_: object) -> SimpleNamespace:
+        calls.append(("export", run_dir))
+        return SimpleNamespace(workbook=run_dir / "overview.xlsx")
 
-    def fake_provider_review(
-        *,
-        academiccloud_run_dir: Path,
-        lmstudio_run_dir: Path,
-        workbook_path: Path,
-        allow_partial: bool,
-        overwrite: bool,
-    ) -> SimpleNamespace:
-        calls.append(
-            (
-                "provider_review",
-                academiccloud_run_dir,
-                lmstudio_run_dir,
-                workbook_path,
-                allow_partial,
-                overwrite,
-            )
-        )
-        return SimpleNamespace(
-            workbook=workbook_path,
-            reveal_key=workbook_path.with_name("fresh_review_reveal_key.json"),
-        )
+    def fake_review(**kwargs: object) -> SimpleNamespace:
+        calls.append(("review", kwargs["workbook_path"]))
+        return SimpleNamespace(workbook=kwargs["workbook_path"])
 
-    def fake_plot_workbooks(
-        workbooks: list[Path],
-        *,
-        output_root: Path,
-        timestamp: str,
-        quality_review_workbook: Path,
-        quality_reveal_key: Path,
-    ) -> Path:
-        calls.append(
-            (
-                "plot_workbooks",
-                workbooks,
-                output_root,
-                timestamp,
-                quality_review_workbook,
-                quality_reveal_key,
-            )
-        )
-        return output_root / f"plots-{timestamp}"
+    def fake_plots(workbooks: list[Path], **kwargs: object) -> Path:
+        calls.append(("plots", *workbooks))
+        return Path(str(kwargs["output_root"])) / "plots-test"
 
     monkeypatch.setattr(run_analysis, "export_run", fake_export_run)
     monkeypatch.setattr(
         run_analysis,
         "export_provider_historian_review_workbook",
-        fake_provider_review,
+        fake_review,
     )
-    monkeypatch.setattr(run_analysis, "plot_workbooks", fake_plot_workbooks)
+    monkeypatch.setattr(run_analysis, "plot_workbooks", fake_plots)
 
     artifacts = run_analysis.run_analysis(
-        academiccloud_run_dir=academiccloud_run_dir,
-        lmstudio_run_dir=lmstudio_run_dir,
-        provider_review_workbook=review_output,
-        output_root=tmp_path / "results",
+        run_dir=root,
         allow_partial=True,
-        audit_csv=True,
         overwrite=True,
-        timestamp="20260731T140000CEST",
-        quality_review_workbook=evaluated_review,
-        quality_reveal_key=reveal_key,
+        timestamp="test",
     )
 
-    assert artifacts.plots == tmp_path / "results/plots-20260731T140000CEST"
-    assert artifacts.provider_review.workbook == review_output
-    assert calls == [
-        ("export_run", academiccloud_run_dir, True, True, True),
-        ("export_run", lmstudio_run_dir, True, True, True),
-        (
-            "provider_review",
-            academiccloud_run_dir,
-            lmstudio_run_dir,
-            review_output,
-            True,
-            True,
-        ),
-        (
-            "plot_workbooks",
-            [
-                academiccloud_run_dir / "analysis/overview.xlsx",
-                lmstudio_run_dir / "analysis/overview.xlsx",
-            ],
-            tmp_path / "results",
-            "20260731T140000CEST",
-            evaluated_review,
-            reveal_key,
-        ),
-    ]
+    assert calls[0] == ("export", root / "raw-academiccloud")
+    assert calls[1] == ("export", root / "raw-lmstudio")
+    assert artifacts.plots == root / "plots" / "plots-test"
 
 
 def test_run_analysis_requires_complete_grade_source_pair(
     tmp_path: Path,
 ) -> None:
-    """A review without its matching reveal key cannot be safely unmasked."""
+    """An evaluated workbook without its reveal key is unusable."""
     with pytest.raises(ValueError, match="requires both"):
         run_analysis.run_analysis(
-            academiccloud_run_dir=tmp_path / "academiccloud",
-            lmstudio_run_dir=tmp_path / "lmstudio",
-            provider_review_workbook=tmp_path / "fresh_review.xlsx",
-            output_root=tmp_path,
-            quality_review_workbook=tmp_path / "evaluated_review.xlsx",
-        )
-
-
-def test_run_analysis_never_replaces_the_evaluated_review(
-    tmp_path: Path,
-) -> None:
-    """A fresh review export cannot target the manual-grade source workbook."""
-    evaluated_review = tmp_path / "evaluated_review.xlsx"
-    with pytest.raises(ValueError, match="fresh ungraded review"):
-        run_analysis.run_analysis(
-            academiccloud_run_dir=tmp_path / "academiccloud",
-            lmstudio_run_dir=tmp_path / "lmstudio",
-            provider_review_workbook=evaluated_review,
-            output_root=tmp_path,
-            quality_review_workbook=evaluated_review,
-            quality_reveal_key=tmp_path / "evaluated_review_reveal_key.json",
-        )
-
-
-def test_default_output_root_requires_sibling_run_directories(
-    tmp_path: Path,
-) -> None:
-    """The default cannot guess a results root from unrelated source paths."""
-    with pytest.raises(ValueError, match="--output-root"):
-        run_analysis._default_output_root(
-            tmp_path / "first/academiccloud",
-            tmp_path / "second/lmstudio",
+            run_dir=_run(tmp_path),
+            quality_review_workbook=tmp_path / "evaluated.xlsx",
         )

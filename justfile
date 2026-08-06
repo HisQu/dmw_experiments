@@ -90,6 +90,19 @@ sync:
     uv sync --all-groups --locked
 alias install := sync
 
+# Overlay neighboring source checkouts without changing pyproject.toml or the
+# release locks. Run `just sync` to restore the published stack.
+sync-local-stack:
+    just sync
+    @for repository in ../datamodel-workflow ../GTA ../haiu ../OPA; do \
+        test -f "$repository/pyproject.toml" || { \
+            echo "Missing local checkout: $repository" >&2; \
+            exit 1; \
+        }; \
+    done
+    uv pip install --python .venv/bin/python --no-deps --editable \
+        ../datamodel-workflow ../GTA ../haiu ../OPA
+
 # ---------------------------------------------------------------
 # Locking and upgrading
 # ---------------------------------------------------------------
@@ -244,8 +257,7 @@ release-check:
     #!/usr/bin/env bash
     set -euo pipefail
     just _check-uv
-    mkdir -p output/runtime/release-checks
-    check_root="$(mktemp -d -p output/runtime/release-checks release-check.XXXXXX)"
+    check_root="$(mktemp -d)"
     trap 'rm -rf "$check_root"' EXIT
 
     current_version="$(uv version --short)"

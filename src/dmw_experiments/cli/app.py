@@ -6,7 +6,6 @@ import logging
 import sys
 from collections.abc import Callable
 from dataclasses import asdict
-from datetime import datetime
 from importlib import metadata
 from pathlib import Path
 from typing import Annotated, Any, TypeVar
@@ -20,13 +19,16 @@ from dmw_experiments.shared.config import AppRuntimeConfig
 from dmw_experiments.studies.haiu_comparison.operations.lifecycle import (
     ExperimentLifecycle,
 )
-from dmw_experiments.studies.haiu_comparison.paths import (
-    REPOSITORY_ROOT,
-    SPEC_ROOT,
+from dmw_experiments.studies.haiu_comparison.operations.run_factory import (
+    NewRunRequest,
+    create_run,
+)
+from dmw_experiments.studies.haiu_comparison.operations.promotion import (
+    prepare_promotion,
 )
 
 PACKAGE_NAME = "dmw_experiments"
-VERSION_FALLBACK = "0.2.0"
+VERSION_FALLBACK = "0.3.0"
 LOG = logging.getLogger(__name__)
 T = TypeVar("T")
 
@@ -213,117 +215,144 @@ def _run_lifecycle(action: Callable[[], T]) -> T:
         raise typer.Exit(code=2) from error
 
 
-def _analysis_output_root() -> Path:
-    """Resolve the configured generated-analysis directory.
+def _execution_filter(execution: list[str] | None) -> tuple[str, ...]:
+    """Normalize repeated provider options for lifecycle methods.
 
-    :return: Absolute parent for timestamped analysis exports.
+    :param execution: Repeated ``--execution`` values or ``None``.
+    :return: Immutable provider selection.
     """
-    storage_root = AppRuntimeConfig().storage_root.expanduser()
-    if not storage_root.is_absolute():
-        storage_root = REPOSITORY_ROOT / storage_root
-    return storage_root.resolve() / "analyses"
+    return tuple(execution or ())
+
+
+@app.command("new-run")
+def new_run_cmd(
+    run_id: Annotated[str, typer.Option(help="Portable run identifier.")],
+    mode: Annotated[
+        str,
+        typer.Option(help="Run area and unit limit: smoke or full."),
+    ],
+    execution: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--execution",
+            help="Enable academiccloud or lmstudio. Repeat for both.",
+        ),
+    ] = None,
+    study: Annotated[
+        str,
+        typer.Option(help="Study template. Only haiu_comparison exists."),
+    ] = "haiu_comparison",
+) -> None:
+    """Copy a complete tracked template into an ignored run area."""
+    if study != "haiu_comparison":
+        raise typer.BadParameter("Only haiu_comparison is available.")
+    path = _run_lifecycle(
+        lambda: create_run(
+            NewRunRequest(
+                run_id=run_id,
+                mode=mode,
+                executions=_execution_filter(execution),
+            )
+        )
+    )
+    typer.echo(path)
 
 
 @app.command("validate")
 def validate_cmd(
-    spec: Annotated[
-        Path,
-        typer.Option(
-            "--spec",
-            help="Tracked run specification to validate without launching.",
-        ),
-    ] = SPEC_ROOT / "academiccloud-header-sublemma-smoke.json",
+    run_dir: Annotated[Path, typer.Option(help="Copied run directory.")],
+    execution: Annotated[
+        list[str] | None,
+        typer.Option("--execution", help="Optional provider filter."),
+    ] = None,
 ) -> None:
-    """Validate the scientific, storage, and local runtime contract."""
-    payload = _run_lifecycle(lambda: _lifecycle().validate(spec))
+    """Validate the run, AppRC sources, storage identities, and runtime."""
+    payload = _run_lifecycle(
+        lambda: _lifecycle().validate(
+            run_dir,
+            execution_names=_execution_filter(execution),
+        )
+    )
     rc.cli.dump_json(payload)
 
 
-@app.command("smoke")
-def smoke_cmd(
-    spec: Annotated[
-        Path,
-        typer.Option("--spec", help="Disposable one-unit smoke contract."),
-    ] = SPEC_ROOT / "academiccloud-header-sublemma-smoke.json",
+@app.command("start")
+def start_cmd(
+    run_dir: Annotated[Path, typer.Option(help="Copied run directory.")],
+    execution: Annotated[
+        list[str] | None,
+        typer.Option("--execution", help="Optional provider filter."),
+    ] = None,
 ) -> None:
-    """Prepare and start the isolated one-unit AcademicCloud smoke."""
-    workspace = _run_lifecycle(
-        lambda: _lifecycle().launch(spec, expected_mode="smoke")
+    """Prepare fresh storage and start selected provider services."""
+    workspaces = _run_lifecycle(
+        lambda: _lifecycle().start(
+            run_dir,
+            execution_names=_execution_filter(execution),
+        )
     )
-    typer.echo(f"Smoke started: {workspace.root}")
-    typer.echo(f"Babysit log: {workspace.babysit_log}")
-
-
-@app.command("run")
-def run_cmd(
-    spec: Annotated[
-        Path,
-        typer.Option("--spec", help="Complete experiment run contract."),
-    ] = SPEC_ROOT / "academiccloud-header-sublemma-full.json",
-) -> None:
-    """Prepare and start the complete isolated AcademicCloud matrix."""
-    workspace = _run_lifecycle(
-        lambda: _lifecycle().launch(spec, expected_mode="full")
-    )
-    typer.echo(f"Run started: {workspace.root}")
-    typer.echo(f"Babysit log: {workspace.babysit_log}")
+    for workspace in workspaces:
+        typer.echo(f"Started {workspace.execution}: {workspace.babysit_log}")
 
 
 @app.command("resume")
 def resume_cmd(
-    spec: Annotated[
-        Path,
-        typer.Option(
-            "--spec", help="Original contract of the interrupted run."
-        ),
-    ] = SPEC_ROOT / "academiccloud-header-sublemma-full.json",
+    run_dir: Annotated[Path, typer.Option(help="Copied run directory.")],
+    execution: Annotated[
+        list[str] | None,
+        typer.Option("--execution", help="Optional provider filter."),
+    ] = None,
 ) -> None:
     """Resume the same run from durable checkpoints and frozen settings."""
-    workspace = _run_lifecycle(lambda: _lifecycle().resume(spec))
-    typer.echo(f"Run resumed: {workspace.root}")
-    typer.echo(f"Babysit log: {workspace.babysit_log}")
+    workspaces = _run_lifecycle(
+        lambda: _lifecycle().resume(
+            run_dir,
+            execution_names=_execution_filter(execution),
+        )
+    )
+    for workspace in workspaces:
+        typer.echo(f"Resumed {workspace.execution}: {workspace.babysit_log}")
 
 
 @app.command("pause")
 def pause_cmd(
-    spec: Annotated[
-        Path,
-        typer.Option("--spec", help="Original contract of the active run."),
-    ] = SPEC_ROOT / "academiccloud-header-sublemma-full.json",
+    run_dir: Annotated[Path, typer.Option(help="Copied run directory.")],
+    execution: Annotated[
+        list[str] | None,
+        typer.Option("--execution", help="Optional provider filter."),
+    ] = None,
 ) -> None:
     """Stop an active run in checkpoint-safe service order."""
-    status = _run_lifecycle(lambda: _lifecycle().pause(spec))
+    status = _run_lifecycle(
+        lambda: _lifecycle().pause(
+            run_dir,
+            execution_names=_execution_filter(execution),
+        )
+    )
     rc.cli.dump_json(asdict(status))
 
 
 @app.command("status")
 def status_cmd(
-    spec: Annotated[
-        Path,
-        typer.Option("--spec", help="Original contract of the run to inspect."),
-    ] = SPEC_ROOT / "academiccloud-header-sublemma-full.json",
+    run_dir: Annotated[Path, typer.Option(help="Copied run directory.")],
+    execution: Annotated[
+        list[str] | None,
+        typer.Option("--execution", help="Optional provider filter."),
+    ] = None,
 ) -> None:
     """Report durable cell counts and current service states."""
-    status = _run_lifecycle(lambda: _lifecycle().status(spec))
+    status = _run_lifecycle(
+        lambda: _lifecycle().status(
+            run_dir,
+            execution_names=_execution_filter(execution),
+        )
+    )
     rc.cli.dump_json(asdict(status))
 
 
 @app.command("analyze")
 def analyze_cmd(
-    academiccloud_run: Annotated[
-        Path,
-        typer.Option(
-            "--academiccloud-run",
-            help="AcademicCloud run directory containing raw observations.",
-        ),
-    ],
-    lmstudio_run: Annotated[
-        Path,
-        typer.Option(
-            "--lmstudio-run",
-            help="LM Studio run directory containing raw observations.",
-        ),
-    ],
+    run_dir: Annotated[Path, typer.Option(help="Copied run directory.")],
     quality_review_workbook: Annotated[
         Path | None,
         typer.Option(help="Optional evaluated historian-review workbook."),
@@ -357,24 +386,36 @@ def analyze_cmd(
         run_analysis,
     )
 
-    timestamp = datetime.now().astimezone().strftime("%Y%m%dT%H%M%S%Z")
-    output_root = _analysis_output_root() / timestamp
-    review = output_root / "historian_quality_review.xlsx"
     artifacts = _run_lifecycle(
         lambda: run_analysis(
-            academiccloud_run_dir=academiccloud_run,
-            lmstudio_run_dir=lmstudio_run,
-            provider_review_workbook=review,
-            output_root=output_root,
+            run_dir=run_dir,
             allow_partial=allow_partial,
             audit_csv=audit_csv,
             overwrite=overwrite,
-            timestamp=timestamp,
             quality_review_workbook=quality_review_workbook,
             quality_reveal_key=quality_reveal_key,
         )
     )
-    typer.echo(f"Analysis written: {artifacts.plots.parent}")
+    typer.echo(f"Analysis written: {artifacts.plots}")
+
+
+@app.command("prepare-promotion")
+def prepare_promotion_cmd(
+    run_dir: Annotated[Path, typer.Option(help="Copied run directory.")],
+    allow_partial: Annotated[
+        bool,
+        typer.Option(help="Permit an explicitly incomplete promoted run."),
+    ] = False,
+) -> None:
+    """Validate a run and build its experiment-package artifacts."""
+    result = _run_lifecycle(
+        lambda: prepare_promotion(run_dir, allow_partial=allow_partial)
+    )
+    typer.echo(
+        f"Prepared {result.terminal_cells}/{result.expected_cells} cells."
+    )
+    for path in result.distribution_files:
+        typer.echo(path)
 
 
 def main() -> None:

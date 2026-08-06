@@ -1,156 +1,116 @@
-# How-to guides
+# How-to user guides
 
 ## Table of contents
 
-1. [Prepare a machine](#prepare-a-machine)
-2. [Validate without mutation](#validate-without-mutation)
-3. [Run the required smoke](#run-the-required-smoke)
-4. [Start the full matrix](#start-the-full-matrix)
-5. [Pause before a restart](#pause-before-a-restart)
-6. [Resume after an interruption](#resume-after-an-interruption)
-7. [Hand off babysitting](#hand-off-babysitting)
-8. [Regenerate analyses](#regenerate-analyses)
+1. [Configure the machine](#configure-the-machine)
+2. [Create a run](#create-a-run)
+3. [Validate and start](#validate-and-start)
+4. [Inspect, pause, and resume](#inspect-pause-and-resume)
+5. [Analyze](#analyze)
+6. [Promote a selected run](#promote-a-selected-run)
 
-## Prepare a machine
+## Configure the machine
 
-Install the locked Python 3.12 environment:
+Install the locked repository environment, then initialize AppRC:
 
 ```bash
-uv sync --locked --all-groups --python 3.12
-```
-
-Plain `pip` uses the exported release lock and does not need `uv` or sibling
-repository clones:
-
-```bash
-python -m venv .venv
-.venv/bin/python -m pip install --no-deps -r requirements-runtime.lock
-.venv/bin/python -m pip install --no-deps -e "."
-```
-
-Do not omit the first command or remove `--no-deps`. The lock is the resolved
-runtime contract; ordinary dependency resolution sees incompatible legacy
-MongoDBAPI and GTA URLs in the published OPA and NER metadata.
-
-Create `output/private/academiccloud.env`. Merge every runtime variable needed
-by the published DMW application, MongoDBAPI, Haiu, and AcademicCloud into this
-single ignored file. Add `DATAMODEL_LOGIN` and `DATAMODEL_PASSWORD` for DMW API
-authentication. Set `FAISS_INDEX_PATH` to the absolute path of the local NER
-few-shot example index; do not leave the old DMW-relative value in place.
-
-```bash
-export DMW_EXPERIMENTS_STORAGE="output"
-export DMW_EXPERIMENTS_ACADEMICCLOUD_ENV_FILE="output/private/academiccloud.env"
+uv sync --locked --all-groups
+dmw_experiments config init
 dmw_experiments config doctor
 ```
 
+Put `DATAMODEL_LOGIN`, `DATAMODEL_PASSWORD`, `MONGO_URI`, `JWT_SECRET`,
+provider keys, and the absolute `FAISS_INDEX_PATH` in AppRC's app-wide
+environment. Do not put them in a run directory.
+
+## Create a run
+
+```bash
+dmw_experiments new-run \
+  --study haiu_comparison \
+  --run-id RUN_ID \
+  --mode full \
+  --execution academiccloud \
+  --execution lmstudio
+```
+
+Use `--mode smoke` for a one-unit run. Smoke and full runs are copied into
+different ignored roots and receive different storage identities. You may
+also copy the complete tracked template manually, but the destination basename
+must equal `run_id` in `run.toml`.
+
+Before launch:
+
+1. Edit the copied `README.md` with the concrete purpose and changes.
+2. Review every field in `run.toml`.
+3. Review `run.env` and both provider override files.
+4. Read `run.AGENT.md` before delegating babysitting.
+
+## Validate and start
+
+From the copied run directory:
+
+```bash
+./run.sh validate
+./run.sh start
+```
+
+Select one execution without stopping the other:
+
+```bash
+dmw_experiments --storage "$PWD" --skip-dotenv-layers \
+  start --run-dir "$PWD" --execution academiccloud
+```
+
+Validation checks the TOML shape, exhaustive environment inventory, AppRC
+credential sources, runtime assets, provider profiles, input population, and
+storage isolation before launch changes external state.
+
+## Inspect, pause, and resume
+
+```bash
+./run.sh status
+./run.sh pause
+./run.sh resume
+```
+
+Provider services and journals are independent. A provider interruption does
+not block the other provider. `pause` stops watchdog, runner, then backend.
+`resume` requires the original frozen `run.toml` and first-launch evidence.
+
 > [!IMPORTANT]
-> The smoke and full specs have different run IDs, DMW branches, raw
-> collections, annotation collections, and ontology collections. Never reuse a
-> smoke identity for the full matrix.
+> A terminal model failure is a datapoint. Do not change settings or use a
+> recovery amendment unless the user separately approves a scientific
+> amendment.
 
-## Validate without mutation
-
-```bash
-dmw_experiments validate \
-  --spec studies/haiu_comparison/specs/academiccloud-header-sublemma-smoke.json
-```
-
-Validation checks the schema-v2 contract, smoke/full isolation, required
-inputs, interpreter, required runtime keys, absolute NER index, and ignored
-runtime file. It does not connect to MongoDB, start DMW, or call a model.
-
-## Run the required smoke
-
-First confirm no AcademicCloud experiment is active:
+## Analyze
 
 ```bash
-systemctl --user list-units '*academiccloud*.service'
+./run.sh analyze
 ```
 
-Then run:
+Strict analysis requires all enabled provider cells to be terminal. For an
+interim view:
 
 ```bash
-dmw_experiments smoke
+dmw_experiments --storage "$PWD" --skip-dotenv-layers \
+  analyze --run-dir "$PWD" --allow-partial
 ```
 
-The command performs these actions in order:
+Raw evidence is never overwritten. Analysis owns only its derived files.
+Human-evaluated workbooks remain explicit inputs paired with a reveal key.
 
-1. Freezes `run_spec.json` inside the run directory.
-2. Creates or verifies the isolated DMW branch and collections.
-3. Clones ignored release-evidence checkouts from the four pinned tags.
-4. Captures `provenance/environment_lock.json` with schema version 2.
-5. Starts backend, runner, and watchdog as user-systemd services.
-6. Records every intervention in the run-local BABYSIT journal.
+## Promote a selected run
 
-Use `dmw_experiments status --spec ...smoke.json` until all three cells are
-terminal. A terminal model failure remains a smoke result; it is not silently
-retried as an amendment.
-
-## Start the full matrix
-
-After reviewing the smoke, start the fresh 480-unit environment:
+Runs remain wholly ignored until the user selects one. Prepare the selected
+run in place:
 
 ```bash
-dmw_experiments run
+dmw_experiments prepare-promotion --run-dir "$PWD"
 ```
 
-The full run uses `--limit 0` and schedules all three conditions. The command
-refuses a smoke spec and refuses to start while another AcademicCloud unit is
-active.
-
-## Pause before a restart
-
-```bash
-dmw_experiments pause \
-  --spec studies/haiu_comparison/specs/academiccloud-header-sublemma-full.json
-```
-
-The command stops the watchdog, sends SIGINT to the runner, waits for an
-orderly checkpoint, and then stops runner and backend. Do not delete raw or
-attempt files.
-
-## Resume after an interruption
-
-```bash
-dmw_experiments resume \
-  --spec studies/haiu_comparison/specs/academiccloud-header-sublemma-full.json
-```
-
-Resume requires the byte-identical specification, its SHA-256 sidecar, DMW
-input manifest, schema-v2 environment lock, and immutable runner manifest. It
-passes only `--resume`; recovery-amendment selectors are deliberately absent.
-
-## Hand off babysitting
-
-Give the next operator these paths from one run directory:
-
-- `run_spec.json` defines exactly what may resume.
-- `operations/services.json` names the owned service units.
-- `operations/events.jsonl` lists structured lifecycle events.
-- `logs/BABYSIT-*.md` contains readable checkpoints and interventions.
-- `logs/backend.log`, `logs/runner.log`, and `logs/watchdog.log` contain process
-  output.
-- `raw/`, `attempts/`, and `annotation_attempts/` are authoritative progress.
-
-Run `dmw_experiments status --spec PATH` instead of inferring completion from
-log text. Strict analysis can proceed only when every scheduled cell has a raw
-record and no cell is `retry_pending`.
-
-## Regenerate analyses
-
-```bash
-dmw_experiments analyze \
-  --academiccloud-run output/runs/ACADEMICCLOUD_RUN_ID \
-  --lmstudio-run output/runs/LMSTUDIO_RUN_ID
-```
-
-For a diagnostic snapshot of an incomplete source matrix, add
-`--allow-partial`. For graded plots, pass both
-`--quality-review-workbook PATH` and `--quality-reveal-key PATH`.
-Exporter-owned per-run workbooks are regenerated by default. Use
-`--no-overwrite` when an existing derived file should stop the command.
-
-> [!NOTE]
-> Analysis files are derived. Regenerate them from raw data; do not hand-edit
-> generated workbooks or plots.
+This validates terminal counts and creates the matching experiment wheel and
+source archive under `locks/dist/`. Review the whole run, then copy it to
+`studies_runs/haiu_comparison/git_tracked/<run-id>/` and commit that promotion
+separately. Use `--allow-partial` only when the incomplete dataset is itself
+the explicitly intended publication artifact.

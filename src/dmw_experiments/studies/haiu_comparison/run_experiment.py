@@ -88,13 +88,13 @@ from dmw_experiments.studies.haiu_comparison.haiu_ontologizer.models import (
     RegestText,
 )
 from dmw_experiments.studies.haiu_comparison.paths import (
-    INPUT_ROOT,
     REPOSITORY_ROOT,
-    STUDY_ROOT,
+    RUN_TEMPLATE_ROOT,
+    TEMPLATE_INPUT_ROOT,
 )
 
-EXPERIMENT_ROOT = STUDY_ROOT
-DEFAULT_INPUT_DIR = INPUT_ROOT
+EXPERIMENT_ROOT = RUN_TEMPLATE_ROOT
+DEFAULT_INPUT_DIR = TEMPLATE_INPUT_ROOT
 DEFAULT_LOCAL_IDS = DEFAULT_INPUT_DIR / "ablaesse_cp_ids.txt"
 DEFAULT_PROMPT_FILE = DEFAULT_INPUT_DIR / "historian_ontology_user_input.md"
 DEFAULT_ANNOTATION_GUIDELINES_FILE = (
@@ -236,9 +236,11 @@ def main(argv: list[str] | None = None) -> int:
         if condition in selected_conditions
     )
     run_id = args.run_id or _default_run_id()
-    output_dir = Path(
-        args.output_dir or REPOSITORY_ROOT / "output" / "runs" / run_id
-    )
+    if not args.output_dir:
+        raise SystemExit(
+            "--output-dir is required; use a copied run directory."
+        )
+    output_dir = Path(args.output_dir)
     writer = ArtifactWriter(output_dir)
     existing_rows = writer.load_existing_rows()
     if existing_rows and not args.resume:
@@ -3429,13 +3431,13 @@ def _validate_environment_lock(
     schema_version = (
         payload.get("schema_version") if isinstance(payload, dict) else None
     )
-    if schema_version not in {1, 2}:
-        raise SystemExit("environment_lock must use schema_version 1 or 2.")
+    if schema_version not in {1, 2, 3}:
+        raise SystemExit("environment_lock must use schema_version 1, 2, or 3.")
     pair_mode = input_catalog is not None
-    if pair_mode and schema_version != 2:
+    if pair_mode and schema_version not in {2, 3}:
         raise SystemExit(
             "Header--sublemma publication runs require environment_lock "
-            "schema_version 2."
+            "schema_version 2 or 3."
         )
     if not pair_mode and schema_version != 1:
         raise SystemExit(
@@ -3469,43 +3471,49 @@ def _validate_environment_lock(
                 f"provider configuration ({field})."
             )
 
-    ontology_identity = payload.get("dmw_ontology_identity")
-    if not isinstance(ontology_identity, dict):
-        raise SystemExit(
-            "environment_lock does not contain DMW ontology branch evidence."
-        )
-    if ontology_identity.get("branch") != args.branch:
-        raise SystemExit(
-            "environment_lock DMW branch differs from the requested --branch."
-        )
-    if (
-        not isinstance(ontology_identity.get("collection"), str)
-        or not str(ontology_identity["collection"]).strip()
-    ):
-        raise SystemExit(
-            "environment_lock does not identify the DMW collection."
-        )
+    repositories: dict[str, Any] = {}
+    if schema_version in {1, 2}:
+        ontology_identity = payload.get("dmw_ontology_identity")
+        if not isinstance(ontology_identity, dict):
+            raise SystemExit(
+                "environment_lock does not contain DMW ontology branch evidence."
+            )
+        if ontology_identity.get("branch") != args.branch:
+            raise SystemExit(
+                "environment_lock DMW branch differs from the requested --branch."
+            )
+        if (
+            not isinstance(ontology_identity.get("collection"), str)
+            or not str(ontology_identity["collection"]).strip()
+        ):
+            raise SystemExit(
+                "environment_lock does not identify the DMW collection."
+            )
 
-    repositories = payload.get("repositories")
-    if not isinstance(repositories, dict):
-        raise SystemExit(
-            "environment_lock does not contain repository evidence."
-        )
-    for name in ("datamodel_workflow", "opa", "gta", "haiu"):
-        record = repositories.get(name)
-        if not isinstance(record, dict):
+        repository_payload = payload.get("repositories")
+        if not isinstance(repository_payload, dict):
             raise SystemExit(
-                f"environment_lock has no {name} repository record."
+                "environment_lock does not contain repository evidence."
             )
-        if not isinstance(record.get("commit"), str) or not record["commit"]:
-            raise SystemExit(
-                f"environment_lock {name} repository record has no commit."
-            )
-        lock_hashes = record.get("dependency_file_sha256")
-        if not isinstance(lock_hashes, dict) or not lock_hashes:
-            raise SystemExit(
-                f"environment_lock {name} repository record has no lock hashes."
-            )
+        repositories = repository_payload
+        for name in ("datamodel_workflow", "opa", "gta", "haiu"):
+            record = repositories.get(name)
+            if not isinstance(record, dict):
+                raise SystemExit(
+                    f"environment_lock has no {name} repository record."
+                )
+            if (
+                not isinstance(record.get("commit"), str)
+                or not record["commit"]
+            ):
+                raise SystemExit(
+                    f"environment_lock {name} repository record has no commit."
+                )
+            lock_hashes = record.get("dependency_file_sha256")
+            if not isinstance(lock_hashes, dict) or not lock_hashes:
+                raise SystemExit(
+                    f"environment_lock {name} repository record has no lock hashes."
+                )
 
     packages = (
         payload.get("runtime", {})
@@ -3523,14 +3531,19 @@ def _validate_environment_lock(
         if (
             not isinstance(package, dict)
             or not isinstance(source, dict)
-            or not isinstance(repository, dict)
             or package.get("version") != expected["version"]
             or source.get("editable")
             or source.get("vcs") != "git"
             or source.get("url") != expected["url"]
             or source.get("requested_revision") != expected["revision"]
             or not _is_git_commit_id(source.get("commit_id"))
-            or source.get("commit_id") != repository.get("commit")
+            or (
+                schema_version in {1, 2}
+                and (
+                    not isinstance(repository, dict)
+                    or source.get("commit_id") != repository.get("commit")
+                )
+            )
         ):
             raise SystemExit(
                 "environment_lock does not prove the approved, non-editable, "

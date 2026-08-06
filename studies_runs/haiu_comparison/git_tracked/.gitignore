@@ -1,0 +1,2 @@
+# This file keeps the promotion destination present before its first run.
+!.gitignore

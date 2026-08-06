@@ -1,0 +1,4 @@
+*
+!.gitignore
+!git_tracked/
+!git_tracked/**

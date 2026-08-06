@@ -31,8 +31,9 @@ All notable changes to `dmw_experiments` will be documented in this file.
 1. [Changelog](#changelog)
    1. [Table Of Contents](#table-of-contents)
 2. [\[Unreleased\]](#unreleased)
-3. [0.2.0 - 2026-08-06](#020---2026-08-06)
-4. [0.1.0 - 2026-08-06](#010---2026-08-06)
+3. [0.3.0 - 2026-08-06](#030---2026-08-06)
+4. [0.2.0 - 2026-08-06](#020---2026-08-06)
+5. [0.1.0 - 2026-08-06](#010---2026-08-06)
 
 <br>
 
@@ -43,6 +44,44 @@ All notable changes to `dmw_experiments` will be documented in this file.
 <!-- ======================================================== -->
 
 # [Unreleased]
+
+<br>
+
+### 💥 Breaking changes
+
+<br>
+
+### ➕ Added
+
+<br>
+
+### 💔 Changed
+
+<br>
+
+### ⚠️ Deprecated
+
+<br>
+
+### 🗑️ Removed
+
+<br>
+
+### 🔨 Fixed
+
+<br>
+
+### 🔒 Security
+
+<br>
+
+---
+
+<br>
+
+<!-- ======================================================== -->
+
+# 0.3.0 - 2026-08-06
 
 <br>
 
@@ -60,6 +99,25 @@ All notable changes to `dmw_experiments` will be documented in this file.
   Migration: Replace the old study name in paths and imports. Finish or resume
   an active 0.2.0 run with the v0.2.0 checkout because frozen run identities
   are intentionally not rewritten during an upgrade.
+- Breaking: Replaced tracked `studies/` specifications and generated `output/`
+  routing with complete templates, ignored full/smoke run roots, and an
+  explicit promoted-run area.
+  Affected: Operators, scripts, and agents using JSON specs or separate raw,
+  log, analysis, and plot directories.
+  Migration: Create a copy with `dmw_experiments new-run`, then operate the
+  copied directory through `run.sh`, `run.ps1`, or `--run-dir` commands.
+- Breaking: Replaced the `smoke` and `run` commands plus every `--spec` option
+  with `new-run` and `start --run-dir`; analysis now accepts one complete run
+  instead of two provider run paths.
+  Affected: CLI automation written for 0.2.0.
+  Migration: Create one run with the required repeated `--execution` options,
+  then use `validate|start|status|pause|resume|analyze --run-dir PATH`.
+- Breaking: Changed canonical raw artifact paths to flat
+  `raw-<execution>/intermediates-<condition>` and
+  `raw-<execution>/result-<condition>` directories.
+  Affected: Analysis or archival code reading 0.2.0 raw layouts.
+  Migration: Finish old runs with v0.2.0. New runs and the 0.3.0 exporter use
+  only the new copied-run layout; no legacy reader is provided.
 
 <br>
 
@@ -70,8 +128,17 @@ All notable changes to `dmw_experiments` will be documented in this file.
 - Added `just release-check` and `just release patch|minor|major` as the single
   local release preparation path.
 - Added synchronized study overviews below `docs/studies/` and
-  `studies/haiu_comparison/` with the scientific design, source/output map,
-  published repositories, and evidence rules.
+  `studies_run_templates/haiu_comparison/` with the scientific design,
+  source/output map, published repositories, and evidence rules.
+- Added a complete data-only Haiu comparison template with Bash, PowerShell,
+  and agent entry points, exhaustive non-secret configuration, locks, inputs,
+  independent provider areas, analysis destinations, plots, and logs.
+- Added AppRC app-wide credential ownership, one run per AppRC storage,
+  redacted effective-setting provenance, and explicit provider override layers.
+- Added independent AcademicCloud and LM Studio user-systemd service sets in
+  one run, schema-v3 environment locks, and per-provider BABYSIT journals.
+- Added `prepare-promotion` to validate the selected dataset and build the
+  matching experiment wheel and source archive below `locks/dist/`.
 
 <br>
 
@@ -79,12 +146,10 @@ All notable changes to `dmw_experiments` will be documented in this file.
 
 - Separated reusable Python code under `dmw_experiments.shared` from
   scientific code under `dmw_experiments.studies`.
-- Assigned fresh 2026-08-07 smoke and full-run storage identities after the
-  earlier disposable smoke was paused during provider congestion.
-
-<br>
-
-### ⚠️ Deprecated
+- Made the published DMW stack and complete analysis stack core dependencies;
+  tagged releases resolve remote versions and do not require sibling clones.
+- Made workbooks, diagnostics, normalized data, plots, logs, and environment
+  evidence children of the run they describe.
 
 <br>
 
@@ -92,14 +157,17 @@ All notable changes to `dmw_experiments` will be documented in this file.
 
 - Removed scaffold PyPI publishing and alternative version-tag recipes so a
   release tag can only follow the documented GitHub Release preparation path.
+- Removed old tracked JSON run specifications, the old default output routing,
+  and the obsolete run-spec validation entry point.
 
 <br>
 
 ### 🔨 Fixed
 
-<br>
-
-### 🔒 Security
+- Fixed retrieval-sidecar validation so `.retrieved.ttl` and
+  `.retrieved.yaml` keep the `.retrieved` filename marker.
+- Made every materialized result, prompt, Stage-1 response, attempt, and
+  retrieval path relative to the complete copied run.
 
 <br>
 

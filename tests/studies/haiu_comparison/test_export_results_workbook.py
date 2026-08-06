@@ -28,6 +28,24 @@ CONDITIONS = (
 )
 
 
+def _export_run(run_root: Path, **kwargs: object):
+    """Export the AcademicCloud execution from a copied-run fixture."""
+    return export_run(run_root / "raw-academiccloud", **kwargs)
+
+
+def _export_provider_historian_review_workbook(
+    academiccloud_root: Path,
+    lmstudio_root: Path,
+    **kwargs: object,
+):
+    """Export provider review data from two copied-run fixtures."""
+    return export_provider_historian_review_workbook(
+        academiccloud_root / "raw-academiccloud",
+        lmstudio_root / "raw-academiccloud",
+        **kwargs,
+    )
+
+
 def test_pair_review_headers_expose_source_regest_and_sublemma() -> None:
     packet = {
         "review_id": "R0001",
@@ -131,7 +149,7 @@ def test_exporter_writes_both_pair_comparisons_and_historian_packets(
 ) -> None:
     run_dir = _complete_run(tmp_path)
 
-    paths = export_run(run_dir)
+    paths = _export_run(run_dir)
 
     workbook = load_workbook(paths.workbook, read_only=True)
     assert workbook.sheetnames == [
@@ -371,12 +389,12 @@ def test_historian_review_uses_direct_turtle_parsing_for_triplet_selection(
     tmp_path: Path,
 ) -> None:
     run_dir = _complete_run(tmp_path)
-    raw_path = run_dir / "raw/workflow_rag/11010116.json"
+    raw_path = run_dir / "raw-academiccloud/result-workflow_rag/11010116.json"
     raw = json.loads(raw_path.read_text(encoding="utf-8"))
     raw["turtle_syntax_valid"] = False
     _write_json(raw_path, raw)
 
-    paths = export_run(run_dir)
+    paths = _export_run(run_dir)
 
     workbook = load_workbook(paths.historian_review_workbook, read_only=True)
     rows = list(workbook["Historian_Review"].values)
@@ -387,7 +405,10 @@ def test_exporter_reconciles_full_turtle_generation_input_context(
     tmp_path: Path,
 ) -> None:
     run_dir = _complete_run(tmp_path)
-    raw_path = run_dir / "raw/workflow_full_ontology/11010116.json"
+    raw_path = (
+        run_dir
+        / "raw-academiccloud/result-workflow_full_ontology/11010116.json"
+    )
     raw = json.loads(raw_path.read_text(encoding="utf-8"))
     raw["prompt_tokens"] = 12
     raw["prompt_tokens_source"] = "estimated_stage_bundles_only"
@@ -397,7 +418,7 @@ def test_exporter_reconciles_full_turtle_generation_input_context(
     }
     _write_json(raw_path, raw)
 
-    paths = export_run(run_dir)
+    paths = _export_run(run_dir)
 
     workbook = load_workbook(paths.workbook, read_only=True)
     observations = list(workbook["04_Observations"].values)
@@ -417,7 +438,7 @@ def test_historian_review_sorts_contiguous_three_row_regest_groups(
     run_dir = _complete_run(tmp_path)
     _add_complete_regest(run_dir, "11010115")
 
-    paths = export_run(run_dir)
+    paths = _export_run(run_dir)
 
     workbook = load_workbook(paths.historian_review_workbook, read_only=False)
     review = workbook["Historian_Review"]
@@ -457,11 +478,11 @@ def test_historian_review_adds_planned_pair_without_complete_triplet(
     run_dir = _complete_run(tmp_path)
     _add_complete_regest(run_dir, "11010115")
     _write(
-        run_dir / "raw_ttl/haiu_rag_ontologizer/11010115.ttl",
+        run_dir / "raw-academiccloud/result-haiu_rag_ontologizer/11010115.ttl",
         "This is not Turtle.",
     )
 
-    paths = export_run(run_dir)
+    paths = _export_run(run_dir)
 
     sidecar = load_workbook(
         paths.historian_review_evaluation_sidecar, read_only=False
@@ -498,11 +519,12 @@ def test_historian_review_adds_rag_haiu_pair_without_full_turtle(
 ) -> None:
     run_dir = _complete_run(tmp_path)
     _write(
-        run_dir / "raw_ttl/workflow_full_ontology/11010116.ttl",
+        run_dir
+        / "raw-academiccloud/result-workflow_full_ontology/11010116.ttl",
         "This is not Turtle.",
     )
 
-    paths = export_run(run_dir)
+    paths = _export_run(run_dir)
 
     workbook = load_workbook(paths.historian_review_workbook, read_only=False)
     rows = list(workbook["Historian_Review"].values)
@@ -521,11 +543,11 @@ def test_historian_review_excludes_regest_without_a_parseable_triplet(
 ) -> None:
     run_dir = _complete_run(tmp_path)
     _write(
-        run_dir / "raw_ttl/workflow_rag/11010116.ttl",
+        run_dir / "raw-academiccloud/result-workflow_rag/11010116.ttl",
         "This is not Turtle.",
     )
 
-    paths = export_run(run_dir)
+    paths = _export_run(run_dir)
 
     workbook = load_workbook(paths.historian_review_workbook, read_only=True)
     rows = list(workbook["Historian_Review"].values)
@@ -546,8 +568,8 @@ def test_provider_historian_review_keeps_provider_sheets_and_exports_separate(
 ) -> None:
     academiccloud_run = _complete_run(tmp_path / "academiccloud")
     lmstudio_run = _complete_run(tmp_path / "lmstudio")
-    academiccloud_export = export_run(academiccloud_run)
-    lmstudio_export = export_run(lmstudio_run)
+    academiccloud_export = _export_run(academiccloud_run)
+    lmstudio_export = _export_run(lmstudio_run)
     individual_hashes = {
         path: _sha256(path.read_text(encoding="utf-8"))
         for path in (
@@ -556,7 +578,7 @@ def test_provider_historian_review_keeps_provider_sheets_and_exports_separate(
         )
     }
 
-    paths = export_provider_historian_review_workbook(
+    paths = _export_provider_historian_review_workbook(
         academiccloud_run,
         lmstudio_run,
         workbook_path=tmp_path / "historian_quality_review_providers.xlsx",
@@ -622,12 +644,12 @@ def test_provider_historian_review_keeps_provider_sheets_and_exports_separate(
     )
 
     with pytest.raises(ValueError, match="already exists"):
-        export_provider_historian_review_workbook(
+        _export_provider_historian_review_workbook(
             academiccloud_run,
             lmstudio_run,
             workbook_path=paths.workbook,
         )
-    export_provider_historian_review_workbook(
+    _export_provider_historian_review_workbook(
         academiccloud_run,
         lmstudio_run,
         workbook_path=paths.workbook,
@@ -641,7 +663,7 @@ def test_provider_evaluation_sidecar_never_replaces_manual_review_rows(
     """Refresh guide material without touching its separately reviewed input."""
     academiccloud_run = _complete_run(tmp_path / "academiccloud")
     lmstudio_run = _complete_run(tmp_path / "lmstudio")
-    paths = export_provider_historian_review_workbook(
+    paths = _export_provider_historian_review_workbook(
         academiccloud_run,
         lmstudio_run,
         workbook_path=tmp_path / "historian_quality_review_providers.xlsx",
@@ -652,8 +674,8 @@ def test_provider_evaluation_sidecar_never_replaces_manual_review_rows(
     original_key_hash = _sha256(paths.reveal_key.read_text(encoding="utf-8"))
 
     sidecar = export_provider_historian_evaluation_sidecar(
-        academiccloud_run,
-        lmstudio_run,
+        academiccloud_run / "raw-academiccloud",
+        lmstudio_run / "raw-academiccloud",
         review_workbook_path=paths.workbook,
         overwrite=True,
     )
@@ -681,12 +703,18 @@ def test_provider_historian_review_rejects_mixed_frozen_ontologies(
     """Reject a shared vocabulary sheet when provider snapshots differ."""
     academiccloud_run = _complete_run(tmp_path / "academiccloud")
     lmstudio_run = _complete_run(tmp_path / "lmstudio")
-    reference_path = lmstudio_run / "provenance/reference_ontology.ttl"
+    reference_path = (
+        lmstudio_run
+        / "raw-academiccloud/intermediates-haiu_rag_ontologizer/provenance/reference_ontology.ttl"
+    )
     changed_reference = reference_path.read_text(encoding="utf-8").replace(
         "Reference definition", "Changed reference definition"
     )
     _write(reference_path, changed_reference)
-    provenance_path = lmstudio_run / "provenance/provenance_manifest.json"
+    provenance_path = (
+        lmstudio_run
+        / "raw-academiccloud/intermediates-haiu_rag_ontologizer/provenance/provenance_manifest.json"
+    )
     provenance = json.loads(provenance_path.read_text(encoding="utf-8"))
     provenance["inputs"]["reference_ontology"]["sha256"] = _sha256(
         changed_reference
@@ -696,7 +724,7 @@ def test_provider_historian_review_rejects_mixed_frozen_ontologies(
     with pytest.raises(
         ValueError, match="different frozen reference ontologies"
     ):
-        export_provider_historian_review_workbook(
+        _export_provider_historian_review_workbook(
             academiccloud_run,
             lmstudio_run,
             workbook_path=tmp_path / "historian_quality_review_providers.xlsx",
@@ -708,7 +736,7 @@ def test_exporter_writes_opt_in_audit_csv_and_cleans_stale_audit(
 ) -> None:
     run_dir = _complete_run(tmp_path)
 
-    paths = export_run(run_dir, audit_csv=True)
+    paths = _export_run(run_dir, audit_csv=True)
 
     audit_dir = paths.workbook.parent / "audit_csv"
     assert sorted(path.name for path in audit_dir.iterdir()) == [
@@ -724,12 +752,12 @@ def test_exporter_writes_opt_in_audit_csv_and_cleans_stale_audit(
     }
 
     with pytest.raises(ValueError, match="not empty"):
-        export_run(run_dir)
+        _export_run(run_dir)
     stale_review = paths.workbook.parent / "masked_case_review.xlsx"
     stale_key = paths.workbook.parent / "reveal_key.json"
     stale_review.write_text("obsolete", encoding="utf-8")
     stale_key.write_text("obsolete", encoding="utf-8")
-    export_run(run_dir, overwrite=True)
+    _export_run(run_dir, overwrite=True)
     assert not audit_dir.exists()
     assert not stale_review.exists()
     assert not stale_key.exists()
@@ -737,17 +765,22 @@ def test_exporter_writes_opt_in_audit_csv_and_cleans_stale_audit(
 
 def test_exporter_rejects_missing_retrieval_sidecar(tmp_path: Path) -> None:
     run_dir = _complete_run(tmp_path)
-    (run_dir / "raw_ttl/haiu_retrieved/workflow_rag/11010116.yaml").unlink()
+    (
+        run_dir
+        / "raw-academiccloud/intermediates-workflow_rag/11010116.retrieved.yaml"
+    ).unlink()
 
     with pytest.raises(ValueError, match="missing retrieval .yaml"):
-        export_run(run_dir)
+        _export_run(run_dir)
 
 
 def test_exporter_ignores_retry_pending_raw_checkpoint(tmp_path: Path) -> None:
     run_dir = _complete_run(tmp_path)
     condition = "haiu_rag_ontologizer"
     regest_id = "11010116"
-    raw_path = run_dir / f"raw/{condition}/{regest_id}.json"
+    raw_path = (
+        run_dir / f"raw-academiccloud/result-{condition}/{regest_id}.json"
+    )
     raw = json.loads(raw_path.read_text(encoding="utf-8"))
     raw.update(
         {
@@ -758,7 +791,8 @@ def test_exporter_ignores_retry_pending_raw_checkpoint(tmp_path: Path) -> None:
     )
     _write_json(raw_path, raw)
     _write_json(
-        run_dir / f"attempts/{condition}/{regest_id}.json",
+        run_dir
+        / f"raw-academiccloud/intermediates-{condition}/{regest_id}.attempt.json",
         {
             "condition": condition,
             "regest_id": regest_id,
@@ -768,17 +802,19 @@ def test_exporter_ignores_retry_pending_raw_checkpoint(tmp_path: Path) -> None:
         },
     )
 
-    paths = export_run(run_dir, allow_partial=True)
+    paths = _export_run(run_dir, allow_partial=True)
 
     analysis = json.loads(paths.manifest.read_text(encoding="utf-8"))
     assert analysis["row_count"] == 2
     assert (
-        f"raw/{condition}/{regest_id}.json" not in analysis["source_raw_sha256"]
+        f"raw-academiccloud/result-{condition}/{regest_id}.json"
+        not in analysis["source_raw_sha256"]
     )
 
 
 def _complete_run(tmp_path: Path) -> Path:
     run_dir = tmp_path / "run"
+    _write(run_dir / "run.toml", 'run_id = "test"\n')
     reference = (
         "@prefix : <https://example.org/> .\n"
         "@prefix owl: <http://www.w3.org/2002/07/owl#> .\n"
@@ -797,7 +833,11 @@ def _complete_run(tmp_path: Path) -> Path:
         ":controlled a owl:NamedIndividual, :Second ; "
         'rdfs:label "Controlled value"@en ; :stringInRG "ctrl."@la .\n'
     )
-    _write(run_dir / "provenance/reference_ontology.ttl", reference)
+    _write(
+        run_dir
+        / "raw-academiccloud/intermediates-haiu_rag_ontologizer/provenance/reference_ontology.ttl",
+        reference,
+    )
     regest = {
         "schema_version": 1,
         "source": "preflight_frozen_raw_regest_snapshot",
@@ -806,41 +846,48 @@ def _complete_run(tmp_path: Path) -> Path:
         "subentries": ["First subentry", "Second subentry"],
         "content_sha256": "ignored-by-export-fixture",
     }
-    regest_path = run_dir / "provenance/raw_regests/11010116.json"
+    regest_path = (
+        run_dir
+        / "raw-academiccloud/intermediates-haiu_rag_ontologizer/provenance/raw_regests/11010116.json"
+    )
     _write_json(regest_path, regest)
     raw_regests_manifest = {
         "schema_version": 1,
         "source": "preflight_frozen_raw_regest_snapshot",
         "records": {
             "11010116": {
-                "path": "provenance/raw_regests/11010116.json",
+                "path": "raw-academiccloud/intermediates-haiu_rag_ontologizer/provenance/raw_regests/11010116.json",
                 "sha256": _sha256(regest_path.read_text(encoding="utf-8")),
             }
         },
     }
-    raw_regests_manifest_path = run_dir / "provenance/raw_regests_manifest.json"
+    raw_regests_manifest_path = (
+        run_dir
+        / "raw-academiccloud/intermediates-haiu_rag_ontologizer/provenance/raw_regests_manifest.json"
+    )
     _write_json(raw_regests_manifest_path, raw_regests_manifest)
     _write_json(
-        run_dir / "provenance/provenance_manifest.json",
+        run_dir
+        / "raw-academiccloud/intermediates-haiu_rag_ontologizer/provenance/provenance_manifest.json",
         {
             "schema_version": 1,
             "inputs": {
                 "reference_ontology": {
-                    "path": "provenance/reference_ontology.ttl",
+                    "path": "raw-academiccloud/intermediates-haiu_rag_ontologizer/provenance/reference_ontology.ttl",
                     "sha256": _sha256(reference),
                 }
             },
         },
     )
     _write_json(
-        run_dir / "summaries/run_manifest.json",
+        run_dir / "environment/academiccloud-run-manifest.json",
         {
             "run_id": "smoke",
             "regest_ids": ["11010116"],
             "conditions": list(CONDITIONS),
             "provider_profile": {"name": "academiccloud-qwen36"},
             "raw_regest_snapshot": {
-                "path": "provenance/raw_regests_manifest.json",
+                "path": "raw-academiccloud/intermediates-haiu_rag_ontologizer/provenance/raw_regests_manifest.json",
                 "sha256": _sha256(
                     raw_regests_manifest_path.read_text(encoding="utf-8")
                 ),
@@ -865,16 +912,27 @@ def _complete_run(tmp_path: Path) -> Path:
             "condition_order_position": CONDITIONS.index(condition),
         }
         payload["raw_ttl_output"] = turtle
-        _write_json(run_dir / f"raw/{condition}/11010116.json", payload)
-        _write(run_dir / f"raw_yaml/{condition}/11010116.yaml", "{}\n")
-        _write(run_dir / f"raw_ttl/{condition}/11010116.ttl", turtle)
+        _write_json(
+            run_dir / f"raw-academiccloud/result-{condition}/11010116.json",
+            payload,
+        )
+        _write(
+            run_dir / f"raw-academiccloud/result-{condition}/11010116.yaml",
+            "{}\n",
+        )
+        _write(
+            run_dir / f"raw-academiccloud/result-{condition}/11010116.ttl",
+            turtle,
+        )
         if condition in {"workflow_rag", "haiu_rag_ontologizer"}:
             _write(
-                run_dir / f"raw_ttl/haiu_retrieved/{condition}/11010116.ttl",
+                run_dir / f"raw-academiccloud/intermediates-{condition}/"
+                "11010116.retrieved.ttl",
                 turtle,
             )
             _write(
-                run_dir / f"raw_ttl/haiu_retrieved/{condition}/11010116.yaml",
+                run_dir / f"raw-academiccloud/intermediates-{condition}/"
+                "11010116.retrieved.yaml",
                 "snapshot_fidelity: native_full_graph\n",
             )
     return run_dir
@@ -917,7 +975,10 @@ def _generated_turtle(condition: str) -> str:
 
 def _add_complete_regest(run_dir: Path, regest_id: str) -> None:
     source_regest_id = "11010116"
-    regest_path = run_dir / f"provenance/raw_regests/{regest_id}.json"
+    regest_path = (
+        run_dir
+        / f"raw-academiccloud/intermediates-haiu_rag_ontologizer/provenance/raw_regests/{regest_id}.json"
+    )
     _write_json(
         regest_path,
         {
@@ -929,15 +990,18 @@ def _add_complete_regest(run_dir: Path, regest_id: str) -> None:
             "content_sha256": "ignored-by-export-fixture",
         },
     )
-    snapshot_path = run_dir / "provenance/raw_regests_manifest.json"
+    snapshot_path = (
+        run_dir
+        / "raw-academiccloud/intermediates-haiu_rag_ontologizer/provenance/raw_regests_manifest.json"
+    )
     snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
     snapshot["records"][regest_id] = {
-        "path": f"provenance/raw_regests/{regest_id}.json",
+        "path": f"raw-academiccloud/intermediates-haiu_rag_ontologizer/provenance/raw_regests/{regest_id}.json",
         "sha256": _sha256(regest_path.read_text(encoding="utf-8")),
     }
     _write_json(snapshot_path, snapshot)
 
-    run_manifest_path = run_dir / "summaries/run_manifest.json"
+    run_manifest_path = run_dir / "environment/academiccloud-run-manifest.json"
     run_manifest = json.loads(run_manifest_path.read_text(encoding="utf-8"))
     run_manifest["regest_ids"].append(regest_id)
     run_manifest["raw_regest_snapshot"]["sha256"] = _sha256(
@@ -949,27 +1013,35 @@ def _add_complete_regest(run_dir: Path, regest_id: str) -> None:
     _write_json(run_manifest_path, run_manifest)
 
     for condition in CONDITIONS:
-        source_raw_path = run_dir / f"raw/{condition}/{source_regest_id}.json"
+        source_raw_path = (
+            run_dir
+            / f"raw-academiccloud/result-{condition}/{source_regest_id}.json"
+        )
         raw = json.loads(source_raw_path.read_text(encoding="utf-8"))
         raw["regest_id"] = regest_id
-        _write_json(run_dir / f"raw/{condition}/{regest_id}.json", raw)
-        for directory, suffix in (("raw_yaml", ".yaml"), ("raw_ttl", ".ttl")):
-            source_path = (
-                run_dir / f"{directory}/{condition}/{source_regest_id}{suffix}"
+        _write_json(
+            run_dir / f"raw-academiccloud/result-{condition}/{regest_id}.json",
+            raw,
+        )
+        for suffix in (".yaml", ".ttl"):
+            source_path = run_dir / (
+                f"raw-academiccloud/result-{condition}/"
+                f"{source_regest_id}{suffix}"
             )
             _write(
-                run_dir / f"{directory}/{condition}/{regest_id}{suffix}",
+                run_dir
+                / f"raw-academiccloud/result-{condition}/{regest_id}{suffix}",
                 source_path.read_text(encoding="utf-8"),
             )
         if condition in {"workflow_rag", "haiu_rag_ontologizer"}:
             for suffix in (".ttl", ".yaml"):
                 source_path = (
                     run_dir
-                    / f"raw_ttl/haiu_retrieved/{condition}/{source_regest_id}{suffix}"
+                    / f"raw-academiccloud/intermediates-{condition}/{source_regest_id}.retrieved{suffix}"
                 )
                 _write(
                     run_dir
-                    / f"raw_ttl/haiu_retrieved/{condition}/{regest_id}{suffix}",
+                    / f"raw-academiccloud/intermediates-{condition}/{regest_id}.retrieved{suffix}",
                     source_path.read_text(encoding="utf-8"),
                 )
 

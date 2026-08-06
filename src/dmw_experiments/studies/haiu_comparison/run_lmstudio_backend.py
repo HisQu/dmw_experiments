@@ -11,6 +11,10 @@ from typing import Any
 from dmw_experiments.shared.config.runtime_environment import (
     load_runtime_environment,
 )
+from dmw_experiments.studies.haiu_comparison.run_academiccloud_backend import (
+    SAFE_COLLECTION_NAME,
+    _install_raw_collection_override,
+)
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -24,13 +28,14 @@ def _parser() -> argparse.ArgumentParser:
             "configured Haiu provider for embeddings."
         )
     )
+    parser.add_argument("--raw-collection", required=True)
     parser.add_argument("--lmstudio-base-url", required=True)
     parser.add_argument(
         "--env-file",
         action="append",
         required=True,
         help=(
-            "Ignored dotenv file containing DMW, MongoDB, Haiu, and remote "
+            "Explicit dotenv file containing DMW, MongoDB, Haiu, and remote "
             "embedding-provider configuration. May be repeated."
         ),
     )
@@ -72,8 +77,8 @@ def _apply_provider_split(
     :param worker_timeout_seconds: Timeout for one DMW ontology worker.
     :return: None.
     """
-    academic_embedding_base_url = os.environ["HAIU_OPENAI_BASE_URL"]
-    academic_embedding_api_key = os.environ["HAIU_OPENAI_API_KEY"]
+    academic_embedding_base_url = os.environ["HAIU_EMBEDDING_BASE_URL"]
+    academic_embedding_api_key = os.environ["HAIU_EMBEDDING_API_KEY"]
     local_api_key = "lm-studio-local"
 
     os.environ.update(
@@ -139,11 +144,17 @@ def main(argv: Sequence[str] | None = None) -> int:
     :return: Process exit status after the server stops.
     """
     args = _parser().parse_args(argv)
+    if not SAFE_COLLECTION_NAME.fullmatch(args.raw_collection):
+        raise SystemExit("--raw-collection is not a safe collection identity.")
 
     # > DMW initializes MongoDB during application import, before the local
     # > chat-provider split can safely replace only generation settings.
     load_runtime_environment(
         tuple(Path(value).expanduser() for value in args.env_file)
+    )
+    _install_raw_collection_override(
+        raw_collection=args.raw_collection,
+        max_tokens=args.max_tokens,
     )
     app = _load_dmw_app()
 

@@ -29,6 +29,8 @@ def test_parser_defaults_to_dmw_catalogued_model_name() -> None:
             "http://local.example/v1",
             "--env-file",
             "runtime.env",
+            "--raw-collection",
+            "RG_raw_test",
         ]
     )
 
@@ -53,8 +55,10 @@ def test_explicit_environment_file_is_loaded(
 def test_provider_split_keeps_remote_embeddings(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("HAIU_OPENAI_BASE_URL", "https://embedding.example/v1")
-    monkeypatch.setenv("HAIU_OPENAI_API_KEY", "embedding-key")
+    monkeypatch.setenv(
+        "HAIU_EMBEDDING_BASE_URL", "https://embedding.example/v1"
+    )
+    monkeypatch.setenv("HAIU_EMBEDDING_API_KEY", "embedding-key")
 
     _apply_provider_split(
         lmstudio_base_url="http://local.example/v1",

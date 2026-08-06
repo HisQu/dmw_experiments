@@ -17,19 +17,13 @@ from pathlib import Path
 from typing import Any
 
 from dmw_experiments.studies.haiu_comparison.paths import (
-    INPUT_ROOT,
     REPOSITORY_ROOT,
-    STUDY_ROOT,
+    RUN_TEMPLATE_ROOT,
+    TEMPLATE_INPUT_ROOT,
 )
 
-EXPERIMENT_ROOT = STUDY_ROOT
-DEFAULT_SOURCE_RUN_DIR = (
-    REPOSITORY_ROOT
-    / "output"
-    / "runs"
-    / "publication-academiccloud-v113-20260728"
-)
-DEFAULT_OUTPUT_PATH = INPUT_ROOT / "header_sublemma_input_catalog.json"
+EXPERIMENT_ROOT = RUN_TEMPLATE_ROOT
+DEFAULT_OUTPUT_PATH = TEMPLATE_INPUT_ROOT / "header_sublemma_input_catalog.json"
 CATALOG_SCHEMA_VERSION = 1
 
 
@@ -341,7 +335,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--source-run-dir",
-        default=str(DEFAULT_SOURCE_RUN_DIR),
+        required=True,
         help="Complete-regest run containing provenance/raw_regests_manifest.json.",
     )
     parser.add_argument(

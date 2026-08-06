@@ -13,5 +13,5 @@ APP_RC = rc.AppRC.storage_only(
     command_name="dmw_experiments",
     index_filename="dmw_experiments.apprc.toml",
     shared_env_filename=".env.shared",
-    storage_env_filename=".env.apprc-storage",
+    storage_env_filename="run.env",
 )

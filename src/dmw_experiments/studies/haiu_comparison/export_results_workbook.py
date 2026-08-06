@@ -82,6 +82,61 @@ CORE_OUTPUT_FILENAMES = (
     "analysis_manifest.json",
     "README.md",
 )
+
+
+@dataclass(frozen=True, slots=True)
+class _RunLayout:
+    """Resolve one provider execution inside a complete copied run.
+
+    :param root: Directory containing ``run.toml`` and both provider areas.
+    :param output: Flat ``raw-<execution>`` source directory.
+    :param execution: Provider execution slug.
+    """
+
+    root: Path
+    output: Path
+    execution: str
+
+    @classmethod
+    def from_output(cls, output: Path) -> _RunLayout:
+        """Validate and resolve one execution source.
+
+        :param output: Flat ``raw-<execution>`` directory.
+        :return: Paths used by the raw-data exporter.
+        """
+        resolved = output.expanduser().resolve()
+        if not resolved.is_dir() or not resolved.name.startswith("raw-"):
+            raise ValueError("Source must be a raw-<execution> directory.")
+        root = resolved.parent
+        if not (root / "run.toml").is_file():
+            raise ValueError("Provider output is not inside a copied run.")
+        return cls(
+            root=root,
+            output=resolved,
+            execution=resolved.name.removeprefix("raw-"),
+        )
+
+    @property
+    def manifest(self) -> Path:
+        """Return the immutable runner manifest for this provider."""
+        return self.root / "environment" / f"{self.execution}-run-manifest.json"
+
+    @property
+    def provenance(self) -> Path:
+        """Return the frozen input-provenance manifest for this provider."""
+        return (
+            self.output
+            / "intermediates-haiu_rag_ontologizer"
+            / "provenance"
+            / "provenance_manifest.json"
+        )
+
+    @property
+    def analysis(self) -> Path:
+        """Return the provider-specific workbook directory."""
+        return self.root / "analysis" / "workbooks" / self.execution
+
+
 AUDIT_CSV_FILENAMES = (
     "observations.csv",
     "pairs.csv",
@@ -346,16 +401,14 @@ def export_run(
     :raises ValueError: If required inputs, raw artifacts, or pair matrix cells
         are missing in a normal completed export.
     """
-    run_dir = run_dir.resolve()
-    manifest = _load_json(run_dir / "summaries" / "run_manifest.json")
-    provenance = _load_json(
-        run_dir / "provenance" / "provenance_manifest.json",
-        allow_missing=allow_partial,
-    )
-    rows, source_hashes = _load_rows(run_dir)
-    _validate_provenance(provenance=provenance, run_dir=run_dir)
+    layout = _RunLayout.from_output(run_dir)
+    run_dir = layout.root
+    manifest = _load_json(layout.manifest)
+    provenance = _load_json(layout.provenance, allow_missing=allow_partial)
+    rows, source_hashes = _load_rows(layout)
+    _validate_provenance(provenance=provenance, run_dir=layout.root)
     _validate_raw_contract(
-        run_dir=run_dir, rows=rows, allow_partial=allow_partial
+        layout=layout, rows=rows, allow_partial=allow_partial
     )
     reference_ontology = _load_frozen_reference_ontology(
         run_dir=run_dir,
@@ -385,7 +438,7 @@ def export_run(
         pair_dmw=pair_dmw,
         pair_system=pair_system,
     )
-    analysis_dir = run_dir / "analysis"
+    analysis_dir = layout.analysis
     _prepare_output_dir(analysis_dir, overwrite=overwrite)
     definitions = _metric_definitions()
     workbook = analysis_dir / "overview.xlsx"
@@ -467,13 +520,9 @@ def export_run(
         "exporter_sha256": _sha256_file(Path(__file__)),
         "allow_partial": allow_partial,
         "audit_csv_enabled": audit_csv,
-        "run_manifest_sha256": _sha256_file(
-            run_dir / "summaries" / "run_manifest.json"
-        ),
-        "provenance_manifest_sha256": _sha256_file(
-            run_dir / "provenance" / "provenance_manifest.json"
-        )
-        if (run_dir / "provenance" / "provenance_manifest.json").exists()
+        "run_manifest_sha256": _sha256_file(layout.manifest),
+        "provenance_manifest_sha256": _sha256_file(layout.provenance)
+        if layout.provenance.exists()
         else None,
         "source_raw_sha256": source_hashes,
         "provenance_input_sha256": provenance.get("inputs", {}),
@@ -485,7 +534,7 @@ def export_run(
         },
         "metric_definitions": definitions,
         "outputs": {
-            path.relative_to(run_dir).as_posix(): _sha256_file(path)
+            path.relative_to(layout.root).as_posix(): _sha256_file(path)
             for path in output_paths
         },
     }
@@ -659,16 +708,14 @@ def _load_historian_review_source(
     :param allow_partial: Permit a clearly labelled diagnostic source run.
     :return: Validated packets and reveal key for one provider worksheet.
     """
-    run_dir = run_dir.resolve()
-    run_manifest = _load_json(run_dir / "summaries" / "run_manifest.json")
-    provenance = _load_json(
-        run_dir / "provenance" / "provenance_manifest.json",
-        allow_missing=allow_partial,
-    )
-    rows, _ = _load_rows(run_dir)
-    _validate_provenance(provenance=provenance, run_dir=run_dir)
+    layout = _RunLayout.from_output(run_dir)
+    run_dir = layout.root
+    run_manifest = _load_json(layout.manifest)
+    provenance = _load_json(layout.provenance, allow_missing=allow_partial)
+    rows, _ = _load_rows(layout)
+    _validate_provenance(provenance=provenance, run_dir=layout.root)
     _validate_raw_contract(
-        run_dir=run_dir,
+        layout=layout,
         rows=rows,
         allow_partial=allow_partial,
     )
@@ -804,18 +851,22 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _load_rows(run_dir: Path) -> tuple[list[dict[str, Any]], dict[str, str]]:
-    raw_dir = run_dir / "raw"
+def _load_rows(
+    layout: _RunLayout,
+) -> tuple[list[dict[str, Any]], dict[str, str]]:
+    raw_dir = layout.output
     rows: list[dict[str, Any]] = []
     hashes: dict[str, str] = {}
-    for path in sorted(raw_dir.glob("*/*.json")):
+    for path in sorted(raw_dir.glob("result-*/*.json")):
         payload = _load_json(path)
         if not isinstance(payload, dict):
             raise ValueError(f"Raw result is not an object: {path}")
-        condition = str(payload.get("condition") or path.parent.name)
+        condition = str(
+            payload.get("condition") or path.parent.name.removeprefix("result-")
+        )
         regest_id = str(payload.get("regest_id") or path.stem)
         if _is_retry_pending(
-            run_dir=run_dir,
+            layout=layout,
             condition=condition,
             regest_id=regest_id,
         ):
@@ -823,13 +874,13 @@ def _load_rows(run_dir: Path) -> tuple[list[dict[str, Any]], dict[str, str]]:
         row = dict(payload)
         row["condition"] = condition
         row["regest_id"] = regest_id
-        row["raw_artifact_path"] = path.relative_to(run_dir).as_posix()
+        row["raw_artifact_path"] = path.relative_to(layout.root).as_posix()
         row["raw_ttl_artifact_path"] = _raw_ttl_path(
-            run_dir, condition, regest_id
+            layout, condition, regest_id
         )
         _reconcile_turtle_generation_input_tokens(row)
         rows.append(row)
-        hashes[path.relative_to(run_dir).as_posix()] = _sha256_file(path)
+        hashes[path.relative_to(layout.root).as_posix()] = _sha256_file(path)
     if not rows:
         raise ValueError(f"No raw result JSON found under {raw_dir}.")
     return rows, hashes
@@ -868,7 +919,9 @@ def _reconcile_turtle_generation_input_tokens(
     )
 
 
-def _is_retry_pending(*, run_dir: Path, condition: str, regest_id: str) -> bool:
+def _is_retry_pending(
+    *, layout: _RunLayout, condition: str, regest_id: str
+) -> bool:
     """Keep a recoverable failed attempt out of a derived analysis view.
 
     The runner writes its raw failure checkpoint before scheduling a retry so a
@@ -876,26 +929,26 @@ def _is_retry_pending(*, run_dir: Path, condition: str, regest_id: str) -> bool:
     experimental observation and will be replaced when the next attempt
     completes.
 
-    :param run_dir: Experiment result directory that owns the attempt state.
+    :param layout: Provider paths that own the attempt state.
     :param condition: Condition directory that owns the raw checkpoint.
     :param regest_id: Stable source identifier for the condition cell.
     :return: Whether the matching attempt state explicitly requests a retry.
     """
     attempt_state = _load_json(
-        run_dir / "attempts" / condition / f"{regest_id}.json",
+        layout.output
+        / f"intermediates-{condition}"
+        / f"{regest_id}.attempt.json",
         allow_missing=True,
     )
     return attempt_state.get("status") == "retry_pending"
 
 
 def _validate_raw_contract(
-    *, run_dir: Path, rows: list[dict[str, Any]], allow_partial: bool
+    *, layout: _RunLayout, rows: list[dict[str, Any]], allow_partial: bool
 ) -> None:
     expected_ids = {
         str(value)
-        for value in _load_json(
-            run_dir / "summaries" / "run_manifest.json"
-        ).get("regest_ids", [])
+        for value in _load_json(layout.manifest).get("regest_ids", [])
     }
     observed: set[tuple[str, str]] = set()
     failures: list[str] = []
@@ -903,23 +956,21 @@ def _validate_raw_contract(
         condition = str(row["condition"])
         regest_id = str(row["regest_id"])
         observed.add((condition, regest_id))
-        raw_yaml = run_dir / "raw_yaml" / condition / f"{regest_id}.yaml"
+        result_dir = layout.output / f"result-{condition}"
+        intermediate_dir = layout.output / f"intermediates-{condition}"
+        raw_yaml = result_dir / f"{regest_id}.yaml"
         if not raw_yaml.is_file():
             failures.append(f"missing raw YAML: {condition}/{regest_id}")
         if condition in RETRIEVAL_CONDITIONS:
-            retrieval_base = (
-                run_dir / "raw_ttl" / "haiu_retrieved" / condition / regest_id
-            )
+            retrieval_base = intermediate_dir / f"{regest_id}.retrieved"
             for suffix in (".ttl", ".yaml"):
-                if not retrieval_base.with_suffix(suffix).is_file():
+                if not Path(f"{retrieval_base}{suffix}").is_file():
                     failures.append(
                         f"missing retrieval {suffix}: {condition}/{regest_id}"
                     )
         if (
             bool(row.get("success"))
-            and not (
-                run_dir / "raw_ttl" / condition / f"{regest_id}.ttl"
-            ).is_file()
+            and not (result_dir / f"{regest_id}.ttl").is_file()
         ):
             failures.append(
                 f"missing successful Turtle: {condition}/{regest_id}"
@@ -3686,9 +3737,11 @@ def _metric_definitions() -> list[dict[str, Any]]:
     ]
 
 
-def _raw_ttl_path(run_dir: Path, condition: str, regest_id: str) -> str | None:
-    path = run_dir / "raw_ttl" / condition / f"{regest_id}.ttl"
-    return path.relative_to(run_dir).as_posix() if path.is_file() else None
+def _raw_ttl_path(
+    layout: _RunLayout, condition: str, regest_id: str
+) -> str | None:
+    path = layout.output / f"result-{condition}" / f"{regest_id}.ttl"
+    return path.relative_to(layout.root).as_posix() if path.is_file() else None
 
 
 def _prepare_output_dir(

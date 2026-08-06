@@ -20,7 +20,7 @@ from dmw_experiments.studies.haiu_comparison.prepare_header_sublemma_environment
     write_manifest,
 )
 from dmw_experiments.studies.haiu_comparison.paths import (
-    INPUT_ROOT,
+    TEMPLATE_INPUT_ROOT,
 )
 
 
@@ -132,7 +132,7 @@ def test_lmstudio_runtime_accepts_verified_remote_model_hash(
 def test_pair_capture_records_catalogue_and_isolated_dmw_identity(
     tmp_path: Path,
 ) -> None:
-    catalogue_path = INPUT_ROOT / "header_sublemma_input_catalog.json"
+    catalogue_path = TEMPLATE_INPUT_ROOT / "header_sublemma_input_catalog.json"
     catalog = load_header_sublemma_catalog(catalogue_path)
     spec = PairEnvironmentSpec(
         database_name="UserData",

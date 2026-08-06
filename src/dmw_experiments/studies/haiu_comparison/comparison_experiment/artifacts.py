@@ -23,6 +23,9 @@ from dmw_experiments.studies.haiu_comparison.comparison_experiment.models import
 from dmw_experiments.studies.haiu_comparison.haiu_ontologizer.models import (
     RegestText,
 )
+from dmw_experiments.studies.haiu_comparison.operations.run_spec import (
+    CONDITIONS,
+)
 
 RETRIEVAL_CONDITIONS = frozenset({"workflow_rag", "haiu_rag_ontologizer"})
 RawDocumentPaths = dict[str, Any]
@@ -47,40 +50,53 @@ NORMALIZED_ROW_OMITTED_FIELDS = frozenset(
 
 
 class ArtifactWriter:
-    """Write raw, prompt, normalized, and summary experiment artifacts.
+    """Write one execution's evidence into the flat run-directory contract.
 
-    :param output_dir: Root directory for one run.
+    :param output_dir: Top-level ``raw-<execution>`` directory.
     """
 
     def __init__(self, output_dir: Path) -> None:
         self.output_dir = output_dir
-        self.raw_dir = output_dir / "raw"
-        self.raw_annotation_dir = output_dir / "raw_annotations"
-        self.raw_stage1_dir = output_dir / "raw_stage1"
-        self.raw_ttl_dir = output_dir / "raw_ttl"
-        self.raw_yaml_dir = output_dir / "raw_yaml"
-        self.prompt_dir = output_dir / "prompts"
-        self.normalized_dir = output_dir / "normalized"
-        self.summary_dir = output_dir / "summaries"
-        self.amendment_dir = self.summary_dir / "amendments"
-        self.superseded_dir = output_dir / "superseded"
-        self.provenance_dir = output_dir / "provenance"
-        self.attempt_dir = output_dir / "attempts"
-        self.annotation_attempt_dir = output_dir / "annotation_attempts"
+        if not output_dir.name.startswith("raw-"):
+            raise ValueError(
+                "ArtifactWriter output must be a raw-<execution> directory."
+            )
+        self.execution_name = output_dir.name.removeprefix("raw-")
+        self.run_root = output_dir.parent
+        self.path_root = self.run_root
+        self.intermediate_dirs = {
+            condition: output_dir / f"intermediates-{condition}"
+            for condition in CONDITIONS
+        }
+        self.result_dirs = {
+            condition: output_dir / f"result-{condition}"
+            for condition in CONDITIONS
+        }
+        self.raw_annotation_dir = self.intermediate_dirs[
+            "workflow_full_ontology"
+        ]
+        self.annotation_mirror_dir = self.intermediate_dirs["workflow_rag"]
+        self.normalized_dir = self.run_root / "analysis" / "intermediate"
+        self.diagnostics_dir = self.run_root / "analysis" / "diagnostics"
+        self.environment_dir = self.run_root / "environment"
+        self.amendment_dir = self.environment_dir / (
+            f"{self.execution_name}-amendments"
+        )
+        self.superseded_dir = self.environment_dir / (
+            f"{self.execution_name}-superseded"
+        )
+        self.provenance_dir = (
+            self.intermediate_dirs["haiu_rag_ontologizer"] / "provenance"
+        )
         for path in (
-            self.raw_dir,
-            self.raw_annotation_dir,
-            self.raw_stage1_dir,
-            self.raw_ttl_dir,
-            self.raw_yaml_dir,
-            self.prompt_dir,
+            *self.intermediate_dirs.values(),
+            *self.result_dirs.values(),
             self.normalized_dir,
-            self.summary_dir,
+            self.diagnostics_dir,
+            self.environment_dir,
             self.amendment_dir,
             self.superseded_dir,
             self.provenance_dir,
-            self.attempt_dir,
-            self.annotation_attempt_dir,
         ):
             path.mkdir(parents=True, exist_ok=True)
 
@@ -113,7 +129,7 @@ class ArtifactWriter:
             if not target.exists():
                 _write_bytes_atomic(target, content)
             frozen_inputs[label] = {
-                "path": target.relative_to(self.output_dir).as_posix(),
+                "path": target.relative_to(self.path_root).as_posix(),
                 "sha256": digest,
             }
         payload = {"schema_version": 1, "inputs": frozen_inputs, **metadata}
@@ -172,7 +188,7 @@ class ArtifactWriter:
                 raise ValueError(
                     f"Run provenance input record is invalid: {label}"
                 )
-            frozen_path = self.output_dir / expected_path
+            frozen_path = self.path_root / expected_path
             content = source.read_bytes()
             digest = hashlib.sha256(content).hexdigest()
             if (
@@ -236,7 +252,7 @@ class ArtifactWriter:
                 )
             regests[regest_id] = regest
             records[regest_id] = {
-                "path": path.relative_to(self.output_dir).as_posix(),
+                "path": path.relative_to(self.path_root).as_posix(),
                 "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
             }
         manifest = {
@@ -258,7 +274,7 @@ class ArtifactWriter:
                 json.dumps(manifest, indent=2, ensure_ascii=False),
             )
         return regests, {
-            "path": manifest_path.relative_to(self.output_dir).as_posix(),
+            "path": manifest_path.relative_to(self.path_root).as_posix(),
             "sha256": hashlib.sha256(manifest_path.read_bytes()).hexdigest(),
             "count": len(regests),
         }
@@ -269,10 +285,8 @@ class ArtifactWriter:
         :param result: Condition result.
         :return: Normalized row with artifact paths.
         """
-        condition_raw_dir = self.raw_dir / result.condition
-        condition_prompt_dir = self.prompt_dir / result.condition
-        condition_raw_dir.mkdir(parents=True, exist_ok=True)
-        condition_prompt_dir.mkdir(parents=True, exist_ok=True)
+        condition_raw_dir = self.result_dirs[result.condition]
+        condition_prompt_dir = self.intermediate_dirs[result.condition]
         safe_id = _safe_name(result.regest_id)
         raw_path = condition_raw_dir / f"{safe_id}.json"
         raw_json = json.dumps(
@@ -311,35 +325,57 @@ class ArtifactWriter:
         :return: Normalized rows recovered from the run directory.
         """
         rows: list[dict[str, Any]] = []
-        for raw_path in sorted(self.raw_dir.glob("*/*.json")):
-            payload = json.loads(raw_path.read_text(encoding="utf-8"))
-            if not isinstance(payload, dict):
-                raise ValueError(
-                    f"Raw result is not a JSON object: "
-                    f"{raw_path.relative_to(self.output_dir)}"
+        for condition, result_dir in self.result_dirs.items():
+            for raw_path in sorted(result_dir.glob("*.json")):
+                rows.append(
+                    self._row_from_existing_result(
+                        raw_path=raw_path,
+                        condition=condition,
+                    )
                 )
-            condition = str(payload.get("condition") or raw_path.parent.name)
-            regest_id = str(payload.get("regest_id") or raw_path.stem)
-            safe_id = _safe_name(regest_id)
-            raw_document_paths = self._write_raw_documents(
+        return rows
+
+    def _row_from_existing_result(
+        self,
+        *,
+        raw_path: Path,
+        condition: str,
+    ) -> dict[str, Any]:
+        """Rebuild one compact row from a terminal observation.
+
+        :param raw_path: Authoritative result JSON path.
+        :param condition: Condition owning the result directory.
+        :return: Compact normalized row.
+        """
+        payload = json.loads(raw_path.read_text(encoding="utf-8"))
+        if not isinstance(payload, dict):
+            raise ValueError(
+                f"Raw result is not a JSON object: "
+                f"{raw_path.relative_to(self.path_root)}"
+            )
+        recorded_condition = str(payload.get("condition") or condition)
+        if recorded_condition != condition:
+            raise ValueError(
+                f"Result condition differs from its directory: {raw_path.name}."
+            )
+        regest_id = str(payload.get("regest_id") or raw_path.stem)
+        safe_id = _safe_name(regest_id)
+        raw_document_paths = self._write_raw_documents(
+            condition=condition,
+            safe_id=safe_id,
+            payload=payload,
+        )
+        return self._normalized_row(
+            payload=payload,
+            condition=condition,
+            regest_id=regest_id,
+            raw_path=raw_path,
+            raw_document_paths=raw_document_paths,
+            prompt_paths=self._existing_prompt_paths(
                 condition=condition,
                 safe_id=safe_id,
-                payload=payload,
-            )
-            rows.append(
-                self._normalized_row(
-                    payload=payload,
-                    condition=condition,
-                    regest_id=regest_id,
-                    raw_path=raw_path,
-                    raw_document_paths=raw_document_paths,
-                    prompt_paths=self._existing_prompt_paths(
-                        condition=condition,
-                        safe_id=safe_id,
-                    ),
-                )
-            )
-        return rows
+            ),
+        )
 
     def materialize_existing_raw_documents(self) -> dict[str, int]:
         """Backfill Stage-1, Turtle, and YAML documents from raw JSON artifacts.
@@ -359,28 +395,28 @@ class ArtifactWriter:
             "retrieved_yaml": 0,
             "retrieved_ttl": 0,
         }
-        for raw_path in sorted(self.raw_dir.glob("*/*.json")):
-            payload = json.loads(raw_path.read_text(encoding="utf-8"))
-            if not isinstance(payload, dict):
-                raise ValueError(
-                    f"Raw result is not a JSON object: "
-                    f"{raw_path.relative_to(self.output_dir)}"
+        for condition, result_dir in self.result_dirs.items():
+            for raw_path in sorted(result_dir.glob("*.json")):
+                payload = json.loads(raw_path.read_text(encoding="utf-8"))
+                if not isinstance(payload, dict):
+                    raise ValueError(
+                        f"Raw result is not a JSON object: "
+                        f"{raw_path.relative_to(self.path_root)}"
+                    )
+                regest_id = str(payload.get("regest_id") or raw_path.stem)
+                written = self._write_raw_documents(
+                    condition=condition,
+                    safe_id=_safe_name(regest_id),
+                    payload=payload,
                 )
-            condition = str(payload.get("condition") or raw_path.parent.name)
-            regest_id = str(payload.get("regest_id") or raw_path.stem)
-            written = self._write_raw_documents(
-                condition=condition,
-                safe_id=_safe_name(regest_id),
-                payload=payload,
-            )
-            counts["yaml"] += 1
-            counts["ttl"] += int("ttl" in written)
-            counts["stage1"] += int("stage1" in written)
-            counts["stage1_unavailable"] += int(
-                written["stage1_capture_status"] == "unavailable"
-            )
-            counts["retrieved_yaml"] += int("retrieved_yaml" in written)
-            counts["retrieved_ttl"] += int("retrieved_ttl" in written)
+                counts["yaml"] += 1
+                counts["ttl"] += int("ttl" in written)
+                counts["stage1"] += int("stage1" in written)
+                counts["stage1_unavailable"] += int(
+                    written["stage1_capture_status"] == "unavailable"
+                )
+                counts["retrieved_yaml"] += int("retrieved_yaml" in written)
+                counts["retrieved_ttl"] += int("retrieved_ttl" in written)
         return counts
 
     def write_final_outputs(
@@ -392,9 +428,12 @@ class ArtifactWriter:
             to the authoritative raw evidence.
         :return: Output path mapping.
         """
-        jsonl_path = self.normalized_dir / "results.jsonl"
-        csv_path = self.normalized_dir / "results.csv"
-        summary_path = self.summary_dir / "summary_by_condition.json"
+        prefix = self.execution_name
+        jsonl_path = self.normalized_dir / f"{prefix}-results.jsonl"
+        csv_path = self.normalized_dir / f"{prefix}-results.csv"
+        summary_path = (
+            self.normalized_dir / f"{prefix}-summary_by_condition.json"
+        )
         _write_text_atomic(
             jsonl_path,
             "".join(
@@ -451,7 +490,7 @@ class ArtifactWriter:
         row["condition"] = condition
         row["regest_id"] = regest_id
         row["raw_artifact_path"] = raw_path.relative_to(
-            self.output_dir
+            self.path_root
         ).as_posix()
         row["raw_ttl_artifact_path"] = raw_document_paths.get("ttl")
         row["raw_stage1_artifact_path"] = raw_document_paths.get("stage1")
@@ -483,7 +522,7 @@ class ArtifactWriter:
         :param payload: JSON-friendly ID selection report.
         :return: Written artifact path.
         """
-        path = self.summary_dir / "id_selection.json"
+        path = self.diagnostics_dir / f"{self.execution_name}-id-selection.json"
         _write_text_atomic(
             path,
             json.dumps(payload, indent=2, ensure_ascii=False, default=str),
@@ -528,9 +567,19 @@ class ArtifactWriter:
             json.dumps(payload, indent=2, ensure_ascii=False, default=str),
         )
         _write_yaml_atomic(yaml_path, payload)
+        mirror_json = self.annotation_mirror_dir / json_path.name
+        mirror_yaml = self.annotation_mirror_dir / yaml_path.name
+        shutil.copy2(json_path, mirror_json)
+        shutil.copy2(yaml_path, mirror_yaml)
         return {
-            "json": json_path.relative_to(self.output_dir).as_posix(),
-            "yaml": yaml_path.relative_to(self.output_dir).as_posix(),
+            "json": json_path.relative_to(self.path_root).as_posix(),
+            "yaml": yaml_path.relative_to(self.path_root).as_posix(),
+            "workflow_rag_json": mirror_json.relative_to(
+                self.path_root
+            ).as_posix(),
+            "workflow_rag_yaml": mirror_yaml.relative_to(
+                self.path_root
+            ).as_posix(),
         }
 
     def write_annotation_attempt_state(
@@ -545,11 +594,14 @@ class ArtifactWriter:
         :param payload: JSON-friendly retry state.
         :return: Written attempt-state path.
         """
-        path = self.annotation_attempt_dir / f"{_safe_name(regest_id)}.json"
+        path = self.raw_annotation_dir / (
+            f"{_safe_name(regest_id)}.annotation-attempt.json"
+        )
         _write_text_atomic(
             path,
             json.dumps(payload, indent=2, ensure_ascii=False, default=str),
         )
+        shutil.copy2(path, self.annotation_mirror_dir / path.name)
         return path
 
     def load_annotation_attempt_state(
@@ -566,7 +618,9 @@ class ArtifactWriter:
         :return: Parsed attempt state, or ``None`` when preparation never ran.
         :raises ValueError: If the durable state is not a JSON object.
         """
-        path = self.annotation_attempt_dir / f"{_safe_name(regest_id)}.json"
+        path = self.raw_annotation_dir / (
+            f"{_safe_name(regest_id)}.annotation-attempt.json"
+        )
         if not path.exists():
             return None
         payload = json.loads(path.read_text(encoding="utf-8"))
@@ -598,7 +652,7 @@ class ArtifactWriter:
             durable state.
         """
         safe_id = _safe_name(regest_id)
-        source = self.annotation_attempt_dir / f"{safe_id}.json"
+        source = self.raw_annotation_dir / f"{safe_id}.annotation-attempt.json"
         archive_root = self.superseded_dir / amendment_id
         index_path = archive_root / "annotation_attempt_archive_index.json"
         key = safe_id
@@ -631,14 +685,14 @@ class ArtifactWriter:
             return None
 
         source_digest = hashlib.sha256(source.read_bytes()).hexdigest()
-        target = archive_root / source.relative_to(self.output_dir)
+        target = archive_root / source.relative_to(self.path_root)
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, target)
         record = {
             "regest_id": regest_id,
             "canonical_annotation_attempt_sha256": source_digest,
             "superseded_annotation_attempt_state_path": target.relative_to(
-                self.output_dir
+                self.path_root
             ).as_posix(),
         }
         records[key] = record
@@ -726,7 +780,7 @@ class ArtifactWriter:
         :param has_existing_results: Whether authoritative raw results exist.
         :return: Manifest artifact path.
         """
-        path = self.summary_dir / "run_manifest.json"
+        path = self.environment_dir / f"{self.execution_name}-run-manifest.json"
         if path.exists():
             existing = json.loads(path.read_text(encoding="utf-8"))
             if existing != payload:
@@ -751,7 +805,7 @@ class ArtifactWriter:
         :return: Parsed run-manifest payload.
         :raises ValueError: If no valid immutable base identity exists.
         """
-        path = self.summary_dir / "run_manifest.json"
+        path = self.environment_dir / f"{self.execution_name}-run-manifest.json"
         if not path.is_file():
             raise ValueError("Cannot amend a run without its run manifest.")
         payload = json.loads(path.read_text(encoding="utf-8"))
@@ -816,11 +870,11 @@ class ArtifactWriter:
         archive_root = self.superseded_dir / amendment_id
         index_path = archive_root / "archive_index.json"
         key = f"{condition}/{safe_id}"
-        raw_path = self.raw_dir / condition / f"{safe_id}.json"
+        raw_path = self.result_dirs[condition] / f"{safe_id}.json"
         if not raw_path.is_file():
             raise ValueError(
                 "Cannot archive an amendment result without canonical raw "
-                f"evidence: {raw_path.relative_to(self.output_dir)}"
+                f"evidence: {raw_path.relative_to(self.path_root)}"
             )
         source_digest = hashlib.sha256(raw_path.read_bytes()).hexdigest()
         index = (
@@ -845,22 +899,20 @@ class ArtifactWriter:
         )
         archived_paths: list[str] = []
         for source in source_paths:
-            relative_path = source.relative_to(self.output_dir)
+            relative_path = source.relative_to(self.path_root)
             target = archive_root / relative_path
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, target)
-            archived_paths.append(
-                target.relative_to(self.output_dir).as_posix()
-            )
+            archived_paths.append(target.relative_to(self.path_root).as_posix())
         record = {
             "condition": condition,
             "regest_id": regest_id,
             "canonical_raw_sha256": source_digest,
             "archived_paths": archived_paths,
             "canonical_raw_artifact_path": (
-                archive_root / raw_path.relative_to(self.output_dir)
+                archive_root / raw_path.relative_to(self.path_root)
             )
-            .relative_to(self.output_dir)
+            .relative_to(self.path_root)
             .as_posix(),
         }
         records[key] = record
@@ -883,20 +935,19 @@ class ArtifactWriter:
         :param safe_id: Portable regest identifier.
         :return: Existing result artifacts in deterministic relative order.
         """
+        result_dir = self.result_dirs[condition]
+        intermediate_dir = self.intermediate_dirs[condition]
         patterns = (
-            self.raw_dir / condition / f"{safe_id}.json",
-            self.raw_yaml_dir / condition / f"{safe_id}.yaml",
-            self.attempt_dir / condition / f"{safe_id}.json",
+            result_dir / f"{safe_id}.json",
+            result_dir / f"{safe_id}.yaml",
+            result_dir / f"{safe_id}.ttl",
+            intermediate_dir / f"{safe_id}.attempt.json",
         )
         paths = [path for path in patterns if path.is_file()]
         for directory, pattern in (
-            (self.raw_stage1_dir / condition, f"{safe_id}.*"),
-            (self.raw_ttl_dir / condition, f"{safe_id}.*"),
-            (
-                self.raw_ttl_dir / "haiu_retrieved" / condition,
-                f"{safe_id}.*",
-            ),
-            (self.prompt_dir / condition, f"{safe_id}_*"),
+            (result_dir, f"{safe_id}.attempt-*.ttl"),
+            (intermediate_dir, f"{safe_id}.*"),
+            (intermediate_dir, f"{safe_id}_*"),
         ):
             if directory.is_dir():
                 paths.extend(sorted(directory.glob(pattern)))
@@ -925,19 +976,19 @@ class ArtifactWriter:
                 )
                 _write_text_atomic(path, text)
                 written[f"{stage_label}_{role}"] = path.relative_to(
-                    self.output_dir
+                    self.path_root
                 ).as_posix()
         return written
 
     def _existing_prompt_paths(
         self, *, condition: str, safe_id: str
     ) -> dict[str, str]:
-        condition_prompt_dir = self.prompt_dir / condition
+        condition_prompt_dir = self.intermediate_dirs[condition]
         prefix = f"{safe_id}_"
         written: dict[str, str] = {}
         for path in sorted(condition_prompt_dir.glob(f"{safe_id}_*.md")):
             label = path.stem.removeprefix(prefix)
-            written[label] = path.relative_to(self.output_dir).as_posix()
+            written[label] = path.relative_to(self.path_root).as_posix()
         return written
 
     def _write_raw_documents(
@@ -947,33 +998,29 @@ class ArtifactWriter:
         safe_id: str,
         payload: dict[str, Any],
     ) -> RawDocumentPaths:
-        condition_ttl_dir = self.raw_ttl_dir / condition
-        condition_stage1_dir = self.raw_stage1_dir / condition
-        condition_yaml_dir = self.raw_yaml_dir / condition
-        condition_ttl_dir.mkdir(parents=True, exist_ok=True)
-        condition_stage1_dir.mkdir(parents=True, exist_ok=True)
-        condition_yaml_dir.mkdir(parents=True, exist_ok=True)
+        condition_result_dir = self.result_dirs[condition]
+        condition_intermediate_dir = self.intermediate_dirs[condition]
 
         written: RawDocumentPaths = {}
-        yaml_path = condition_yaml_dir / f"{safe_id}.yaml"
+        yaml_path = condition_result_dir / f"{safe_id}.yaml"
         _write_yaml_atomic(yaml_path, payload)
-        written["yaml"] = yaml_path.relative_to(self.output_dir).as_posix()
+        written["yaml"] = yaml_path.relative_to(self.path_root).as_posix()
 
         turtle_text = _raw_turtle_text(payload)
-        ttl_path = condition_ttl_dir / f"{safe_id}.ttl"
+        ttl_path = condition_result_dir / f"{safe_id}.ttl"
         if turtle_text:
             _write_text_atomic(ttl_path, turtle_text)
-            written["ttl"] = ttl_path.relative_to(self.output_dir).as_posix()
+            written["ttl"] = ttl_path.relative_to(self.path_root).as_posix()
         elif ttl_path.exists():
             ttl_path.unlink()
         written["attempt_ttl"] = self._write_attempt_turtle_documents(
-            condition_ttl_dir=condition_ttl_dir,
+            condition_ttl_dir=condition_result_dir,
             safe_id=safe_id,
             payload=payload,
         )
         written.update(
             self._write_stage1_documents(
-                condition_stage1_dir=condition_stage1_dir,
+                condition_stage1_dir=condition_intermediate_dir,
                 safe_id=safe_id,
                 payload=payload,
             )
@@ -1014,13 +1061,14 @@ class ArtifactWriter:
             "capture_status": capture["status"],
             "source": capture["source"],
             "raw_artifact_path": (
-                f"raw/{_safe_name(str(payload.get('condition') or ''))}/"
+                f"raw-{self.execution_name}/result-"
+                f"{_safe_name(str(payload.get('condition') or ''))}/"
                 f"{safe_id}.json"
             ),
         }
         written: RawDocumentPaths = {
             "stage1_metadata": metadata_path.relative_to(
-                self.output_dir
+                self.path_root
             ).as_posix(),
             "stage1_capture_status": capture["status"],
         }
@@ -1040,7 +1088,7 @@ class ArtifactWriter:
                 "content_sha256": digest,
                 "characters": len(output),
                 "output_artifact_path": output_path.relative_to(
-                    self.output_dir
+                    self.path_root
                 ).as_posix(),
             }
         )
@@ -1088,7 +1136,7 @@ class ArtifactWriter:
             path = condition_ttl_dir / f"{safe_id}.attempt-{label}.ttl"
             _write_text_atomic(path, turtle_text)
             written[f"attempt_{label}"] = path.relative_to(
-                self.output_dir
+                self.path_root
             ).as_posix()
         return written
 
@@ -1112,12 +1160,11 @@ class ArtifactWriter:
         # Keep retrieval exports condition-scoped.  This prevents a direct
         # and workflow observation for the same regest from overwriting one
         # another and makes the provider path explicit in raw artifacts.
-        retrieval_dir = self.raw_ttl_dir / "haiu_retrieved" / condition
-        retrieval_dir.mkdir(parents=True, exist_ok=True)
-        ttl_path = retrieval_dir / f"{safe_id}.ttl"
-        yaml_path = retrieval_dir / f"{safe_id}.yaml"
-        ttl_relative = ttl_path.relative_to(self.output_dir).as_posix()
-        yaml_relative = yaml_path.relative_to(self.output_dir).as_posix()
+        retrieval_dir = self.intermediate_dirs[condition]
+        ttl_path = retrieval_dir / f"{safe_id}.retrieved.ttl"
+        yaml_path = retrieval_dir / f"{safe_id}.retrieved.yaml"
+        ttl_relative = ttl_path.relative_to(self.path_root).as_posix()
+        yaml_relative = yaml_path.relative_to(self.path_root).as_posix()
         snapshot = _portable_retrieval_snapshot(
             snapshot,
             payload=payload,
@@ -1136,7 +1183,9 @@ class ArtifactWriter:
         }
 
     def _attempt_state_path(self, *, condition: str, regest_id: str) -> Path:
-        return self.attempt_dir / condition / f"{_safe_name(regest_id)}.json"
+        return self.intermediate_dirs[condition] / (
+            f"{_safe_name(regest_id)}.attempt.json"
+        )
 
 
 def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:

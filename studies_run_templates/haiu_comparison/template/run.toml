@@ -1,0 +1,33 @@
+schema_version = 3
+study = "haiu_comparison"
+mode = "full"
+release_stack = "published-dmw-1.1.3"
+run_id = "template"
+input_catalog = "INPUTS/header_sublemma_input_catalog.json"
+limit = 0
+conditions = [
+  "workflow_full_ontology",
+  "workflow_rag",
+  "haiu_rag_ontologizer",
+]
+max_output_tokens = 60000
+output_safety_margin_tokens = 4096
+ontology_example_limit = 1
+
+[executions.academiccloud]
+enabled = true
+provider_profile = "academiccloud-qwen36"
+env_file = "run.academiccloud.env"
+source_branch = "publication-academiccloud-177-v158"
+target_branch = "template_academiccloud"
+raw_collection = "RG_raw_template_academiccloud"
+ontology_context_version = "1.5.8"
+
+[executions.lmstudio]
+enabled = true
+provider_profile = "lmstudio-qwen36-q6"
+env_file = "run.lmstudio.env"
+source_branch = "publication-academiccloud-177-v158"
+target_branch = "template_lmstudio"
+raw_collection = "RG_raw_template_lmstudio"
+ontology_context_version = "1.5.8"

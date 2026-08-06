@@ -1,114 +1,70 @@
-# Architecture
+# Explanations
 
 ## Table of contents
 
 1. [Ownership model](#ownership-model)
-2. [Run lifecycle](#run-lifecycle)
-3. [Output model](#output-model)
-4. [Dependency model](#dependency-model)
-5. [Failure model](#failure-model)
+2. [Why the run is the unit of organization](#why-the-run-is-the-unit-of-organization)
+3. [Configuration model](#configuration-model)
+4. [Execution and failure model](#execution-and-failure-model)
+5. [Promotion model](#promotion-model)
 
 ## Ownership model
 
-The repository has one public command, `dmw_experiments`, and two top-level
-data owners:
+Reusable behavior belongs to `src/dmw_experiments/shared/`. Scientific
+behavior belongs to `src/dmw_experiments/studies/<study>/`. Complete data
+templates belong to `studies_run_templates/<study>/template/`. Python code is
+never copied into a run.
 
-- `studies/` contains tracked facts: frozen inputs, run specs, and stack locks.
-- `output/` contains generated facts: runs, logs, provenance snapshots,
-  analyses, and temporary release checkouts.
+Runs and smoke tests are generated data, so their normal roots are ignored.
+This prevents half-finished experiments, secrets, provider logs, and large raw
+artifacts from entering Git by accident.
 
-Package responsibilities are narrow:
+## Why the run is the unit of organization
 
-| Package | Responsibility |
-| --- | --- |
-| `shared.artifacts` | Durable run-directory layout and operational journals. |
-| `shared.execution` | Published-stack checkout and validation support. |
-| `shared.supervision` | user-systemd process ownership and stall detection. |
-| `shared.analysis.plotting` | Plot formatting frozen with this repository. |
-| `studies.haiu_comparison` | Scientific conditions, runner, exports, and study-specific analysis. |
-| `studies.haiu_comparison.operations` | Validate, launch, pause, resume, and report this study's status. |
+One run directory contains its inputs, configuration, locks, raw provider
+evidence, pipeline intermediates, environment evidence, logs, analysis, plots,
+captions, and operator notes. A tired operator does not need to correlate an
+analysis directory with a separately named raw run or log directory.
 
-The root `cli` package is a thin application boundary. Reusable behavior must
-not accumulate there. Shared modules must not import a concrete study; the CLI
-and lifecycle select a study explicitly at the orchestration boundary.
+Providers remain flat siblings inside that run. Conditions remain flat
+siblings inside each provider. This makes both axes visible in paths without a
+deep execution/condition/raw hierarchy.
 
-The DMW, OPA, GTA, and Haiu repositories do not own this harness. Their
-published packages are measured dependencies.
+## Configuration model
 
-## Run lifecycle
+`run.toml` answers what is measured and where isolated storage lives.
+`run.env` answers which shared runtime settings apply. Provider dotenv files
+state only differences. AppRC app-wide configuration owns real credentials
+and machine-local assets.
 
-One run moves through a small state sequence:
+The lifecycle selects the copied run as one AppRC storage, loads the explicit
+run and provider files with override semantics, derives storage settings from
+`run.toml`, and records redacted provenance. This gives each run inspectable
+settings without copying secrets.
 
-```text
-tracked spec
-    -> frozen workspace
-    -> isolated DMW storage
-    -> schema-v2 environment lock
-    -> backend + runner + watchdog
-    -> terminal matrix
-    -> derived analysis
-```
+## Execution and failure model
 
-The runner checkpoints each completed condition under `raw/`. A system restart
-does not create a new run; `resume` verifies the original spec and immutable
-artifacts, then reconciles the same matrix.
+Each provider owns a backend, runner, watchdog, DMW branch, MongoDB
+collections, Haiu storage, logs, and BABYSIT journal. Provider progress is
+independent.
 
-The watchdog observes durable progress, not console output. It waits four
-hours by default because one condition may use three one-hour provider
-attempts. On a real stall it interrupts only the runner so the same run can
-resume.
+The runner checkpoints attempts and terminal results before continuing. The
+watchdog observes both `result-*` and `intermediates-*`. After infrastructure
+interruption, resume uses the exact frozen contract. Context or length
+exhaustion is a terminal model outcome and is not retried as infrastructure.
 
-## Output model
+## Promotion model
 
-Every run is self-contained:
+A new run is wholly untracked. The user decides whether it becomes a published
+artifact only after inspecting the results. Promotion preparation validates
+the matrix and builds the exact `dmw_experiments` wheel and source archive in
+the run's `locks/dist/`. The user then copies the whole run into the explicit
+`git_tracked/` area.
 
-```text
-output/runs/<run-id>/
-├── run_spec.json
-├── operations/
-├── logs/
-├── provenance/
-├── raw/
-├── attempts/
-├── annotation_attempts/
-└── summaries/
-```
+This separates gathering data from choosing evidence. It also makes an
+incomplete promoted dataset an explicit user decision instead of a side effect
+of creating every run in a partly tracked directory.
 
-Historical runs may retain the older `summaries/run_manifest.json` location;
-new lifecycle metadata does not rewrite scientific manifests. Cross-run
-workbooks and figures belong under `output/analyses/<analysis-id>/`.
-
-## Dependency model
-
-All execution and analysis dependencies are core project dependencies. The
-DMW stack uses exact published remote tags and does not require local
-repository clones. `uv.lock`, `pylock.toml`, and
-`requirements-runtime.lock` retain the resolved release environment.
-
-`[tool.uv].override-dependencies` contains only two compatibility corrections:
-OPA 2.1.2 and NER 0.1.2 publish older MongoDBAPI and GTA URLs than DMW 1.1.3.
-The override selects the DMW publication contract's MongoDBAPI 1.0.2 and GTA
-0.2.4 remote tags. It is not a local editable-source mechanism.
-
-Commented `[tool.uv.sources]` examples are temporary developer conveniences.
-They must remain disabled in a tagged experiment release.
-
-Plain pip cannot express dependency overrides. It installs the complete
-exported `requirements-runtime.lock` with `--no-deps`, then installs this
-project the same way. This bypasses only the stale transitive URL declarations;
-it does not select different package versions.
-
-## Failure model
-
-The lifecycle distinguishes three categories:
-
-- A terminal model result is data, including context or length exhaustion. It
-  stays in `raw/` and does not make the service restart.
-- A retry-pending provider attempt is provisional. It prevents strict analysis
-  until the runner reaches a terminal result.
-- An infrastructure interruption has no terminal row for the active cell. The
-  same run may resume with identical settings.
-
-Recovery-amendment flags are intentionally absent from the header--sublemma
-lifecycle. A code patch or changed scientific setting requires an explicit
-decision, not an automatic retry.
+> [!NOTE]
+> Use [the how-to guide](How-To-User-Guides.md) for commands and
+> [the reference](References.md) for exact path names.

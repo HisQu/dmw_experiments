@@ -67,7 +67,7 @@ Put changes where the repo already has an owner.
 | Scientific behavior | [src/dmw_experiments/studies](../src/dmw_experiments/studies) |
 | Shared tests | [tests/shared](../tests/shared) |
 | Study tests | [tests/studies](../tests/studies) |
-| Immutable study facts | [studies](../studies) |
+| Copyable study data | [studies_run_templates](../studies_run_templates) |
 | Static assets | [assets](../assets) |
 | Documentation | [docs](.) |
 | Project metadata and dependency declarations | [pyproject.toml](../pyproject.toml) |
@@ -98,6 +98,11 @@ rg --files
 Then read the source owner and nearby files. For example, a CLI change usually
 requires checking `src/dmw_experiments/cli/app.py`, the thin wrapper in
 `src/dmw_experiments/main.py`, tests, README, and docs references.
+
+Use `just sync-local-stack` when debugging against neighboring editable DMW,
+GTA, Haiu, and OPA checkouts. This overlays the active `.venv` only; it does
+not edit `pyproject.toml` or any release lock. Run `just sync` to restore the
+published stack before verification or release.
 
 > [!IMPORTANT]
 > Do not weaken production contracts to make a test easier. Add or reuse a
@@ -210,7 +215,7 @@ When editing docs:
 4. Put exact names in [References](References.md).
 5. Put system concepts in [Explanations](Explanations.md).
 6. Keep each file below [docs/studies](studies) synchronized with its
-   operational README below the root [studies](../studies) directory.
+   template README below [studies_run_templates](../studies_run_templates).
 7. Use separator comments before major sections.
 8. Add direct links to source files when a reader may need to edit them.
 9. Add `[!NOTE]` related-link callouts from concept sections to task recipes.

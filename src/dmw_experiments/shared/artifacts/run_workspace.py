@@ -1,4 +1,4 @@
-"""Own the durable operational files around one experiment run."""
+"""Own machine-readable and human-readable state inside one copied run."""
 
 from __future__ import annotations
 
@@ -12,160 +12,153 @@ from typing import Any
 
 @dataclass(frozen=True, slots=True)
 class RunWorkspace:
-    """Expose the predictable directory layout for one run.
+    """Expose predictable operational paths for one provider execution.
 
-    Scientific observations and operational logs share one run root so a
-    tired operator never has to reconstruct which log belongs to which data.
-    The immutable run specification is copied before any external storage is
-    prepared.
-
-    :param root: Top-level directory for one run identity.
+    :param root: Complete copied run directory.
+    :param execution: Provider execution owning service and BABYSIT records.
     """
 
     root: Path
+    execution: str
 
     @property
     def logs(self) -> Path:
-        """Return the directory containing service and babysitting logs.
+        """Return the shared run-local log directory.
 
-        :return: Run-local operational-log directory.
+        :return: Directory containing provider logs and journals.
         """
         return self.root / "logs"
 
     @property
-    def provenance(self) -> Path:
-        """Return the directory containing frozen execution evidence.
+    def environment(self) -> Path:
+        """Return the portable runtime-evidence directory.
 
-        :return: Run-local provenance directory.
+        :return: Directory containing locks, events, and service identities.
         """
-        return self.root / "provenance"
-
-    @property
-    def operations(self) -> Path:
-        """Return the directory containing mutable lifecycle state.
-
-        :return: Run-local service and event-state directory.
-        """
-        return self.root / "operations"
+        return self.root / "environment"
 
     @property
     def run_spec(self) -> Path:
-        """Return the immutable copy of the launch specification.
+        """Return the authoritative run contract.
 
-        :return: Run-local specification path.
+        :return: Run-local TOML path.
         """
-        return self.root / "run_spec.json"
+        return self.root / "run.toml"
 
     @property
     def run_spec_digest(self) -> Path:
-        """Return the recorded specification content identity.
+        """Return the immutable contract digest used by resume.
 
-        :return: Run-local SHA-256 sidecar path.
+        :return: SHA-256 sidecar path.
         """
-        return self.operations / "run_spec.sha256"
+        return self.environment / "run.toml.sha256"
 
     @property
     def services_file(self) -> Path:
-        """Return the latest service-unit registry.
+        """Return this execution's service registry.
 
-        :return: Run-local JSON service registry path.
+        :return: JSON registry path.
         """
-        return self.operations / "services.json"
+        return self.environment / f"{self.execution}-services.json"
 
     @property
     def events_file(self) -> Path:
-        """Return the structured append-only operational event log.
+        """Return the shared structured lifecycle event stream.
 
-        :return: Run-local JSON Lines event path.
+        :return: JSON Lines path.
         """
-        return self.operations / "events.jsonl"
+        return self.environment / "events.jsonl"
 
     @property
     def babysit_log(self) -> Path:
-        """Return the readable babysitting journal for this run.
+        """Return the stable readable journal for this execution.
 
-        :return: Markdown log whose name identifies the run.
+        The first launch date remains part of the filename across resumptions.
+
+        :return: Existing journal or today's deterministic destination.
         """
-        return self.logs / f"BABYSIT-{self.root.name.upper()}.md"
+        pattern = (
+            f"BABYSIT-{self.root.name.upper()}-{self.execution.upper()}-*.md"
+        )
+        existing = sorted(self.logs.glob(pattern))
+        if len(existing) > 1:
+            raise ValueError(
+                f"Multiple BABYSIT journals exist for {self.execution}."
+            )
+        if existing:
+            return existing[0]
+        date = datetime.now().astimezone().strftime("%Y-%m-%d")
+        return self.logs / (
+            f"BABYSIT-{self.root.name.upper()}-"
+            f"{self.execution.upper()}-{date}.md"
+        )
 
     @classmethod
-    def create(cls, root: Path, source_spec: Path) -> RunWorkspace:
-        """Create a fresh workspace and freeze its requested specification.
-
-        :param root: New run directory below the configured output root.
-        :param source_spec: Validated tracked JSON run specification.
-        :return: Created workspace.
-        :raises FileExistsError: If the run directory already exists.
-        """
-        root.mkdir(parents=True, exist_ok=False)
-        workspace = cls(root=root)
-        workspace.logs.mkdir()
-        workspace.provenance.mkdir()
-        workspace.operations.mkdir()
-        content = source_spec.read_bytes()
-        _write_bytes_atomic(workspace.run_spec, content)
-        _write_text_atomic(
-            workspace.run_spec_digest,
-            hashlib.sha256(content).hexdigest() + "\n",
-        )
-        workspace.append_event(
-            event="workspace_created",
-            detail="Frozen run specification before external preparation.",
-        )
-        workspace.append_babysit(
-            heading="Run workspace created",
-            bullets=(
-                "The validated run specification was frozen before storage "
-                "preparation or service launch.",
-                "Service logs, lifecycle events, and this journal are owned "
-                "by the same run directory.",
-            ),
-        )
-        return workspace
-
-    @classmethod
-    def open(cls, root: Path, source_spec: Path) -> RunWorkspace:
-        """Open an existing workspace only for an identical specification.
+    def open(cls, root: Path, execution: str) -> RunWorkspace:
+        """Open a complete copied run and ensure operational directories.
 
         :param root: Existing run directory.
-        :param source_spec: Requested tracked JSON run specification.
-        :return: Verified workspace.
-        :raises ValueError: If the frozen specification is missing or differs.
+        :param execution: Provider execution selected by the lifecycle.
+        :return: Ready workspace facade.
+        :raises ValueError: If the run contract is absent.
         """
-        workspace = cls(root=root)
+        resolved = root.expanduser().resolve()
+        workspace = cls(root=resolved, execution=execution)
         if not workspace.run_spec.is_file():
-            raise ValueError("Existing run has no frozen run_spec.json.")
-        requested = source_spec.read_bytes()
-        frozen = workspace.run_spec.read_bytes()
-        if requested != frozen:
-            raise ValueError(
-                "Requested specification differs from the existing run."
-            )
-        digest = hashlib.sha256(frozen).hexdigest()
-        if (
-            not workspace.run_spec_digest.is_file()
-            or workspace.run_spec_digest.read_text(encoding="utf-8").strip()
-            != digest
-        ):
-            raise ValueError("Existing run specification digest is invalid.")
+            raise ValueError("Run directory has no run.toml.")
+        workspace.logs.mkdir(parents=True, exist_ok=True)
+        workspace.environment.mkdir(parents=True, exist_ok=True)
         return workspace
+
+    def freeze_contract(self) -> None:
+        """Create or verify the run-contract digest before external mutation.
+
+        :return: ``None`` when the current TOML matches frozen evidence.
+        :raises ValueError: If the run changed after its first launch.
+        """
+        digest = hashlib.sha256(self.run_spec.read_bytes()).hexdigest()
+        if self.run_spec_digest.is_file():
+            recorded = self.run_spec_digest.read_text(encoding="utf-8").strip()
+            if recorded != digest:
+                raise ValueError(
+                    "run.toml differs from the contract frozen at first launch."
+                )
+            return
+        _write_text_atomic(self.run_spec_digest, digest + "\n")
+        self.append_event(
+            event="run_contract_frozen",
+            detail="Frozen run.toml before storage preparation or service launch.",
+        )
+
+    def require_frozen_contract(self) -> None:
+        """Verify that resume uses the exact first-launch contract.
+
+        :return: ``None`` when the digest matches.
+        :raises ValueError: If no digest exists or the contract changed.
+        """
+        if not self.run_spec_digest.is_file():
+            raise ValueError(
+                "Cannot resume without environment/run.toml.sha256."
+            )
+        self.freeze_contract()
 
     def append_event(self, *, event: str, detail: str, **fields: Any) -> None:
         """Append one non-secret machine-readable lifecycle event.
 
         :param event: Stable event category.
-        :param detail: Concise human-readable explanation.
-        :param fields: Additional non-secret JSON-compatible event fields.
+        :param detail: Concise factual explanation.
+        :param fields: Additional JSON-compatible non-secret values.
         :return: ``None``.
         """
         payload = {
             "schema_version": 1,
             "timestamp_utc": datetime.now(UTC).isoformat(),
+            "execution": self.execution,
             "event": event,
             "detail": detail,
             **fields,
         }
-        self.operations.mkdir(parents=True, exist_ok=True)
+        self.environment.mkdir(parents=True, exist_ok=True)
         with self.events_file.open("a", encoding="utf-8") as stream:
             stream.write(json.dumps(payload, ensure_ascii=False, default=str))
             stream.write("\n")
@@ -176,27 +169,27 @@ class RunWorkspace:
         heading: str,
         bullets: tuple[str, ...],
     ) -> None:
-        """Append one timestamped checkpoint to the readable run journal.
+        """Append one timestamped provider checkpoint.
 
-        :param heading: Short checkpoint title.
-        :param bullets: Factual checkpoint details without secrets.
+        :param heading: Short factual checkpoint title.
+        :param bullets: Details that contain no secrets or absolute paths.
         :return: ``None``.
         """
-        self.logs.mkdir(parents=True, exist_ok=True)
-        timestamp = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M %Z")
+        path = self.babysit_log
         prefix = ""
-        if not self.babysit_log.exists():
-            prefix = f"# Babysitting log: {self.root.name}\n"
+        if not path.exists():
+            prefix = f"# Babysitting log: {self.root.name} / {self.execution}\n"
+        timestamp = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M %Z")
         lines = [prefix, f"\n## {timestamp} — {heading}\n"]
         lines.extend(f"\n- {bullet}" for bullet in bullets)
         lines.append("\n")
-        with self.babysit_log.open("a", encoding="utf-8") as stream:
+        with path.open("a", encoding="utf-8") as stream:
             stream.write("".join(lines))
 
     def write_services(self, services: Any) -> None:
-        """Replace the current non-secret service-unit registry atomically.
+        """Replace this execution's service registry atomically.
 
-        :param services: Dataclass or JSON-compatible service mapping.
+        :param services: Dataclass or JSON-compatible mapping.
         :return: ``None``.
         """
         payload = (
@@ -211,10 +204,9 @@ class RunWorkspace:
         )
 
     def load_services(self) -> dict[str, Any]:
-        """Load the latest service-unit registry.
+        """Load this execution's current service registry.
 
-        :return: Registry payload, or an empty mapping before launch.
-        :raises ValueError: If the stored document is not an object.
+        :return: Registry mapping or an empty mapping before launch.
         """
         if not self.services_file.is_file():
             return {}
@@ -225,23 +217,8 @@ class RunWorkspace:
 
 
 def _write_text_atomic(path: Path, content: str) -> None:
-    """Replace a UTF-8 text file without exposing partial content.
-
-    :param path: Destination path.
-    :param content: Complete file content.
-    :return: ``None``.
-    """
-    _write_bytes_atomic(path, content.encode("utf-8"))
-
-
-def _write_bytes_atomic(path: Path, content: bytes) -> None:
-    """Replace a file through a sibling temporary artifact.
-
-    :param path: Destination path.
-    :param content: Complete file bytes.
-    :return: ``None``.
-    """
+    """Replace a UTF-8 file without exposing partial content."""
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(f"{path.suffix}.tmp")
-    temporary.write_bytes(content)
+    temporary.write_text(content, encoding="utf-8")
     temporary.replace(path)

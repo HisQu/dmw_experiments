@@ -24,13 +24,14 @@ class ServiceUnits:
     watchdog: str
 
     @classmethod
-    def for_run(cls, run_id: str) -> ServiceUnits:
-        """Derive stable service names from the validated run identity.
+    def for_run(cls, run_id: str, execution: str) -> ServiceUnits:
+        """Derive stable service names from run and execution identities.
 
         :param run_id: Portable lowercase run identifier.
+        :param execution: Provider execution slug.
         :return: Complete service-name set.
         """
-        prefix = f"dmw-experiment-{run_id}"
+        prefix = f"dmw-experiment-{run_id}-{execution}"
         return cls(
             backend=f"{prefix}-backend.service",
             runner=f"{prefix}-runner.service",

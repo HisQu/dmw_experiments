@@ -46,11 +46,16 @@ def main() -> int:
     if args.stall_seconds <= 0 or args.poll_seconds <= 0:
         raise SystemExit("Stall and poll durations must be positive.")
 
-    watched_roots = (
-        args.result_dir / "raw",
-        args.result_dir / "attempts",
-        args.result_dir / "annotation_attempts",
+    watched_roots = tuple(
+        path
+        for pattern in ("result-*", "intermediates-*")
+        for path in args.result_dir.glob(pattern)
+        if path.is_dir()
     )
+    if not watched_roots:
+        raise SystemExit(
+            "Result directory contains no result-* or intermediates-* directories."
+        )
     watchdog_started_at = time.time()
     runner_inactive_since: float | None = None
     while True:

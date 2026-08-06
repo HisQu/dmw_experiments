@@ -1,0 +1,8 @@
+*
+!README.md
+!.gitignore
+!haiu_comparison/
+haiu_comparison/*
+!haiu_comparison/.gitignore
+!haiu_comparison/git_tracked/
+!haiu_comparison/git_tracked/**

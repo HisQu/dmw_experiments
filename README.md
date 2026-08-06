@@ -21,159 +21,131 @@
 
 </div>
 
-`dmw_experiments` owns reproducible experiment execution, supervision, raw
-artifacts, analysis, and plots for the DMW technology stack. It is separate
-from Haiu so experiment tooling can change without publishing a new Haiu
-release.
+`dmw_experiments` owns reproducible execution, supervision, raw evidence,
+analysis, and plots for DMW studies. One copied run directory contains
+everything needed to start, resume, inspect, analyze, and publish that run.
 
 ## Table of contents
 
-1. [DMW experiments](#dmw-experiments)
-   1. [Table of contents](#table-of-contents)
-   2. [Repository map](#repository-map)
-   3. [Install](#install)
-   4. [Configure](#configure)
-   5. [Run an experiment](#run-an-experiment)
-   6. [Inspect and resume](#inspect-and-resume)
-   7. [Analyze raw data](#analyze-raw-data)
-   8. [Development](#development)
+1. [Repository map](#repository-map)
+2. [Install](#install)
+3. [Configure AppRC](#configure-apprc)
+4. [Create and operate a run](#create-and-operate-a-run)
+5. [Analyze and promote](#analyze-and-promote)
+6. [Development and releases](#development-and-releases)
 
 ## Repository map
 
 | Path | Contents |
 | --- | --- |
-| `studies/` | Tracked scientific inputs, run specifications, and release contracts. |
-| `src/dmw_experiments/shared/` | Reusable lifecycle, supervision, artifacts, configuration, and plotting code. |
-| `src/dmw_experiments/studies/` | Scientific execution and analysis code, separated by study. |
-| `output/` | The only default location for generated runs, logs, workbooks, and plots. |
-| `tests/` | Offline regression and lifecycle tests. |
-| `docs/` | Operational procedures, architecture, study summaries, and exact interfaces. |
-| `requirements-runtime.lock` | Plain-pip runtime lock for published and analysis dependencies. |
+| `studies_run_templates/` | Complete Git-tracked data templates; no Python code. |
+| `studies_runs/` | Ignored full runs and the explicit `git_tracked/` promotion area. |
+| `studies_runs_smoketests/` | Fully ignored disposable smoke runs. |
+| `src/dmw_experiments/shared/` | Reusable configuration, supervision, artifacts, and plotting code. |
+| `src/dmw_experiments/studies/` | Study-specific execution and analysis code. |
+| `docs/studies/` | Scientific and operational study summaries. |
+| `tests/` | Offline contract and regression tests. |
 
-The active study is
-[`studies/haiu_comparison`](studies/haiu_comparison/README.md).
-Its full AcademicCloud header--sublemma run contains 480 input units and three
-conditions, or 1,440 terminal cells.
-
-The narrative study overview is
-[`docs/studies/haiu_comparison.md`](docs/studies/haiu_comparison.md). Update it
-with the operational study README whenever the study contract changes.
+The Haiu comparison template is
+[`studies_run_templates/haiu_comparison/template`](studies_run_templates/haiu_comparison/template/README.md).
+It contains one obvious entry point (`run.sh` or `run.ps1`) and one obvious
+output boundary: the copied run directory itself.
 
 ## Install
 
-Python 3.12 or 3.13 is required. The release lock retrieves the published DMW
-1.1.3, OPA 2.1.2, GTA 0.2.4, Haiu 1.8.0, MongoDBAPI 1.0.2, and analysis stack
-from their remote package or Git sources. Sibling repository clones are not
-required.
+Python 3.12 or 3.13 is supported. DMW, OPA, GTA, Haiu, MongoDBAPI, and the
+analysis packages are core dependencies pinned by the release locks.
+Neighboring source checkouts are not required.
 
 ```bash
 python -m venv .venv
 .venv/bin/python -m pip install --no-deps -r requirements-runtime.lock
-.venv/bin/python -m pip install --no-deps -e "."
+.venv/bin/python -m pip install --no-deps -e .
 ```
 
-The explicit `--no-deps` is required because NER 0.1.2 and OPA 2.1.2 publish
-stale Git requirements that disagree with the DMW 1.1.3 release contract. The
-runtime lock already contains every resolved dependency and therefore must be
-installed as a complete set.
+`uv sync --locked --all-groups` is an optional convenience. Temporary local
+editable sources may be supplied to `uv` during development, but tagged
+releases retain only the remote version pins in `pyproject.toml`.
 
-`uv` is an optional convenience. It applies the same two metadata corrections
-and installs the locked runtime plus development tools:
+## Configure AppRC
+
+Each copied run is one AppRC storage. Its storage-local file is `run.env`.
+That tracked-with-the-run file names every relevant setting, but assigns no
+real credential. Put real credentials and the machine-local
+`FAISS_INDEX_PATH` in AppRC's app-wide environment:
 
 ```bash
-uv sync --locked --all-groups --python 3.12
-```
-
-## Configure
-
-Create one ignored dotenv file below `output/private/`. It must contain the
-DMW, MongoDB, Haiu, and AcademicCloud values required by the published stack,
-including these experiment-owned names:
-
-```dotenv
-DATAMODEL_LOGIN="..."
-DATAMODEL_PASSWORD="..."
-FAISS_INDEX_PATH="/absolute/path/to/paraphrase-multilingual-mpnet-resolved"
-```
-
-Point AppRC at that file and the generated-output root:
-
-```bash
-export DMW_EXPERIMENTS_STORAGE="output"
-export DMW_EXPERIMENTS_ACADEMICCLOUD_ENV_FILE="output/private/academiccloud.env"
+dmw_experiments config init
 dmw_experiments config doctor
 ```
 
 > [!CAUTION]
-> Never commit the runtime dotenv file. `output/` is ignored, and launch
-> commands retain only its path. Credentials are not copied into manifests,
-> service arguments, logs, or BABYSIT journals.
+> Never put credentials in a run, command line, log, BABYSIT journal, or Git
+> commit. `run.env` contains commented secret names so omissions are visible.
 
-`FAISS_INDEX_PATH` is the local NER few-shot example index, not a DMW package
-or repository checkout. The lifecycle requires an absolute existing file so
-service working directories cannot change which asset NER reads.
+Provider files such as `run.academiccloud.env` and `run.lmstudio.env` contain
+only small, explicit execution overrides. Lifecycle launch validates the
+effective AppRC sources before storage or services are changed.
 
-## Run an experiment
+## Create and operate a run
 
-Validate the complete local and scientific contract without changing storage:
-
-```bash
-dmw_experiments validate
-```
-
-Start the disposable one-unit smoke:
+Create a disposable smoke or ignored full run from the same template:
 
 ```bash
-dmw_experiments smoke
+dmw_experiments new-run \
+  --study haiu_comparison \
+  --run-id header-sublemma-smoke-20260807 \
+  --mode smoke \
+  --execution academiccloud
+
+dmw_experiments new-run \
+  --study haiu_comparison \
+  --run-id header-sublemma-full-20260807 \
+  --mode full \
+  --execution academiccloud \
+  --execution lmstudio
 ```
 
-Inspect its three terminal cells. Only then start the independent full run:
+Edit the copied `README.md`, `run.toml`, and environment files before launch.
+Then use its self-contained scripts:
 
 ```bash
-dmw_experiments status \
-  --spec studies/haiu_comparison/specs/academiccloud-header-sublemma-smoke.json
-dmw_experiments run
+cd studies_runs/haiu_comparison/header-sublemma-full-20260807
+./run.sh validate
+./run.sh start
+./run.sh status
+./run.sh pause
+./run.sh resume
 ```
 
-Each launch creates one self-contained directory at
-`output/runs/<run-id>/`. It freezes the run specification before preparing
-isolated DMW storage, captures schema-v2 release provenance, and starts the
-backend, runner, and watchdog as user-systemd services.
+AcademicCloud and LM Studio have independent backend, runner, watchdog,
+storage, logs, and BABYSIT journals. Either may advance without waiting for
+the other. A resume reuses the exact frozen `run.toml`; terminal model
+failures, including context exhaustion, remain evidence.
 
-> [!IMPORTANT]
-> Context, length, and other terminal model failures are experimental evidence.
-> The lifecycle preserves them and does not use recovery-amendment flags.
-
-## Inspect and resume
+## Analyze and promote
 
 ```bash
-dmw_experiments status --spec PATH_TO_ORIGINAL_SPEC
-dmw_experiments pause --spec PATH_TO_ORIGINAL_SPEC
-dmw_experiments resume --spec PATH_TO_ORIGINAL_SPEC
+./run.sh analyze
 ```
 
-`pause` stops watchdog, runner, and backend in that order. `resume` accepts
-only the byte-identical run specification and frozen run artifacts. See the
-run-local `logs/BABYSIT-*.md` for readable handoff notes and
-`operations/events.jsonl` for machine-readable lifecycle events.
+Analysis reads `raw-academiccloud/` and `raw-lmstudio/`, writes intermediates
+below `analysis/`, workbooks below `analysis/workbooks/`, and timestamped
+figures below `plots/`. Use `--allow-partial` only for an explicitly
+diagnostic export.
 
-## Analyze raw data
-
-The analysis command rebuilds provider workbooks, an ungraded historian review,
-and plots from raw observations:
+Runs remain wholly ignored until the user chooses one for publication. To
+prepare reproducibility artifacts without moving it:
 
 ```bash
-dmw_experiments analyze \
-  --academiccloud-run output/runs/ACADEMICCLOUD_RUN_ID \
-  --lmstudio-run output/runs/LMSTUDIO_RUN_ID
+dmw_experiments prepare-promotion --run-dir "$PWD"
 ```
 
-Derived files are written below `output/analyses/<timestamp>/`. Human grades
-remain separate inputs and are never overwritten. The command replaces only
-exporter-owned per-run workbooks by default; pass `--no-overwrite` to require
-empty derived-output locations.
+Review the run, then copy it to
+`studies_runs/haiu_comparison/git_tracked/<run-id>/` in a separate commit.
+`locks/dist/` contains the matching experiment wheel and source archive.
 
-## Development
+## Development and releases
 
 ```bash
 .venv/bin/ruff format .
@@ -182,8 +154,7 @@ empty derived-output locations.
 .venv/bin/pytest
 ```
 
-Use [the how-to guide](docs/How-To-User-Guides.md) for full operational
-recipes, [the architecture explanation](docs/Explanations.md) for ownership
-boundaries, and [the reference](docs/References.md) for exact names.
-Maintainers use the CI-backed tagged release cycle in
-[the development guide](docs/Development.md#github-release-cycle).
+Use [the how-to guide](docs/How-To-User-Guides.md) for operator procedures,
+[the Haiu comparison summary](docs/studies/haiu_comparison.md) for the study
+contract, and [the development guide](docs/Development.md#github-release-cycle)
+for the CI-backed GitHub Release cycle.

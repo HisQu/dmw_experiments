@@ -16,14 +16,19 @@ from dmw_experiments.studies.haiu_comparison.haiu_ontologizer.models import (
 )
 
 
+def _writer(run_root: Path) -> ArtifactWriter:
+    """Create an AcademicCloud writer inside a copied-run-shaped root."""
+    return ArtifactWriter(run_root / "raw-academiccloud")
+
+
 def test_artifact_paths_are_relative_to_run_directory(tmp_path: Path) -> None:
-    writer = ArtifactWriter(tmp_path / "run")
+    writer = _writer(tmp_path / "run")
     result = ExperimentResult(
-        condition="condition",
+        condition="workflow_full_ontology",
         regest_id="11000127",
         success=True,
         payload={
-            "condition": "condition",
+            "condition": "workflow_full_ontology",
             "regest_id": "11000127",
             "raw_ttl_output": "@prefix : <x:> .\n:i a :Thing .",
             "prompts": {
@@ -37,16 +42,31 @@ def test_artifact_paths_are_relative_to_run_directory(tmp_path: Path) -> None:
 
     row = writer.write_result(result)
 
-    assert row["raw_artifact_path"] == "raw/condition/11000127.json"
-    assert row["raw_ttl_artifact_path"] == "raw_ttl/condition/11000127.ttl"
-    assert row["raw_yaml_artifact_path"] == "raw_yaml/condition/11000127.yaml"
+    assert (
+        row["raw_artifact_path"]
+        == "raw-academiccloud/result-workflow_full_ontology/11000127.json"
+    )
+    assert (
+        row["raw_ttl_artifact_path"]
+        == "raw-academiccloud/result-workflow_full_ontology/11000127.ttl"
+    )
+    assert (
+        row["raw_yaml_artifact_path"]
+        == "raw-academiccloud/result-workflow_full_ontology/11000127.yaml"
+    )
     assert row["retrieved_ttl_artifact_path"] is None
     assert row["retrieved_yaml_artifact_path"] is None
     assert row["retrieval_snapshot_fidelity"] is None
     assert row["retrieval_sidecars_complete"] is None
     assert row["prompt_artifact_paths"] == {
-        "stage1_system": "prompts/condition/11000127_stage1_system.md",
-        "stage1_user": "prompts/condition/11000127_stage1_user.md",
+        "stage1_system": (
+            "raw-academiccloud/intermediates-workflow_full_ontology/"
+            "11000127_stage1_system.md"
+        ),
+        "stage1_user": (
+            "raw-academiccloud/intermediates-workflow_full_ontology/"
+            "11000127_stage1_user.md"
+        ),
     }
     assert (tmp_path / "run" / str(row["raw_ttl_artifact_path"])).read_text(
         encoding="utf-8"
@@ -60,13 +80,13 @@ def test_artifact_paths_are_relative_to_run_directory(tmp_path: Path) -> None:
 def test_existing_rows_are_recovered_from_raw_artifacts(
     tmp_path: Path,
 ) -> None:
-    writer = ArtifactWriter(tmp_path / "run")
+    writer = _writer(tmp_path / "run")
     result = ExperimentResult(
-        condition="condition",
+        condition="workflow_full_ontology",
         regest_id="11000127",
         success=True,
         payload={
-            "condition": "condition",
+            "condition": "workflow_full_ontology",
             "regest_id": "11000127",
             "success": True,
             "prompts": {
@@ -85,7 +105,7 @@ def test_existing_rows_are_recovered_from_raw_artifacts(
 def test_normalized_rows_do_not_duplicate_large_raw_payloads(
     tmp_path: Path,
 ) -> None:
-    writer = ArtifactWriter(tmp_path / "run")
+    writer = _writer(tmp_path / "run")
     payload = {
         "condition": "workflow_rag",
         "regest_id": "11000127",
@@ -112,7 +132,10 @@ def test_normalized_rows_do_not_duplicate_large_raw_payloads(
     )
 
     assert row["prompt_tokens"] == 123
-    assert row["raw_artifact_path"] == "raw/workflow_rag/11000127.json"
+    assert (
+        row["raw_artifact_path"]
+        == "raw-academiccloud/result-workflow_rag/11000127.json"
+    )
     for field in (
         "raw_response",
         "generation_attempts",
@@ -137,7 +160,7 @@ def test_normalized_rows_do_not_duplicate_large_raw_payloads(
 def test_annotation_attempt_state_is_recovered_separately(
     tmp_path: Path,
 ) -> None:
-    writer = ArtifactWriter(tmp_path / "run")
+    writer = _writer(tmp_path / "run")
     payload = {
         "status": "failed",
         "regest_id": "11000127",
@@ -154,7 +177,7 @@ def test_annotation_attempt_state_is_recovered_separately(
 def test_annotation_attempt_state_amendment_archives_then_resets(
     tmp_path: Path,
 ) -> None:
-    writer = ArtifactWriter(tmp_path / "run")
+    writer = _writer(tmp_path / "run")
     payload = {
         "status": "failed",
         "regest_id": "11000127",
@@ -172,10 +195,7 @@ def test_annotation_attempt_state_amendment_archives_then_resets(
     archived_state = (
         tmp_path
         / "run"
-        / "superseded"
-        / "lmstudio-runtime-20260803"
-        / "annotation_attempts"
-        / "11000127.json"
+        / str(archive["superseded_annotation_attempt_state_path"])
     )
     assert json.loads(archived_state.read_text(encoding="utf-8")) == payload
     assert (
@@ -190,7 +210,7 @@ def test_annotation_attempt_state_amendment_archives_then_resets(
 def test_workflow_turtle_is_not_reconstructed_from_tbox_and_abox(
     tmp_path: Path,
 ) -> None:
-    writer = ArtifactWriter(tmp_path / "run")
+    writer = _writer(tmp_path / "run")
     result = ExperimentResult(
         condition="workflow_rag",
         regest_id="11000127",
@@ -212,11 +232,13 @@ def test_workflow_turtle_is_not_reconstructed_from_tbox_and_abox(
     row = writer.write_result(result)
 
     assert row["raw_ttl_artifact_path"] is None
-    assert not (tmp_path / "run" / "raw_ttl/workflow_rag/11000127.ttl").exists()
+    assert not (
+        tmp_path / "run" / "raw-academiccloud/result-workflow_rag/11000127.ttl"
+    ).exists()
 
 
 def test_result_without_turtle_still_writes_raw_yaml(tmp_path: Path) -> None:
-    writer = ArtifactWriter(tmp_path / "run")
+    writer = _writer(tmp_path / "run")
     result = ExperimentResult(
         condition="workflow_rag",
         regest_id="11000127",
@@ -232,7 +254,7 @@ def test_result_without_turtle_still_writes_raw_yaml(tmp_path: Path) -> None:
 
     assert row["raw_ttl_artifact_path"] is None
     assert row["raw_yaml_artifact_path"] == (
-        "raw_yaml/workflow_rag/11000127.yaml"
+        "raw-academiccloud/result-workflow_rag/11000127.yaml"
     )
     assert row["retrieval_sidecars_complete"] is False
     assert not list((tmp_path / "run" / "raw_ttl").glob("**/*.ttl"))
@@ -241,7 +263,7 @@ def test_result_without_turtle_still_writes_raw_yaml(tmp_path: Path) -> None:
 def test_stage1_sidecar_reconstructs_legacy_explanation_without_mutating_raw(
     tmp_path: Path,
 ) -> None:
-    writer = ArtifactWriter(tmp_path / "run")
+    writer = _writer(tmp_path / "run")
     result = ExperimentResult(
         condition="workflow_rag",
         regest_id="11000127",
@@ -257,7 +279,7 @@ def test_stage1_sidecar_reconstructs_legacy_explanation_without_mutating_raw(
 
     assert row["raw_stage1_artifact_path"] is not None
     assert row["raw_stage1_metadata_artifact_path"] == (
-        "raw_stage1/workflow_rag/11000127.json"
+        "raw-academiccloud/intermediates-workflow_rag/11000127.json"
     )
     assert (tmp_path / "run" / str(row["raw_stage1_artifact_path"])).read_text(
         encoding="utf-8"
@@ -274,7 +296,7 @@ def test_stage1_sidecar_reconstructs_legacy_explanation_without_mutating_raw(
 def test_stage1_sidecar_records_unavailable_response_without_fabrication(
     tmp_path: Path,
 ) -> None:
-    writer = ArtifactWriter(tmp_path / "run")
+    writer = _writer(tmp_path / "run")
     result = ExperimentResult(
         condition="workflow_full_ontology",
         regest_id="11000127",
@@ -301,7 +323,7 @@ def test_stage1_sidecar_records_unavailable_response_without_fabrication(
 def test_failed_upstream_attempt_turtle_is_preserved_separately(
     tmp_path: Path,
 ) -> None:
-    writer = ArtifactWriter(tmp_path / "run")
+    writer = _writer(tmp_path / "run")
     result = ExperimentResult(
         condition="workflow_full_ontology",
         regest_id="11000127",
@@ -324,19 +346,19 @@ def test_failed_upstream_attempt_turtle_is_preserved_separately(
     row = writer.write_result(result)
 
     assert row["attempt_ttl_artifact_paths"] == {
-        "attempt_1": "raw_ttl/workflow_full_ontology/11000127.attempt-1.ttl"
+        "attempt_1": "raw-academiccloud/result-workflow_full_ontology/11000127.attempt-1.ttl"
     }
     assert (
         tmp_path
         / "run"
-        / "raw_ttl/workflow_full_ontology/11000127.attempt-1.ttl"
+        / "raw-academiccloud/result-workflow_full_ontology/11000127.attempt-1.ttl"
     ).read_text(encoding="utf-8") == "```ttl\ninvalid\n```"
 
 
 def test_native_haiu_retrieval_snapshot_is_written_with_portable_paths(
     tmp_path: Path,
 ) -> None:
-    writer = ArtifactWriter(tmp_path / "run")
+    writer = _writer(tmp_path / "run")
     result = ExperimentResult(
         condition="workflow_rag",
         regest_id="11000127",
@@ -360,10 +382,10 @@ def test_native_haiu_retrieval_snapshot_is_written_with_portable_paths(
     row = writer.write_result(result)
 
     assert row["retrieved_ttl_artifact_path"] == (
-        "raw_ttl/haiu_retrieved/workflow_rag/11000127.ttl"
+        "raw-academiccloud/intermediates-workflow_rag/11000127.retrieved.ttl"
     )
     assert row["retrieved_yaml_artifact_path"] == (
-        "raw_ttl/haiu_retrieved/workflow_rag/11000127.yaml"
+        "raw-academiccloud/intermediates-workflow_rag/11000127.retrieved.yaml"
     )
     assert row["retrieval_snapshot_fidelity"] == "native_full_graph"
     assert row["retrieval_sidecars_complete"] is True
@@ -376,7 +398,7 @@ def test_native_haiu_retrieval_snapshot_is_written_with_portable_paths(
     assert snapshot["chunks"] == [{"content": "source"}]
     assert snapshot["snapshot_fidelity"] == "native_full_graph"
     assert snapshot["export_yaml_path"] == (
-        "raw_ttl/haiu_retrieved/workflow_rag/11000127.yaml"
+        "raw-academiccloud/intermediates-workflow_rag/11000127.retrieved.yaml"
     )
     assert "workdir" not in snapshot
     assert "/private" not in json.dumps(snapshot)
@@ -385,7 +407,7 @@ def test_native_haiu_retrieval_snapshot_is_written_with_portable_paths(
 def test_legacy_rag_retrieval_is_not_reconstructed_from_stage1_prompt(
     tmp_path: Path,
 ) -> None:
-    writer = ArtifactWriter(tmp_path / "run")
+    writer = _writer(tmp_path / "run")
     marker = (
         "## Referenzontologie (Ausschnitt, Turtle)\n"
         "Dies ist ein relevanter Ausschnitt der bestehenden Gesamtontologie. "
@@ -423,9 +445,9 @@ def test_rematerializing_result_without_turtle_removes_stale_ttl(
     tmp_path: Path,
 ) -> None:
     run_dir = tmp_path / "run"
-    writer = ArtifactWriter(run_dir)
-    ttl_path = run_dir / "raw_ttl/workflow_rag/11000127.ttl"
-    ttl_path.parent.mkdir(parents=True)
+    writer = _writer(run_dir)
+    ttl_path = run_dir / "raw-academiccloud/result-workflow_rag/11000127.ttl"
+    ttl_path.parent.mkdir(parents=True, exist_ok=True)
     ttl_path.write_text("stale output", encoding="utf-8")
     result = ExperimentResult(
         condition="workflow_rag",
@@ -447,8 +469,8 @@ def test_existing_raw_documents_without_raw_turtle_keep_yaml_only(
     tmp_path: Path,
 ) -> None:
     run_dir = tmp_path / "run"
-    raw_dir = run_dir / "raw" / "workflow_full_ontology"
-    raw_dir.mkdir(parents=True)
+    raw_dir = run_dir / "raw-academiccloud" / "result-workflow_full_ontology"
+    raw_dir.mkdir(parents=True, exist_ok=True)
     payload = {
         "condition": "workflow_full_ontology",
         "regest_id": "11000127",
@@ -459,7 +481,7 @@ def test_existing_raw_documents_without_raw_turtle_keep_yaml_only(
         json.dumps(payload),
         encoding="utf-8",
     )
-    writer = ArtifactWriter(run_dir)
+    writer = _writer(run_dir)
 
     counts = writer.materialize_existing_raw_documents()
 
@@ -472,17 +494,22 @@ def test_existing_raw_documents_without_raw_turtle_keep_yaml_only(
         "retrieved_ttl": 0,
     }
     assert not (
-        run_dir / "raw_ttl/workflow_full_ontology/11000127.ttl"
+        run_dir / "raw-academiccloud/result-workflow_full_ontology/11000127.ttl"
     ).exists()
     assert (
-        ut.load_yaml(run_dir / "raw_yaml/workflow_full_ontology/11000127.yaml")
+        ut.load_yaml(
+            run_dir
+            / "raw-academiccloud/result-workflow_full_ontology/11000127.yaml"
+        )
         == payload
     )
-    assert not (run_dir / "normalized/results.jsonl").exists()
+    assert not (
+        run_dir / "analysis/intermediate/academiccloud-results.jsonl"
+    ).exists()
 
 
 def test_run_manifest_is_immutable(tmp_path: Path) -> None:
-    writer = ArtifactWriter(tmp_path)
+    writer = _writer(tmp_path)
     manifest = {"run_id": "fixed", "model": "model-a"}
 
     path = writer.ensure_run_manifest(
@@ -504,7 +531,7 @@ def test_run_manifest_is_immutable(tmp_path: Path) -> None:
 
 
 def test_run_manifest_rejects_legacy_results(tmp_path: Path) -> None:
-    writer = ArtifactWriter(tmp_path)
+    writer = _writer(tmp_path)
 
     with pytest.raises(ValueError, match="without a run manifest"):
         writer.ensure_run_manifest(
@@ -514,7 +541,7 @@ def test_run_manifest_rejects_legacy_results(tmp_path: Path) -> None:
 
 
 def test_run_amendment_is_immutable(tmp_path: Path) -> None:
-    writer = ArtifactWriter(tmp_path)
+    writer = _writer(tmp_path)
     payload = {"kind": "output_cap_recovery", "replacement_cap": 60_000}
 
     path = writer.ensure_run_amendment(
@@ -540,7 +567,7 @@ def test_run_amendment_is_immutable(tmp_path: Path) -> None:
 def test_output_cap_amendment_archives_all_result_evidence(
     tmp_path: Path,
 ) -> None:
-    writer = ArtifactWriter(tmp_path / "run")
+    writer = _writer(tmp_path / "run")
     result = ExperimentResult(
         condition="workflow_rag",
         regest_id="11000127",
@@ -571,22 +598,38 @@ def test_output_cap_amendment_archives_all_result_evidence(
         regest_id="11000127",
     )
 
-    archive_root = tmp_path / "run" / "superseded" / "output-cap-60000"
-    assert archive["canonical_raw_artifact_path"] == (
-        "superseded/output-cap-60000/raw/workflow_rag/11000127.json"
+    archive_root = (
+        tmp_path
+        / "run"
+        / "environment"
+        / "academiccloud-superseded"
+        / "output-cap-60000"
     )
-    assert (archive_root / "raw/workflow_rag/11000127.json").is_file()
-    assert (archive_root / "raw_yaml/workflow_rag/11000127.yaml").is_file()
-    assert (archive_root / "raw_ttl/workflow_rag/11000127.ttl").read_text(
-        encoding="utf-8"
-    ) == ":Incomplete a :Ontology ."
+    assert archive["canonical_raw_artifact_path"] == (
+        "environment/academiccloud-superseded/output-cap-60000/"
+        "raw-academiccloud/result-workflow_rag/11000127.json"
+    )
     assert (
-        archive_root / "raw_ttl/haiu_retrieved/workflow_rag/11000127.ttl"
+        archive_root / "raw-academiccloud/result-workflow_rag/11000127.json"
     ).is_file()
     assert (
-        archive_root / "prompts/workflow_rag/11000127_stage2_user.md"
+        archive_root / "raw-academiccloud/result-workflow_rag/11000127.yaml"
     ).is_file()
-    assert (archive_root / "attempts/workflow_rag/11000127.json").is_file()
+    assert (
+        archive_root / "raw-academiccloud/result-workflow_rag/11000127.ttl"
+    ).read_text(encoding="utf-8") == ":Incomplete a :Ontology ."
+    assert (
+        archive_root
+        / "raw-academiccloud/intermediates-workflow_rag/11000127.retrieved.ttl"
+    ).is_file()
+    assert (
+        archive_root / "raw-academiccloud/intermediates-workflow_rag/"
+        "11000127_stage2_user.md"
+    ).is_file()
+    assert (
+        archive_root
+        / "raw-academiccloud/intermediates-workflow_rag/11000127.attempt.json"
+    ).is_file()
     assert (
         writer.archive_result_for_amendment(
             amendment_id="output-cap-60000",
@@ -598,7 +641,7 @@ def test_output_cap_amendment_archives_all_result_evidence(
 
 
 def test_attempt_state_marks_started_condition_pair(tmp_path: Path) -> None:
-    writer = ArtifactWriter(tmp_path)
+    writer = _writer(tmp_path)
 
     assert (
         writer.has_attempt_state(condition="workflow_rag", regest_id="1")
@@ -618,7 +661,7 @@ def test_attempt_state_marks_started_condition_pair(tmp_path: Path) -> None:
 
 
 def test_attempt_state_can_be_loaded_for_resume(tmp_path: Path) -> None:
-    writer = ArtifactWriter(tmp_path)
+    writer = _writer(tmp_path)
     payload = {"status": "failed", "attempt": 3}
 
     assert (
@@ -647,7 +690,7 @@ def test_attempt_state_can_be_loaded_for_resume(tmp_path: Path) -> None:
 def test_frozen_annotation_is_written_as_raw_json_and_yaml(
     tmp_path: Path,
 ) -> None:
-    writer = ArtifactWriter(tmp_path)
+    writer = _writer(tmp_path)
     payload = {
         "schema_version": 1,
         "regest_id": "1",
@@ -664,15 +707,25 @@ def test_frozen_annotation_is_written_as_raw_json_and_yaml(
     )
 
     assert paths == {
-        "json": "raw_annotations/1.json",
-        "yaml": "raw_annotations/1.yaml",
+        "json": (
+            "raw-academiccloud/intermediates-workflow_full_ontology/1.json"
+        ),
+        "yaml": (
+            "raw-academiccloud/intermediates-workflow_full_ontology/1.yaml"
+        ),
+        "workflow_rag_json": (
+            "raw-academiccloud/intermediates-workflow_rag/1.json"
+        ),
+        "workflow_rag_yaml": (
+            "raw-academiccloud/intermediates-workflow_rag/1.yaml"
+        ),
     }
     assert writer.load_frozen_annotation(regest_id="1") == payload
     assert ut.load_yaml(tmp_path / paths["yaml"]) == payload
 
 
 def test_frozen_regests_are_reused_without_refetching(tmp_path: Path) -> None:
-    writer = ArtifactWriter(tmp_path / "run")
+    writer = _writer(tmp_path / "run")
     requested: list[str] = []
 
     def fetch(regest_id: str) -> RegestText:

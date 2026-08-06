@@ -4,101 +4,106 @@
 
 1. [Scientific question](#scientific-question)
 2. [Experimental unit and conditions](#experimental-unit-and-conditions)
-3. [Source and output ownership](#source-and-output-ownership)
-4. [Published technology stack](#published-technology-stack)
-5. [Execution contract](#execution-contract)
-6. [Analysis contract](#analysis-contract)
-7. [Documentation synchronization](#documentation-synchronization)
+3. [Run template and storage](#run-template-and-storage)
+4. [Configuration and AppRC](#configuration-and-apprc)
+5. [Evidence and analysis](#evidence-and-analysis)
+6. [Published stack](#published-stack)
 
 ## Scientific question
 
-The study tests whether Haiu retrieval gives the DMW enough relevant ontology
-context to generate ontologies as reliably and effectively as supplying the
-complete reference ontology. A standalone Haiu-retrieval condition separates
-the effect of retrieval from the effect of the DMW workflow.
+The study tests whether Haiu retrieval gives DMW enough relevant ontology
+context to generate ontologies as reliably and effectively as the complete
+reference ontology. A standalone Haiu condition separates the effect of
+retrieval from the DMW workflow.
 
 ## Experimental unit and conditions
 
-The frozen population contains 480 header--sublemma units. A unit contains one
-header, one sublemma, and the complete source regest text required to interpret
-that pair. It is not the complete multi-sublemma regest as one indivisible
-generation target.
+The frozen population contains 480 header--sublemma units. Each unit contains
+one header, one ordered sublemma, and source-regest lineage. It is not the
+whole multi-sublemma regest as one generation target.
 
-Every unit is scheduled under three conditions:
+| Internal condition | Display condition | Measured path |
+| --- | --- | --- |
+| `workflow_full_ontology` | DMW + Full Ontology | DMW receives the complete reference ontology. |
+| `workflow_rag` | DMW + HAIU | DMW receives Haiu-retrieved ontology context. |
+| `haiu_rag_ontologizer` | HAIU | Direct generation receives Haiu-retrieved context. |
 
-| Condition | Measured path |
+Each enabled provider schedules all 1,440 cells. Pairwise analysis uses DMW
+versus DMW + HAIU and DMW + HAIU versus HAIU.
+
+## Run template and storage
+
+The complete data template lives at
+[`studies_run_templates/haiu_comparison/template`](../../studies_run_templates/haiu_comparison/template/README.md).
+Python behavior stays in
+[`src/dmw_experiments/studies/haiu_comparison`](../../src/dmw_experiments/studies/haiu_comparison).
+
+A copied run has flat provider areas:
+
+```text
+raw-academiccloud/
+├── intermediates-workflow_full_ontology/
+├── intermediates-workflow_rag/
+├── intermediates-haiu_rag_ontologizer/
+├── result-workflow_full_ontology/
+├── result-workflow_rag/
+└── result-haiu_rag_ontologizer/
+```
+
+`raw-lmstudio/` has the same shape. Executions are not nested and do not wait
+for one another. `logs/BABYSIT-*.md`, `environment/`, `analysis/`, and `plots/`
+remain beside the raw areas in the same run.
+
+Full runs belong under `studies_runs/haiu_comparison/`; smoke runs belong
+under `studies_runs_smoketests/haiu_comparison/`. Both are wholly ignored.
+Only a user-selected completed run is copied below
+`studies_runs/haiu_comparison/git_tracked/`.
+
+## Configuration and AppRC
+
+`run.toml` is the typed scientific and storage contract. `run.env` is the
+exhaustive shared non-secret runtime contract. Provider files contain only
+execution-specific overrides.
+
+Each run is selected as one AppRC storage and uses `run.env` as its
+storage-local environment. Real credentials and the machine-local NER index
+path belong to AppRC's app-wide environment. Launch evidence records redacted
+setting origins and derived storage identities, not credential values.
+
+Smoke and full runs require different run directories, DMW branches, raw
+collections, annotation collections, ontology collections, and Haiu storage.
+
+## Evidence and analysis
+
+Result JSON, YAML, Turtle, provider attempts, prompts, Stage-1 replies,
+retrieval sidecars, environment locks, and run manifests remain in the copied
+run. Terminal context, length, and other model failures are observations.
+Infrastructure interruption resumes only the same frozen contract.
+
+Strict analysis requires every scheduled cell to be terminal. Derived files
+are organized as follows:
+
+| Path | Contents |
 | --- | --- |
-| DMW + Full Ontology | DMW receives the complete reference ontology. |
-| DMW + HAIU | DMW receives ontology context retrieved by Haiu. |
-| HAIU | Standalone ontology generation receives Haiu-retrieved context. |
+| `analysis/intermediate/` | Machine-readable normalized data. |
+| `analysis/diagnostics/` | Validation and exclusion diagnostics. |
+| `analysis/workbooks/` | Provider, pairwise, and review workbooks. |
+| `plots/` | Timestamped figures, manifests, and captions. |
 
-The complete matrix contains 1,440 cells. Pairwise analyses use the two
-scientific comparisons DMW versus DMW + HAIU and DMW + HAIU versus HAIU.
+## Published stack
 
-## Source and output ownership
-
-| Path | Responsibility |
+| Component | Release |
 | --- | --- |
-| `src/dmw_experiments/studies/haiu_comparison/` | Scientific execution and analysis code. |
-| `src/dmw_experiments/shared/` | Reusable lifecycle, configuration, supervision, artifacts, and plotting code. |
-| `studies/haiu_comparison/inputs/` | Immutable scientific inputs. |
-| `studies/haiu_comparison/specs/` | Reviewable smoke and full-run contracts. |
-| `studies/haiu_comparison/locks/` | Exact published DMW-stack contract. |
-| `tests/studies/haiu_comparison/` | Study regressions. |
-| `output/runs/<run-id>/` | Authoritative raw data and run-local operational evidence. |
-| `output/analyses/<analysis-id>/` | Derived workbooks, review packets, and plots. |
+| DMW | 1.1.3 |
+| OPA | 2.1.2 |
+| GTA | 0.2.4 |
+| Haiu | 1.8.0 |
+| MongoDBAPI | 1.0.2 |
 
-The top-level `studies/` directory contains tracked scientific facts. The
-Python package's `studies` namespace contains code. The two locations share a
-study name so a tired operator can move between them without translation.
-
-## Published technology stack
-
-| Component | Release | Repository | Role |
-| --- | --- | --- | --- |
-| DMW | 1.1.3 | [HisQu/datamodel-workflow](https://github.com/HisQu/datamodel-workflow) | Workflow and API under test. |
-| OPA | 2.1.2 | [HisQu/OPA](https://github.com/HisQu/OPA) | Ontology prompting used by DMW. |
-| GTA | 0.2.4 | [HisQu/GTA](https://github.com/HisQu/GTA) | Generation transport and metadata. |
-| Haiu | 1.8.0 | [HisQu/haiu](https://github.com/HisQu/haiu) | Retrieval and standalone condition. |
-| MongoDBAPI | 1.0.2 | [HisQu/MongoDBAPI](https://github.com/HisQu/MongoDBAPI) | Versioned DMW persistence. |
-
-The experiment release locks remote tags and resolved commits. Local editable
-clones are temporary development conveniences, not part of a released run.
-
-## Execution contract
-
-The canonical AcademicCloud smoke uses one unit and independent disposable
-DMW storage. The full run uses all 480 units and a second fresh branch and
-collection set. Both schedule all three conditions.
-
-The lifecycle freezes the chosen spec, prepares storage, captures schema-v2
-environment provenance, and launches backend, runner, and watchdog as
-user-systemd services. A machine interruption may resume the same run only
-when the spec and frozen artifacts are byte-identical.
-
-Terminal model outcomes, including context and length exhaustion, remain
-observations. Infrastructure interruption is not converted into a model
-failure, and recovery-amendment selectors are not used.
-
-## Analysis contract
-
-Raw JSON records are authoritative. Workbooks, review packets, plots, and
-audit tables are derived and may be regenerated. Human grade inputs are kept
-separate and are never overwritten by the analysis command.
-
-Strict export requires every scheduled cell to be terminal. Diagnostic export
-of an incomplete matrix must be requested explicitly with `--allow-partial`.
-
-## Documentation synchronization
-
-The operational counterpart is
-[`studies/haiu_comparison/README.md`](../../studies/haiu_comparison/README.md).
-Update both documents in the same change when the question, population,
-conditions, stack, paths, execution contract, or analysis contract changes.
+The template locks remote releases. Local editable checkouts are temporary
+development overlays and never part of a tagged experiment release.
 
 > [!NOTE]
-> Related links:
-> - Use the [how-to guide](../How-To-User-Guides.md) to launch, pause, resume,
->   hand off, and analyze a run.
-> - Use the exact [reference paths](../References.md#study-files) when writing
->   commands or automation.
+> Keep this page and
+> [`studies_run_templates/haiu_comparison/README.md`](../../studies_run_templates/haiu_comparison/README.md)
+> synchronized when the study or template contract changes.

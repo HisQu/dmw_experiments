@@ -1,140 +1,82 @@
-"""Provide one safe lifecycle for the DMW--Haiu comparison study."""
+"""Run-directory lifecycle for independently supervised provider executions."""
 
 from __future__ import annotations
 
+import hashlib
 import json
 import subprocess
+import sys
 import time
 import urllib.error
 import urllib.request
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-from dmw_experiments.shared.artifacts.run_workspace import RunWorkspace
+from dmw_experiments.shared.artifacts import RunWorkspace
 from dmw_experiments.shared.config import AppRuntimeConfig, UNSET_PATH
 from dmw_experiments.shared.config.runtime_environment import (
-    load_runtime_environment,
-    validate_academiccloud_environment,
+    ResolvedRunEnvironment,
+    bootstrap_run_environment,
+    validate_run_environment_contract,
 )
-from dmw_experiments.shared.execution.release_stack import ReleaseStackManager
+from dmw_experiments.shared.supervision import ServiceUnits, UserServiceManager
+from dmw_experiments.studies.haiu_comparison.comparison_experiment.input_catalog import (
+    load_dmw_pair_import_manifest,
+    load_header_sublemma_catalog,
+)
+from dmw_experiments.studies.haiu_comparison.comparison_experiment.provider_profiles import (
+    provider_profile,
+)
 from dmw_experiments.studies.haiu_comparison.operations.run_spec import (
+    ExecutionSpec,
     HeaderSublemmaRunSpec,
-    load_header_sublemma_run_spec,
-    validate_isolated_specs,
+    load_run_spec,
 )
-from dmw_experiments.studies.haiu_comparison.paths import (
-    INPUT_ROOT,
-    REPOSITORY_ROOT,
-    SPEC_ROOT,
-    STUDY_ROOT,
-)
-from dmw_experiments.shared.supervision.systemd_services import (
-    ServiceUnits,
-    UserServiceManager,
-)
+from dmw_experiments.studies.haiu_comparison.paths import REPOSITORY_ROOT
 
 CommandRunner = Callable[..., subprocess.CompletedProcess[str]]
-ACADEMICCLOUD_BACKEND_URL = "http://127.0.0.1:8000"
-REFERENCE_ONTOLOGY = INPUT_ROOT / "reference_ontology.ttl"
-RETRIEVAL_WORKSPACE = INPUT_ROOT / "retrieval_workspace.json"
-ONTOLOGY_USER_INPUT = INPUT_ROOT / "historian_ontology_user_input.md"
-ANNOTATION_GUIDELINES = INPUT_ROOT / "annotation_guidelines.md"
+BACKEND_URLS = {
+    "academiccloud": "http://127.0.0.1:8000",
+    "lmstudio": "http://127.0.0.1:8001",
+}
 
 
 @dataclass(frozen=True, slots=True)
 class RuntimePaths:
-    """Resolve host-specific paths outside tracked scientific specifications.
+    """Resolve only the interpreter outside a portable run contract.
 
-    :param output_root: Parent of all generated runs and analyses.
-    :param publication_python: Interpreter containing the locked DMW stack.
-    :param provider_environment_file: Ignored AcademicCloud configuration file.
+    :param publication_python: Interpreter containing the released DMW stack.
     """
 
-    output_root: Path
     publication_python: Path
-    provider_environment_file: Path
 
     @classmethod
     def from_config(cls, config: AppRuntimeConfig) -> RuntimePaths:
-        """Apply repository-relative defaults to resolved AppRC settings.
+        """Use the active interpreter unless an explicit override exists.
 
-        :param config: AppRC-owned runtime configuration.
-        :return: Absolute runtime paths without recording them in run specs.
-        :raises ValueError: If AcademicCloud has no ignored environment file.
+        :param config: Experiment-owned AppRC settings.
+        :return: Runtime interpreter without resolving a virtualenv symlink.
         """
-        output_root = config.storage_root.expanduser()
-        if not output_root.is_absolute():
-            output_root = REPOSITORY_ROOT / output_root
-        publication_python = config.publication_python
-        if publication_python == UNSET_PATH:
-            publication_python = REPOSITORY_ROOT / ".venv" / "bin" / "python"
-        else:
-            publication_python = _repository_relative_path(publication_python)
-        provider_environment_file = config.academiccloud_env_file
-        if provider_environment_file == UNSET_PATH:
-            raise ValueError(
-                "Set DMW_EXPERIMENTS_ACADEMICCLOUD_ENV_FILE to an ignored "
-                "dotenv file containing DATAMODEL_LOGIN and "
-                "DATAMODEL_PASSWORD."
-            )
-        return cls(
-            output_root=output_root.resolve(),
-            # > Keep the virtual-environment executable path itself. Resolving
-            # > its symlink would invoke the base interpreter without the
-            # > locked environment when systemd starts a service.
-            publication_python=publication_python.absolute(),
-            provider_environment_file=(
-                _repository_relative_path(provider_environment_file).resolve()
-            ),
-        )
+        configured = config.publication_python.expanduser()
+        if configured == UNSET_PATH:
+            configured = Path(sys.executable)
+        elif not configured.is_absolute():
+            configured = REPOSITORY_ROOT / configured
+        return cls(publication_python=configured.absolute())
 
     def validate(self) -> None:
-        """Reject missing runtime components before external mutation.
-
-        :return: ``None`` when the local machine can execute the frozen stack.
-        :raises ValueError: If the interpreter, scientific inputs, or private
-            configuration are unavailable.
-        """
+        """Reject a missing publication interpreter before mutation."""
         if not self.publication_python.is_file():
-            raise ValueError(
-                "Published-stack interpreter does not exist: "
-                f"{self.publication_python}"
-            )
-        if not self.provider_environment_file.is_file():
-            raise ValueError(
-                "AcademicCloud environment file does not exist: "
-                f"{self.provider_environment_file}"
-            )
-        validate_academiccloud_environment(self.provider_environment_file)
-        for input_file in (
-            REFERENCE_ONTOLOGY,
-            RETRIEVAL_WORKSPACE,
-            ONTOLOGY_USER_INPUT,
-            ANNOTATION_GUIDELINES,
-        ):
-            if not input_file.is_file():
-                raise ValueError(
-                    f"Required scientific input is missing: {input_file}"
-                )
+            raise ValueError("Published-stack interpreter does not exist.")
 
 
 @dataclass(frozen=True, slots=True)
-class RunStatus:
-    """Summarize durable matrix progress and current service ownership.
+class ExecutionStatus:
+    """Summarize one provider execution's durable and service state."""
 
-    :param run_id: Stable run identity.
-    :param expected_cells: Complete scheduled matrix size.
-    :param terminal_cells: Cells with an authoritative raw record.
-    :param successful_cells: Terminal rows reporting success.
-    :param failed_cells: Terminal rows reporting a measured failure.
-    :param retry_pending_cells: Raw rows still marked for an in-run retry.
-    :param strict_analysis_ready: Whether every cell is terminal and stable.
-    :param services: Current systemd active state by process role.
-    """
-
-    run_id: str
+    execution: str
     expected_cells: int
     terminal_cells: int
     successful_cells: int
@@ -144,8 +86,22 @@ class RunStatus:
     services: dict[str, str]
 
 
+@dataclass(frozen=True, slots=True)
+class RunStatus:
+    """Aggregate enabled provider execution progress for one run."""
+
+    run_id: str
+    expected_cells: int
+    terminal_cells: int
+    successful_cells: int
+    failed_cells: int
+    retry_pending_cells: int
+    strict_analysis_ready: bool
+    executions: dict[str, ExecutionStatus]
+
+
 class ExperimentLifecycle:
-    """Coordinate validation, storage, provenance, services, and resumptions."""
+    """Validate, start, pause, resume, and inspect one copied run."""
 
     def __init__(
         self,
@@ -160,309 +116,363 @@ class ExperimentLifecycle:
 
     def validate(
         self,
-        spec_path: Path,
+        run_root: Path,
         *,
-        expected_mode: str | None = None,
-        allow_existing_run: bool = False,
+        execution_names: tuple[str, ...] = (),
+        require_credentials: bool = True,
     ) -> dict[str, Any]:
-        """Validate one complete launch contract without mutating run state.
+        """Validate a complete run without preparing storage or services.
 
-        :param spec_path: Tracked schema-v2 run specification.
-        :param expected_mode: Optional command-specific ``smoke`` or ``full``.
-        :param allow_existing_run: Permit the exact run directory for status or
-            resume workflows.
-        :return: Non-secret plan suitable for terminal or JSON display.
+        :param run_root: Copied run directory.
+        :param execution_names: Optional enabled execution filter.
+        :param require_credentials: Whether AppRC app-wide secrets must exist.
+        :return: Portable non-secret launch plan.
         """
-        spec = self._load_spec(spec_path, expected_mode=expected_mode)
+        spec = load_run_spec(run_root)
         runtime = RuntimePaths.from_config(self.config)
         runtime.validate()
-        result_directory = spec.result_directory(runtime.output_root)
-        if result_directory.exists() and not allow_existing_run:
-            raise ValueError(
-                "Run directory already exists. Use resume for an interrupted "
-                f"run: {result_directory}"
+        executions = self._selected_executions(spec, execution_names)
+        plans = {}
+        for execution in executions:
+            validate_run_environment_contract(run_root.resolve(), execution)
+            resolved = bootstrap_run_environment(
+                run_root,
+                execution,
+                require_app_wide_secrets=require_credentials,
             )
+            plans[execution.name] = {
+                "provider_profile": execution.provider_profile,
+                "population_units": self._population_units(spec, run_root),
+                "expected_cells": self._population_units(spec, run_root)
+                * len(spec.conditions),
+                "output_directory": execution.output_directory_name,
+                "storage": {
+                    "branch": execution.target_branch,
+                    "raw_collection": execution.raw_collection,
+                    "annotation_collection": execution.annotation_collection,
+                    "ontology_collection": execution.ontology_collection,
+                },
+                "service_units": asdict(
+                    ServiceUnits.for_run(spec.run_id, execution.name)
+                ),
+                "config_origins": {
+                    key: value["origin"]
+                    for key, value in resolved.provenance_payload().items()
+                },
+            }
         return {
             "schema_version": spec.schema_version,
             "study": spec.study,
             "mode": spec.mode,
             "run_id": spec.run_id,
-            "provider_profile": spec.provider_profile,
-            "population_units": self._population_units(spec),
-            "expected_cells": self._population_units(spec)
-            * len(spec.conditions),
             "conditions": list(spec.conditions),
-            "storage": {
-                "branch": spec.target_branch,
-                "raw_collection": spec.raw_collection,
-                "annotation_collection": spec.annotation_collection,
-                "ontology_collection": spec.ontology_collection,
-            },
-            "result_directory": str(result_directory),
-            "service_units": asdict(ServiceUnits.for_run(spec.run_id)),
-            "runtime": {
-                "publication_python": str(runtime.publication_python),
-                "provider_environment_file": str(
-                    runtime.provider_environment_file
-                ),
-            },
+            "executions": plans,
         }
 
-    def launch(self, spec_path: Path, *, expected_mode: str) -> RunWorkspace:
-        """Prepare and start one fresh smoke or full provider run.
+    def start(
+        self,
+        run_root: Path,
+        *,
+        execution_names: tuple[str, ...] = (),
+    ) -> tuple[RunWorkspace, ...]:
+        """Prepare and launch every selected enabled execution independently.
 
-        Pre-service preparation is idempotent for an existing workspace that
-        has not yet created a scientific run manifest. Once the runner has
-        frozen that manifest, continuation belongs exclusively to
-        :meth:`resume`.
-
-        :param spec_path: Tracked schema-v2 run specification.
-        :param expected_mode: Required ``smoke`` or ``full`` command mode.
-        :return: Started run workspace.
+        :param run_root: Copied run directory.
+        :param execution_names: Optional provider filter.
+        :return: Workspaces whose services started successfully.
         """
-        spec = self._load_spec(spec_path, expected_mode=expected_mode)
-        runtime = RuntimePaths.from_config(self.config)
-        runtime.validate()
-        self._require_no_other_provider_run()
-        root = spec.result_directory(runtime.output_root)
-        if root.exists():
-            workspace = RunWorkspace.open(root, spec_path)
-            if (root / "summaries" / "run_manifest.json").exists():
-                raise ValueError(
-                    "The runner already created its immutable manifest. Use "
-                    "the resume command for this run."
-                )
-        else:
-            workspace = RunWorkspace.create(root, spec_path)
-        workspace.append_babysit(
-            heading="Run contract",
-            bullets=(
-                f"Mode: {spec.mode}; provider: {spec.provider_profile}.",
-                f"Population: {self._population_units(spec)} units and "
-                f"{self._population_units(spec) * len(spec.conditions)} cells.",
-                "Published stack: DMW 1.1.3, OPA 2.1.2, GTA 0.2.4, "
-                "and Haiu 1.8.0.",
-                "Terminal context, length, and model failures remain evidence; "
-                "no recovery-amendment flags are used.",
-            ),
+        return self._start_or_resume(
+            run_root,
+            execution_names=execution_names,
+            resume=False,
         )
-        try:
-            manifest = self._prepare_storage(
-                spec=spec,
-                runtime=runtime,
-                workspace=workspace,
-            )
-            environment_lock = self._capture_environment_lock(
-                spec=spec,
-                runtime=runtime,
-                workspace=workspace,
-                dmw_input_manifest=manifest,
-            )
-            self._start_services(
-                spec=spec,
-                runtime=runtime,
-                workspace=workspace,
-                dmw_input_manifest=manifest,
-                environment_lock=environment_lock,
-                resume=False,
-            )
-        except BaseException as error:
+
+    def resume(
+        self,
+        run_root: Path,
+        *,
+        execution_names: tuple[str, ...] = (),
+    ) -> tuple[RunWorkspace, ...]:
+        """Resume selected executions with their exact frozen contract.
+
+        :param run_root: Existing copied run directory.
+        :param execution_names: Optional provider filter.
+        :return: Workspaces whose services restarted successfully.
+        """
+        return self._start_or_resume(
+            run_root,
+            execution_names=execution_names,
+            resume=True,
+        )
+
+    def pause(
+        self,
+        run_root: Path,
+        *,
+        execution_names: tuple[str, ...] = (),
+    ) -> RunStatus:
+        """Stop selected providers in checkpoint-safe order.
+
+        :param run_root: Existing copied run directory.
+        :param execution_names: Optional provider filter.
+        :return: Aggregate durable status after stopping services.
+        """
+        spec = load_run_spec(run_root)
+        for execution in self._selected_executions(spec, execution_names):
+            workspace = RunWorkspace.open(run_root, execution.name)
+            units = ServiceUnits.for_run(spec.run_id, execution.name)
+            self.services.stop(units.watchdog)
+            self.services.interrupt(units.runner)
+            deadline = time.monotonic() + 20
+            while (
+                self.services.is_active(units.runner)
+                and time.monotonic() < deadline
+            ):
+                time.sleep(1)
+            self.services.stop(units.runner)
+            self.services.stop(units.backend)
             workspace.append_event(
-                event="launch_failed",
-                detail=str(error),
-                error_type=type(error).__name__,
+                event="execution_paused",
+                detail="Stopped watchdog, runner, and backend in safe order.",
             )
             workspace.append_babysit(
-                heading="Launch failed",
+                heading="Execution paused",
                 bullets=(
-                    f"Stopped before a confirmed complete launch: {error}",
-                    "The workspace and any durable preparation evidence were "
-                    "preserved for diagnosis.",
+                    "Stopped the watchdog before interrupting the runner.",
+                    "Preserved every terminal result and attempt checkpoint.",
                 ),
             )
-            raise
-        return workspace
+        return self.status(run_root)
 
-    def resume(self, spec_path: Path) -> RunWorkspace:
-        """Restart only an interrupted run with its exact frozen settings.
+    def status(
+        self,
+        run_root: Path,
+        *,
+        execution_names: tuple[str, ...] = (),
+    ) -> RunStatus:
+        """Count terminal observations and inspect selected services.
 
-        :param spec_path: Original tracked run specification.
-        :return: Restarted run workspace.
-        :raises ValueError: If required immutable artifacts are unavailable.
+        :param run_root: Existing copied run directory.
+        :param execution_names: Optional provider filter.
+        :return: Per-provider and aggregate progress.
         """
-        spec = self._load_spec(spec_path)
+        spec = load_run_spec(run_root)
+        statuses = {
+            execution.name: self._execution_status(
+                spec=spec,
+                execution=execution,
+                run_root=run_root.resolve(),
+            )
+            for execution in self._selected_executions(spec, execution_names)
+        }
+        return RunStatus(
+            run_id=spec.run_id,
+            expected_cells=sum(
+                item.expected_cells for item in statuses.values()
+            ),
+            terminal_cells=sum(
+                item.terminal_cells for item in statuses.values()
+            ),
+            successful_cells=sum(
+                item.successful_cells for item in statuses.values()
+            ),
+            failed_cells=sum(item.failed_cells for item in statuses.values()),
+            retry_pending_cells=sum(
+                item.retry_pending_cells for item in statuses.values()
+            ),
+            strict_analysis_ready=bool(statuses)
+            and all(item.strict_analysis_ready for item in statuses.values()),
+            executions=statuses,
+        )
+
+    def _start_or_resume(
+        self,
+        run_root: Path,
+        *,
+        execution_names: tuple[str, ...],
+        resume: bool,
+    ) -> tuple[RunWorkspace, ...]:
+        spec = load_run_spec(run_root)
         runtime = RuntimePaths.from_config(self.config)
         runtime.validate()
-        root = spec.result_directory(runtime.output_root)
-        workspace = RunWorkspace.open(root, spec_path)
-        manifest = workspace.provenance / "dmw_input_manifest.json"
-        environment_lock = workspace.provenance / "environment_lock.json"
-        runner_manifest = root / "summaries" / "run_manifest.json"
-        for required in (manifest, environment_lock, runner_manifest):
+        started: list[RunWorkspace] = []
+        errors: list[str] = []
+        for execution in self._selected_executions(spec, execution_names):
+            workspace = RunWorkspace.open(run_root, execution.name)
+            try:
+                if resume:
+                    workspace.require_frozen_contract()
+                else:
+                    workspace.freeze_contract()
+                self._require_no_other_execution_run(
+                    execution,
+                    allowed=ServiceUnits.for_run(spec.run_id, execution.name)
+                    if resume
+                    else None,
+                )
+                resolved = bootstrap_run_environment(
+                    run_root,
+                    execution,
+                    require_app_wide_secrets=True,
+                )
+                if resume:
+                    manifest, environment_lock = self._resume_artifacts(
+                        workspace
+                    )
+                else:
+                    manifest = self._prepare_storage(
+                        spec=spec,
+                        execution=execution,
+                        runtime=runtime,
+                        workspace=workspace,
+                        resolved=resolved,
+                    )
+                    environment_lock = self._capture_environment_lock(
+                        spec=spec,
+                        execution=execution,
+                        runtime=runtime,
+                        workspace=workspace,
+                        resolved=resolved,
+                        dmw_input_manifest=manifest,
+                    )
+                self._start_services(
+                    spec=spec,
+                    execution=execution,
+                    runtime=runtime,
+                    workspace=workspace,
+                    resolved=resolved,
+                    dmw_input_manifest=manifest,
+                    environment_lock=environment_lock,
+                    resume=resume,
+                )
+                started.append(workspace)
+            except BaseException as error:
+                workspace.append_event(
+                    event="resume_failed" if resume else "launch_failed",
+                    detail=str(error),
+                    error_type=type(error).__name__,
+                )
+                workspace.append_babysit(
+                    heading="Resume failed" if resume else "Launch failed",
+                    bullets=(
+                        f"Provider execution did not start: {error}",
+                        "Other provider executions remain independent.",
+                    ),
+                )
+                errors.append(f"{execution.name}: {error}")
+        if errors:
+            raise RuntimeError("; ".join(errors))
+        return tuple(started)
+
+    def _resume_artifacts(self, workspace: RunWorkspace) -> tuple[Path, Path]:
+        manifest = workspace.environment / (
+            f"{workspace.execution}-dmw-input-manifest.json"
+        )
+        lock = workspace.environment / (
+            f"{workspace.execution}-environment-lock.json"
+        )
+        runner_manifest = workspace.environment / (
+            f"{workspace.execution}-run-manifest.json"
+        )
+        for required in (manifest, lock, runner_manifest):
             if not required.is_file():
                 raise ValueError(
                     f"Cannot resume without immutable artifact: {required.name}"
                 )
-        self._require_no_other_provider_run(
-            allowed=ServiceUnits.for_run(spec.run_id)
-        )
-        self._start_services(
-            spec=spec,
-            runtime=runtime,
-            workspace=workspace,
-            dmw_input_manifest=manifest,
-            environment_lock=environment_lock,
-            resume=True,
-        )
-        return workspace
+        return manifest, lock
 
-    def pause(self, spec_path: Path) -> RunStatus:
-        """Stop supervision, runner, and backend in checkpoint-safe order.
+    def _selected_executions(
+        self,
+        spec: HeaderSublemmaRunSpec,
+        names: tuple[str, ...],
+    ) -> tuple[ExecutionSpec, ...]:
+        if not names:
+            return spec.enabled_executions
+        if len(names) != len(set(names)):
+            raise ValueError("Do not repeat --execution.")
+        selected = tuple(spec.execution(name) for name in names)
+        disabled = [
+            execution.name for execution in selected if not execution.enabled
+        ]
+        if disabled:
+            raise ValueError(
+                "Selected executions are disabled: " + ", ".join(disabled)
+            )
+        return selected
 
-        :param spec_path: Original tracked run specification.
-        :return: Durable progress after all owned services stop.
-        """
-        spec = self._load_spec(spec_path)
-        runtime = RuntimePaths.from_config(self.config)
-        workspace = RunWorkspace.open(
-            spec.result_directory(runtime.output_root), spec_path
-        )
-        units = ServiceUnits.for_run(spec.run_id)
-        self.services.stop(units.watchdog)
-        self.services.interrupt(units.runner)
-        deadline = time.monotonic() + 20
-        while (
-            self.services.is_active(units.runner)
-            and time.monotonic() < deadline
-        ):
-            time.sleep(1)
-        self.services.stop(units.runner)
-        self.services.stop(units.backend)
-        workspace.append_event(
-            event="run_paused",
-            detail="Stopped watchdog, runner, and backend in safe order.",
-        )
-        workspace.append_babysit(
-            heading="Run paused",
-            bullets=(
-                "Stopped the watchdog before interrupting the runner.",
-                "Preserved every raw result, attempt checkpoint, manifest, "
-                "and storage identity for an identical resume.",
-            ),
-        )
-        return self.status(spec_path)
+    def _population_units(
+        self, spec: HeaderSublemmaRunSpec, run_root: Path
+    ) -> int:
+        if spec.limit == 1:
+            return 1
+        catalogue = load_header_sublemma_catalog(run_root / spec.input_catalog)
+        return len(catalogue.records)
 
-    def status(self, spec_path: Path) -> RunStatus:
-        """Count authoritative cells and inspect the run's service units.
-
-        :param spec_path: Original tracked run specification.
-        :return: Current durable and process state.
-        """
-        spec = self._load_spec(spec_path)
-        runtime = RuntimePaths.from_config(self.config)
-        workspace = RunWorkspace.open(
-            spec.result_directory(runtime.output_root), spec_path
+    def _execution_status(
+        self,
+        *,
+        spec: HeaderSublemmaRunSpec,
+        execution: ExecutionSpec,
+        run_root: Path,
+    ) -> ExecutionStatus:
+        output = run_root / execution.output_directory_name
+        result_paths = tuple(
+            path
+            for condition in spec.conditions
+            for path in (output / f"result-{condition}").glob("*.json")
         )
-        raw_paths = tuple(sorted((workspace.root / "raw").glob("*/*.json")))
         successes = 0
         failures = 0
-        for raw_path in raw_paths:
-            payload = json.loads(raw_path.read_text(encoding="utf-8"))
+        for path in result_paths:
+            payload = json.loads(path.read_text(encoding="utf-8"))
             if isinstance(payload, dict) and bool(payload.get("success")):
                 successes += 1
             else:
                 failures += 1
-        retry_pending = sum(
-            1
-            for path in (workspace.root / "attempts").glob("*/*.json")
-            if _attempt_status(path) == "retry_pending"
+        attempts = tuple(
+            path
+            for condition in spec.conditions
+            for path in (output / f"intermediates-{condition}").glob(
+                "*.attempt.json"
+            )
         )
-        expected = self._population_units(spec) * len(spec.conditions)
-        units = ServiceUnits.for_run(spec.run_id)
-        services = {
+        retry_pending = sum(
+            1 for path in attempts if _attempt_status(path) == "retry_pending"
+        )
+        expected = self._population_units(spec, run_root) * len(spec.conditions)
+        units = ServiceUnits.for_run(spec.run_id, execution.name)
+        service_states = {
             role: self.services.active_state(unit)
             for role, unit in asdict(units).items()
         }
-        return RunStatus(
-            run_id=spec.run_id,
+        return ExecutionStatus(
+            execution=execution.name,
             expected_cells=expected,
-            terminal_cells=len(raw_paths),
+            terminal_cells=len(result_paths),
             successful_cells=successes,
             failed_cells=failures,
             retry_pending_cells=retry_pending,
-            strict_analysis_ready=(
-                len(raw_paths) == expected and retry_pending == 0
-            ),
-            services=services,
+            strict_analysis_ready=len(result_paths) == expected
+            and retry_pending == 0,
+            services=service_states,
         )
 
-    def _load_spec(
+    def _require_no_other_execution_run(
         self,
-        spec_path: Path,
+        execution: ExecutionSpec,
         *,
-        expected_mode: str | None = None,
-    ) -> HeaderSublemmaRunSpec:
-        """Load one spec and enforce the study-wide isolation pair.
-
-        :param spec_path: Candidate JSON contract.
-        :param expected_mode: Optional command-specific mode.
-        :return: Validated immutable specification.
-        """
-        spec_path = spec_path.expanduser().resolve()
-        spec = load_header_sublemma_run_spec(spec_path)
-        spec.validate(STUDY_ROOT)
-        if expected_mode is not None and spec.mode != expected_mode:
-            raise ValueError(
-                f"This command requires a {expected_mode!r} run spec."
-            )
-        smoke = load_header_sublemma_run_spec(
-            SPEC_ROOT / "academiccloud-header-sublemma-smoke.json"
-        )
-        full = load_header_sublemma_run_spec(
-            SPEC_ROOT / "academiccloud-header-sublemma-full.json"
-        )
-        smoke.validate(STUDY_ROOT)
-        full.validate(STUDY_ROOT)
-        validate_isolated_specs(smoke, full)
-        if spec.mode == "smoke":
-            validate_isolated_specs(spec, full)
-        else:
-            validate_isolated_specs(smoke, spec)
-        return spec
-
-    def _population_units(self, spec: HeaderSublemmaRunSpec) -> int:
-        """Return the scheduled population after applying smoke selection.
-
-        :param spec: Validated run contract.
-        :return: One for smoke mode or the complete catalogue count.
-        """
-        if spec.limit == 1:
-            return 1
-        payload = json.loads((STUDY_ROOT / spec.input_catalog).read_text())
-        records = payload.get("records") if isinstance(payload, dict) else None
-        if not isinstance(records, list):
-            raise ValueError("Header--sublemma input catalogue has no records.")
-        return len(records)
-
-    def _require_no_other_provider_run(
-        self,
-        *,
-        allowed: ServiceUnits | None = None,
+        allowed: ServiceUnits | None,
     ) -> None:
-        """Reject a launch while another AcademicCloud experiment is active.
-
-        :param allowed: Own unit names permitted during an exact resume.
-        :return: ``None`` when provider ownership is unambiguous.
-        """
         allowed_names = set(asdict(allowed).values()) if allowed else set()
+        marker = f"-{execution.name}-"
         active = tuple(
             unit
-            for unit in self.services.active_academiccloud_units()
-            if unit not in allowed_names
+            for unit in self.services.active_experiment_units()
+            if marker in unit and unit not in allowed_names
         )
         if active:
             raise RuntimeError(
-                "Another AcademicCloud experiment is active: "
+                f"Another {execution.name} experiment is active: "
                 + ", ".join(active)
             )
 
@@ -470,50 +480,46 @@ class ExperimentLifecycle:
         self,
         *,
         spec: HeaderSublemmaRunSpec,
+        execution: ExecutionSpec,
         runtime: RuntimePaths,
         workspace: RunWorkspace,
+        resolved: ResolvedRunEnvironment,
     ) -> Path:
-        """Create or verify the run's isolated DMW database identities.
-
-        :param spec: Validated run contract.
-        :param runtime: Resolved local runtime paths.
-        :param workspace: Durable destination for the import manifest.
-        :return: Immutable DMW import manifest path.
-        """
-        manifest = workspace.provenance / "dmw_input_manifest.json"
+        manifest = workspace.environment / (
+            f"{execution.name}-dmw-input-manifest.json"
+        )
         command = [
             str(runtime.publication_python),
             "-m",
             "dmw_experiments.studies.haiu_comparison.prepare_header_sublemma_environment",
             "--catalog",
-            str(STUDY_ROOT / spec.input_catalog),
+            str(workspace.root / spec.input_catalog),
             "--output",
             str(manifest),
             "--source-branch",
-            spec.source_branch,
+            execution.source_branch,
             "--target-branch",
-            spec.target_branch,
+            execution.target_branch,
             "--raw-collection",
-            spec.raw_collection,
+            execution.raw_collection,
             "--ontology-context-version",
-            spec.ontology_context_version,
-            "--env-file",
-            str(runtime.provider_environment_file),
+            execution.ontology_context_version,
+            *_env_file_arguments(resolved.env_files),
         ]
-        self._run_checked(command, cwd=REPOSITORY_ROOT)
+        self._run_checked(command, cwd=workspace.root)
         workspace.append_event(
             event="storage_prepared",
             detail="Created or verified isolated DMW storage.",
-            target_branch=spec.target_branch,
-            raw_collection=spec.raw_collection,
+            target_branch=execution.target_branch,
+            raw_collection=execution.raw_collection,
         )
         workspace.append_babysit(
             heading="Isolated storage prepared",
             bullets=(
-                f"Database branch: `{spec.target_branch}`.",
-                f"Raw collection: `{spec.raw_collection}`.",
-                f"Annotation collection: `{spec.annotation_collection}`.",
-                f"Ontology collection: `{spec.ontology_collection}`.",
+                f"Database branch: `{execution.target_branch}`.",
+                f"Raw collection: `{execution.raw_collection}`.",
+                f"Annotation collection: `{execution.annotation_collection}`.",
+                f"Ontology collection: `{execution.ontology_collection}`.",
             ),
         )
         return manifest
@@ -522,103 +528,107 @@ class ExperimentLifecycle:
         self,
         *,
         spec: HeaderSublemmaRunSpec,
+        execution: ExecutionSpec,
         runtime: RuntimePaths,
         workspace: RunWorkspace,
+        resolved: ResolvedRunEnvironment,
         dmw_input_manifest: Path,
     ) -> Path:
-        """Capture schema-v2 evidence from release tags and live config.
-
-        :param spec: Validated run contract.
-        :param runtime: Resolved local runtime paths.
-        :param workspace: Durable provenance destination.
-        :param dmw_input_manifest: Verified storage-import evidence.
-        :return: Captured environment-lock path.
-        """
-        from haiu import HaiuRC
-        from haiu.config import HAIU_CONFIG
-
         from dmw_experiments.studies.haiu_comparison.capture_environment_lock import (
-            main as capture_main,
-        )
-        from dmw_experiments.studies.haiu_comparison.run_experiment import (
-            _configure_provider_profile,
-        )
-
-        releases = ReleaseStackManager(output_root=runtime.output_root).ensure()
-        load_runtime_environment((runtime.provider_environment_file,))
-        HAIU_CONFIG.bootstrap(
-            env_files=(runtime.provider_environment_file,),
-            env_file_overrides_os_environ=False,
-            load_dotenv_layers=True,
-        )
-        haiu_config = HaiuRC()
-        from dmw_experiments.studies.haiu_comparison.comparison_experiment.provider_profiles import (
-            provider_profile,
+            APPROVED_DISTRIBUTIONS,
+            _frozen_experiment_harness,
+            _package_report,
+            _sha256_file,
         )
 
-        _configure_provider_profile(
-            rc=haiu_config,
-            profile=provider_profile(spec.provider_profile),
-        )
-        output = workspace.provenance / "environment_lock.json"
-        result = capture_main(
-            [
-                "--output",
-                str(output),
-                "--provider-profile",
-                spec.provider_profile,
-                "--dmw-ontology-branch",
-                spec.target_branch,
-                "--dmw-ontology-collection",
-                spec.ontology_collection,
-                "--dmw-raw-collection",
-                spec.raw_collection,
-                "--dmw-annotation-collection",
-                spec.annotation_collection,
-                "--ontology-context-version",
-                spec.ontology_context_version,
-                "--input-catalog",
-                str(STUDY_ROOT / spec.input_catalog),
-                "--dmw-input-manifest",
-                str(dmw_input_manifest),
-                "--chat-endpoint",
-                haiu_config.client.base_url,
-                "--embedding-endpoint",
-                str(
-                    haiu_config.client.embedding_base_url
-                    or haiu_config.client.base_url
-                ),
-                "--provider-environment-file",
-                str(runtime.provider_environment_file),
-                "--dmw-repo",
-                str(releases.datamodel_workflow),
-                "--opa-repo",
-                str(releases.opa),
-                "--gta-repo",
-                str(releases.gta),
-                "--haiu-repo",
-                str(releases.haiu),
-                "--experiment-repo",
-                str(REPOSITORY_ROOT),
-                "--dmw-python",
-                str(runtime.publication_python),
-            ]
-        )
-        if result:
-            raise RuntimeError(
-                f"Environment-lock capture exited with status {result}."
+        packages = _package_report(runtime.publication_python)
+        stack_lock_path = workspace.root / "locks" / "stack-lock.json"
+        stack_lock = json.loads(stack_lock_path.read_text(encoding="utf-8"))
+        expected_versions = stack_lock.get("distributions")
+        if not isinstance(expected_versions, dict):
+            raise ValueError(
+                "locks/stack-lock.json has no distributions table."
             )
+        for name, expected_version in expected_versions.items():
+            package = packages.get(name)
+            approved = APPROVED_DISTRIBUTIONS.get(name)
+            if (
+                not isinstance(package, dict)
+                or package.get("version") != expected_version
+                or approved is None
+                or approved.get("version") != expected_version
+            ):
+                raise ValueError(
+                    f"Installed publication package differs: {name}."
+                )
+        catalogue = load_header_sublemma_catalog(
+            workspace.root / spec.input_catalog
+        )
+        import_manifest = load_dmw_pair_import_manifest(
+            dmw_input_manifest,
+            catalog=catalogue,
+        )
+        profile = provider_profile(execution.provider_profile)
+        provider = {
+            "profile": profile.manifest_entry(),
+            "chat_endpoint_sha256": hashlib.sha256(
+                resolved.config.haiu.base_url.encode("utf-8")
+            ).hexdigest(),
+            "embedding_endpoint_sha256": hashlib.sha256(
+                (
+                    resolved.config.haiu.embedding_base_url
+                    or resolved.config.haiu.base_url
+                ).encode("utf-8")
+            ).hexdigest(),
+        }
+        payload = {
+            "schema_version": 3,
+            "study": spec.study,
+            "run_id": spec.run_id,
+            "execution": execution.name,
+            "provider": provider,
+            "runtime": {"packages": packages},
+            "stack_lock": {
+                "stack_id": stack_lock.get("stack_id"),
+                "sha256": _sha256_file(stack_lock_path),
+            },
+            "run_contract": {
+                "run_toml_sha256": _sha256_file(workspace.run_spec),
+                "run_env_sha256": _sha256_file(resolved.env_files[0]),
+                "execution_env_sha256": _sha256_file(resolved.env_files[1]),
+            },
+            "configuration": resolved.provenance_payload(),
+            "input_population": {
+                "schema_version": 1,
+                "unit_kind": "header_sublemma_pair",
+                "file_sha256": catalogue.file_sha256,
+                "catalogue_content_sha256": catalogue.content_sha256,
+                "input_unit_count": len(catalogue.records),
+                "dmw_import_manifest_file_sha256": import_manifest.file_sha256,
+                "dmw_import_manifest_content_sha256": import_manifest.content_sha256,
+            },
+            "dmw_data_identity": {
+                "branch": execution.target_branch,
+                "raw": execution.raw_collection,
+                "annotation": execution.annotation_collection,
+                "ontology": execution.ontology_collection,
+                "ontology_context_version": execution.ontology_context_version,
+            },
+            "experiment_harness": _frozen_experiment_harness(REPOSITORY_ROOT),
+        }
+        output = workspace.environment / (
+            f"{execution.name}-environment-lock.json"
+        )
+        _write_json_immutable(output, payload)
         workspace.append_event(
             event="environment_locked",
-            detail="Captured schema-v2 published-stack and input evidence.",
+            detail="Captured schema-v3 package, input, and AppRC provenance.",
         )
         workspace.append_babysit(
             heading="Environment lock captured",
             bullets=(
-                "Verified the published DMW 1.1.3 / OPA 2.1.2 / GTA 0.2.4 "
-                "/ Haiu 1.8.0 runtime and clean release sources.",
-                "Recorded endpoint and provider-file hashes without retaining "
-                "credentials or local paths.",
+                "Verified the published DMW stack and copied input contract.",
+                "Recorded redacted AppRC sources without credential values.",
             ),
         )
         return output
@@ -627,73 +637,58 @@ class ExperimentLifecycle:
         self,
         *,
         spec: HeaderSublemmaRunSpec,
+        execution: ExecutionSpec,
         runtime: RuntimePaths,
         workspace: RunWorkspace,
+        resolved: ResolvedRunEnvironment,
         dmw_input_manifest: Path,
         environment_lock: Path,
         resume: bool,
     ) -> None:
-        """Start the backend, resumable runner, and unit-aware watchdog.
-
-        :param spec: Validated run contract.
-        :param runtime: Resolved local runtime paths.
-        :param workspace: Run-local logs and observations.
-        :param dmw_input_manifest: Frozen storage evidence.
-        :param environment_lock: Frozen runtime evidence.
-        :param resume: Whether to append the runner's exact resume flag.
-        :return: ``None`` after all three units are active.
-        """
-        units = ServiceUnits.for_run(spec.run_id)
+        units = ServiceUnits.for_run(spec.run_id, execution.name)
         if any(
             self.services.is_active(unit) for unit in asdict(units).values()
         ):
             raise RuntimeError(
-                "One or more services for this run are already active."
+                "One or more services for this execution are active."
             )
-        backend_log = workspace.logs / "backend.log"
-        runner_log = workspace.logs / "runner.log"
-        watchdog_log = workspace.logs / "watchdog.log"
+        backend_log = workspace.logs / f"{execution.name}-backend.log"
+        runner_log = workspace.logs / f"{execution.name}-runner.log"
+        watchdog_log = workspace.logs / f"{execution.name}-watchdog.log"
+        backend_command = self._backend_command(
+            spec=spec,
+            execution=execution,
+            runtime=runtime,
+            workspace=workspace,
+        )
         self.services.start(
             unit=units.backend,
-            command=[
-                str(runtime.publication_python),
-                "-m",
-                "dmw_experiments.studies.haiu_comparison.run_academiccloud_backend",
-                "--raw-collection",
-                spec.raw_collection,
-                "--max-tokens",
-                str(spec.max_output_tokens),
-                "--env-file",
-                str(runtime.provider_environment_file),
-            ],
-            working_directory=REPOSITORY_ROOT,
+            command=backend_command,
+            working_directory=workspace.root,
             log_file=backend_log,
             restart="no",
         )
         try:
-            _wait_for_http(f"{ACADEMICCLOUD_BACKEND_URL}/openapi.json")
-            runner_command = self._runner_command(
-                spec=spec,
-                runtime=runtime,
-                workspace=workspace,
-                dmw_input_manifest=dmw_input_manifest,
-                environment_lock=environment_lock,
-                resume=resume,
-            )
+            _wait_for_http(f"{BACKEND_URLS[execution.name]}/openapi.json")
             self.services.start(
                 unit=units.runner,
-                command=runner_command,
-                working_directory=REPOSITORY_ROOT,
+                command=self._runner_command(
+                    spec=spec,
+                    execution=execution,
+                    runtime=runtime,
+                    workspace=workspace,
+                    dmw_input_manifest=dmw_input_manifest,
+                    environment_lock=environment_lock,
+                    resume=resume,
+                ),
+                working_directory=workspace.root,
                 log_file=runner_log,
                 restart="on-failure",
                 restart_seconds=30,
             )
             time.sleep(2)
             if not self.services.is_active(units.runner):
-                raise RuntimeError(
-                    "Runner exited before the watchdog could attach. Inspect "
-                    f"{runner_log}."
-                )
+                raise RuntimeError("Runner exited before watchdog attachment.")
             self.services.start(
                 unit=units.watchdog,
                 command=[
@@ -703,13 +698,13 @@ class ExperimentLifecycle:
                     "--runner-unit",
                     units.runner,
                     "--result-dir",
-                    str(workspace.root),
+                    str(workspace.root / execution.output_directory_name),
                     "--event-log",
                     str(workspace.babysit_log),
                     "--stall-seconds",
-                    str(self.config.watchdog_stall_seconds),
+                    str(resolved.config.app.watchdog_stall_seconds),
                 ],
-                working_directory=REPOSITORY_ROOT,
+                working_directory=workspace.root,
                 log_file=watchdog_log,
                 restart="no",
             )
@@ -735,93 +730,131 @@ class ExperimentLifecycle:
             ),
         )
 
+    def _backend_command(
+        self,
+        *,
+        spec: HeaderSublemmaRunSpec,
+        execution: ExecutionSpec,
+        runtime: RuntimePaths,
+        workspace: RunWorkspace,
+    ) -> list[str]:
+        command = _execution_wrapper_command(
+            runtime=runtime,
+            workspace=workspace,
+            execution=execution,
+            component="backend",
+        )
+        command.extend(
+            [
+                "--raw-collection",
+                execution.raw_collection,
+                "--max-tokens",
+                str(spec.max_output_tokens),
+                *_env_file_arguments(
+                    (
+                        workspace.root / "run.env",
+                        workspace.root / execution.env_file,
+                    )
+                ),
+            ]
+        )
+        if execution.name == "lmstudio":
+            command.extend(
+                [
+                    "--lmstudio-base-url",
+                    "http://127.0.0.1:1236/v1",
+                    "--model",
+                    "qwen/qwen3.6-27b",
+                    "--lmstudio-model-id",
+                    "qwen/qwen3.6-27b",
+                ]
+            )
+        return command
+
     def _runner_command(
         self,
         *,
         spec: HeaderSublemmaRunSpec,
+        execution: ExecutionSpec,
         runtime: RuntimePaths,
         workspace: RunWorkspace,
         dmw_input_manifest: Path,
         environment_lock: Path,
         resume: bool,
     ) -> list[str]:
-        """Build the exact publication-run argv without credential values.
-
-        :param spec: Validated run contract.
-        :param runtime: Resolved local runtime paths.
-        :param workspace: Run output and logs.
-        :param dmw_input_manifest: Frozen storage evidence.
-        :param environment_lock: Frozen runtime evidence.
-        :param resume: Whether the runner must reconcile existing checkpoints.
-        :return: Argument vector safe to retain in systemd metadata.
-        """
-        command = [
-            str(runtime.publication_python),
-            "-m",
-            "dmw_experiments.studies.haiu_comparison.run_experiment",
-            "--base-url",
-            ACADEMICCLOUD_BACKEND_URL,
-            "--timeout-seconds",
-            "3600",
-            "--input-catalog",
-            str(STUDY_ROOT / spec.input_catalog),
-            "--dmw-input-manifest",
-            str(dmw_input_manifest),
-            "--limit",
-            str(spec.limit),
-            "--missing-id-policy",
-            "fail",
-            "--conditions",
-            *spec.conditions,
-            "--output-dir",
-            str(workspace.root),
-            "--run-id",
-            spec.run_id,
-            "--max-attempts",
-            "3",
-            "--retry-delay-seconds",
-            "30",
-            "--annotation-max-attempts",
-            "3",
-            "--env-file",
-            str(runtime.provider_environment_file),
-            "--publication-run",
-            "--provider-profile",
-            spec.provider_profile,
-            "--max-output-tokens",
-            str(spec.max_output_tokens),
-            "--output-safety-margin-tokens",
-            str(spec.output_safety_margin_tokens),
-            "--ontology-example-limit",
-            str(spec.ontology_example_limit),
-            "--branch",
-            spec.target_branch,
-            "--ontology-context-version",
-            spec.ontology_context_version,
-            "--annotation-guideline-version",
-            spec.ontology_context_version,
-            "--ontology-user-input-file",
-            str(ONTOLOGY_USER_INPUT),
-            "--annotation-guidelines-file",
-            str(ANNOTATION_GUIDELINES),
-            "--provenance-file",
-            f"reference_ontology={REFERENCE_ONTOLOGY}",
-            "--provenance-file",
-            f"retrieval_workspace={RETRIEVAL_WORKSPACE}",
-            "--provenance-file",
-            f"environment_lock={environment_lock}",
-        ]
+        input_root = workspace.root / "INPUTS"
+        command = _execution_wrapper_command(
+            runtime=runtime,
+            workspace=workspace,
+            execution=execution,
+            component="runner",
+        )
+        command.extend(
+            [
+                "--base-url",
+                BACKEND_URLS[execution.name],
+                "--timeout-seconds",
+                "3600",
+                "--input-catalog",
+                str(workspace.root / spec.input_catalog),
+                "--dmw-input-manifest",
+                str(dmw_input_manifest),
+                "--limit",
+                str(spec.limit),
+                "--missing-id-policy",
+                "fail",
+                "--conditions",
+                *spec.conditions,
+                "--output-dir",
+                str(workspace.root / execution.output_directory_name),
+                "--run-id",
+                f"{spec.run_id}-{execution.name}",
+                "--max-attempts",
+                "3",
+                "--retry-delay-seconds",
+                "30",
+                "--annotation-max-attempts",
+                "3",
+                *_env_file_arguments(
+                    (
+                        workspace.root / "run.env",
+                        workspace.root / execution.env_file,
+                    )
+                ),
+                "--publication-run",
+                "--provider-profile",
+                execution.provider_profile,
+                "--max-output-tokens",
+                str(spec.max_output_tokens),
+                "--output-safety-margin-tokens",
+                str(spec.output_safety_margin_tokens),
+                "--ontology-example-limit",
+                str(spec.ontology_example_limit),
+                "--branch",
+                execution.target_branch,
+                "--ontology-context-version",
+                execution.ontology_context_version,
+                "--annotation-guideline-version",
+                execution.ontology_context_version,
+                "--storage",
+                str(workspace.environment / f"haiu-{execution.name}"),
+                "--ontology-user-input-file",
+                str(input_root / "historian_ontology_user_input.md"),
+                "--annotation-guidelines-file",
+                str(input_root / "annotation_guidelines.md"),
+                "--provenance-file",
+                f"reference_ontology={input_root / 'reference_ontology.ttl'}",
+                "--provenance-file",
+                f"retrieval_workspace={input_root / 'retrieval_workspace.json'}",
+                "--provenance-file",
+                f"environment_lock={environment_lock}",
+            ]
+        )
         if resume:
             command.append("--resume")
         return command
 
     def _run_checked(self, command: list[str], *, cwd: Path) -> None:
-        """Run one bounded setup command and surface concise diagnostics.
-
-        :param command: Executable and arguments without secrets.
-        :param cwd: Process working directory.
-        :return: ``None`` on success.
-        """
         completed = self._command_runner(
             command,
             cwd=cwd,
@@ -834,20 +867,35 @@ class ExperimentLifecycle:
             raise RuntimeError(f"Setup command failed: {detail}")
 
 
+def _execution_wrapper_command(
+    *,
+    runtime: RuntimePaths,
+    workspace: RunWorkspace,
+    execution: ExecutionSpec,
+    component: str,
+) -> list[str]:
+    return [
+        str(runtime.publication_python),
+        "-m",
+        "dmw_experiments.studies.haiu_comparison.run_execution",
+        "--run-dir",
+        str(workspace.root),
+        "--execution",
+        execution.name,
+        component,
+    ]
+
+
+def _env_file_arguments(paths: Iterable[Path]) -> list[str]:
+    return [item for path in paths for item in ("--env-file", str(path))]
+
+
 def _wait_for_http(
     url: str,
     *,
     timeout_seconds: float = 180,
     poll_seconds: float = 2,
 ) -> None:
-    """Wait for a local backend through a bounded readiness window.
-
-    :param url: Non-secret local health endpoint.
-    :param timeout_seconds: Maximum startup allowance.
-    :param poll_seconds: Delay between connection attempts.
-    :return: ``None`` after any successful HTTP response.
-    :raises RuntimeError: If the backend never becomes reachable.
-    """
     deadline = time.monotonic() + timeout_seconds
     last_error = "no response"
     while time.monotonic() < deadline:
@@ -862,11 +910,6 @@ def _wait_for_http(
 
 
 def _attempt_status(path: Path) -> str:
-    """Read one attempt-state category without weakening malformed evidence.
-
-    :param path: Attempt-state JSON file.
-    :return: Stored status string, or ``invalid`` for a malformed document.
-    """
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
@@ -876,11 +919,17 @@ def _attempt_status(path: Path) -> str:
     return str(payload.get("status") or "")
 
 
-def _repository_relative_path(path: Path) -> Path:
-    """Anchor one configured host path at the experiment checkout.
-
-    :param path: Absolute or repository-relative configuration value.
-    :return: Expanded path with a deterministic repository anchor.
-    """
-    expanded = path.expanduser()
-    return expanded if expanded.is_absolute() else REPOSITORY_ROOT / expanded
+def _write_json_immutable(path: Path, payload: dict[str, Any]) -> None:
+    content = (
+        json.dumps(payload, indent=2, ensure_ascii=False, default=str) + "\n"
+    )
+    if path.is_file():
+        existing = json.loads(path.read_text(encoding="utf-8"))
+        if existing != payload:
+            raise ValueError(
+                f"Immutable environment evidence differs: {path.name}."
+            )
+        return
+    temporary = path.with_suffix(f"{path.suffix}.tmp")
+    temporary.write_text(content, encoding="utf-8")
+    temporary.replace(path)

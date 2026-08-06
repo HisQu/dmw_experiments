@@ -29,12 +29,14 @@ from dmw_experiments.studies.haiu_comparison.comparison_experiment.input_catalog
     load_header_sublemma_catalog,
 )
 from dmw_experiments.studies.haiu_comparison.paths import (
-    INPUT_ROOT,
-    STUDY_ROOT,
+    RUN_TEMPLATE_ROOT,
+    TEMPLATE_INPUT_ROOT,
 )
 
-EXPERIMENT_ROOT = STUDY_ROOT
-DEFAULT_CATALOG_PATH = INPUT_ROOT / "header_sublemma_input_catalog.json"
+EXPERIMENT_ROOT = RUN_TEMPLATE_ROOT
+DEFAULT_CATALOG_PATH = (
+    TEMPLATE_INPUT_ROOT / "header_sublemma_input_catalog.json"
+)
 DEFAULT_DATABASE_NAME = "UserData"
 DEFAULT_BRANCH_REGISTRY_COLLECTION = "ontology_branches"
 DEFAULT_ANNOTATION_COLLECTION = "annotations"
