@@ -20,7 +20,7 @@ import xlsxwriter
 from rdflib import BNode, Graph, Literal, URIRef
 from rdflib.namespace import OWL, RDF, RDFS, SKOS
 
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.metrics import (
+from dmw_experiments.studies.haiu_comparison.data_collection.measurements import (
     _TURTLE_PREFIXES,
     provider_prompt_token_measurement,
 )

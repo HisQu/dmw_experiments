@@ -6,10 +6,10 @@ from dmw_experiments.studies.haiu_comparison.model.traces import (
     PromptBundle,
     RegestText,
 )
-from dmw_experiments.studies.haiu_comparison.haiu_ontologizer.opa_prompt_renderer import (
+from dmw_experiments.studies.haiu_comparison.data_collection.haiu.prompt_renderer import (
     build_stage1_prompts as _render_opa_stage1,
 )
-from dmw_experiments.studies.haiu_comparison.haiu_ontologizer.opa_prompt_renderer import (
+from dmw_experiments.studies.haiu_comparison.data_collection.haiu.prompt_renderer import (
     build_stage2_prompts as _render_opa_stage2,
 )
 

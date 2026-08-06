@@ -10,7 +10,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from typing import Any, cast
 
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.datamodel_api import (
+from dmw_experiments.studies.haiu_comparison.data_collection.dmw.client import (
     DatamodelClient,
     WorkflowRequestConfig,
 )

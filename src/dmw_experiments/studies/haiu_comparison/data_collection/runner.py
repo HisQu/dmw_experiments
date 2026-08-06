@@ -4,7 +4,7 @@
 Example usage:
 
 DATAMODEL_PASSWORD='CHANGE_ME' .venv/bin/python \
-  -m dmw_experiments.studies.haiu_comparison.run_experiment \
+  -m dmw_experiments.studies.haiu_comparison.data_collection.runner \
   --login CHANGE_ME \
   --base-url http://localhost:8000 \
   --branch experiment-branch \
@@ -39,26 +39,42 @@ from haiu.llm_specs import llm_spec
 from dmw_experiments.shared.config.runtime_environment import (
     load_runtime_environment,
 )
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.artifacts import (
+from dmw_experiments.studies.haiu_comparison.data_collection.arguments import (
+    build_parser,
+)
+from dmw_experiments.studies.haiu_comparison.data_collection.artifacts import (
     ArtifactWriter,
 )
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.annotation_runner import (
+from dmw_experiments.studies.haiu_comparison.data_collection.dmw.annotations import (
     AnnotationPreparationConfig,
     FrozenAnnotation,
     FrozenAnnotationError,
     prepare_frozen_annotation,
     verify_frozen_annotation,
 )
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.datamodel_api import (
+from dmw_experiments.studies.haiu_comparison.data_collection.dmw.client import (
     DatamodelClient,
     WorkflowRequestConfig,
 )
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.direct_condition import (
+from dmw_experiments.studies.haiu_comparison.data_collection.haiu.condition import (
     run_haiu_rag_condition,
 )
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.id_resolution import (
+from dmw_experiments.studies.haiu_comparison.data_collection.input_selection import (
     MissingRegestIdsError,
     resolve_available_regest_ids,
+)
+from dmw_experiments.studies.haiu_comparison.data_collection.protocol import (
+    APPROVED_HAIU_VCS_REVISION,
+    APPROVED_HAIU_VCS_URL,
+    APPROVED_RUNTIME_DISTRIBUTIONS,
+    DEFAULT_CONDITIONS,
+    DEFAULT_LOCAL_IDS,
+    LOCAL_RUNTIME_CONTEXT_ADMISSION_ERROR,
+    LOCAL_RUNTIME_INITIAL_RESPONSE_ERROR,
+    LOCAL_RUNTIME_RECOVERY_CONTEXT_WINDOW_TOKENS,
+    LOCAL_RUNTIME_RECOVERY_MODEL_ID,
+    LOCAL_RUNTIME_STALE_MODEL_ERROR,
+    PUBLISHED_HAIU_VERSION,
 )
 from dmw_experiments.studies.haiu_comparison.model.identifiers import (
     parse_regest_id_entries,
@@ -74,76 +90,19 @@ from dmw_experiments.studies.haiu_comparison.model.results import (
     ExperimentResult,
 )
 from dmw_experiments.studies.haiu_comparison.model.providers import (
-    PROVIDER_PROFILES,
     ProviderProfile,
     provider_profile,
 )
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.workflow_runner import (
+from dmw_experiments.studies.haiu_comparison.data_collection.dmw.condition import (
     run_workflow_condition,
 )
-from dmw_experiments.studies.haiu_comparison.haiu_ontologizer.direct_runner import (
+from dmw_experiments.studies.haiu_comparison.data_collection.haiu.runner import (
     DirectRunConfig,
 )
 from dmw_experiments.studies.haiu_comparison.model.traces import (
     RegestText,
 )
-from dmw_experiments.studies.haiu_comparison.paths import (
-    REPOSITORY_ROOT,
-    RUN_TEMPLATE_ROOT,
-    TEMPLATE_INPUT_ROOT,
-)
-
-EXPERIMENT_ROOT = RUN_TEMPLATE_ROOT
-DEFAULT_INPUT_DIR = TEMPLATE_INPUT_ROOT
-DEFAULT_LOCAL_IDS = DEFAULT_INPUT_DIR / "ablaesse_cp_ids.txt"
-DEFAULT_PROMPT_FILE = DEFAULT_INPUT_DIR / "historian_ontology_user_input.md"
-DEFAULT_ANNOTATION_GUIDELINES_FILE = (
-    DEFAULT_INPUT_DIR / "annotation_guidelines.md"
-)
-DEFAULT_CONDITIONS = (
-    "workflow_full_ontology",
-    "workflow_rag",
-    "haiu_rag_ontologizer",
-)
-PUBLISHED_HAIU_VERSION = "1.8.0"
-APPROVED_HAIU_VCS_URL = "https://github.com/HisQu/haiu.git"
-APPROVED_HAIU_VCS_REVISION = "v1.8.0"
-APPROVED_RUNTIME_DISTRIBUTIONS = {
-    "datamodel-workflow": {
-        "version": "1.1.3",
-        "url": "https://github.com/HisQu/datamodel-workflow.git",
-        "revision": "v1.1.3",
-        "repository": "datamodel_workflow",
-    },
-    "opa": {
-        "version": "2.1.2",
-        "url": "https://github.com/HisQu/OPA.git",
-        "revision": "v2.1.2",
-        "repository": "opa",
-    },
-    "gta": {
-        "version": "0.2.4",
-        "url": "https://github.com/HisQu/GTA.git",
-        "revision": "v0.2.4",
-        "repository": "gta",
-    },
-    "haiu": {
-        "version": PUBLISHED_HAIU_VERSION,
-        "url": APPROVED_HAIU_VCS_URL,
-        "revision": APPROVED_HAIU_VCS_REVISION,
-        "repository": "haiu",
-    },
-}
-LOCAL_RUNTIME_RECOVERY_MODEL_ID = "qwen/qwen3.6-27b"
-LOCAL_RUNTIME_RECOVERY_CONTEXT_WINDOW_TOKENS = 262_144
-LOCAL_RUNTIME_CONTEXT_ADMISSION_ERROR = (
-    "number of tokens to keep from the initial prompt is greater than the "
-    "context length"
-)
-LOCAL_RUNTIME_STALE_MODEL_ERROR = 'invalid model identifier "qwen3.6-27b-rtx"'
-LOCAL_RUNTIME_INITIAL_RESPONSE_ERROR = (
-    "failed to get initial ontology modeling response."
-)
+from dmw_experiments.studies.haiu_comparison.paths import REPOSITORY_ROOT
 
 
 class _ConditionWallClockTimeout(BaseException):
@@ -156,7 +115,7 @@ def main(argv: list[str] | None = None) -> int:
     :param argv: Optional argument vector.
     :return: Process exit code.
     """
-    args = _build_parser().parse_args(argv)
+    args = build_parser().parse_args(argv)
     load_runtime_environment(
         tuple(Path(path).expanduser() for path in args.env_file)
     )
@@ -1103,180 +1062,6 @@ def main(argv: list[str] | None = None) -> int:
     # > completed its work once every scheduled cell has a durable row, even
     # > when one or more rows report an unsuccessful generation.
     return 0
-
-
-def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description="Compare direct Haiu ontology generation with datamodel-workflow modes."
-    )
-    parser.add_argument("--base-url", default="http://localhost:8000")
-    parser.add_argument("--login", default="")
-    parser.add_argument("--password", default="")
-    parser.add_argument("--timeout-seconds", type=float, default=1800.0)
-    input_group = parser.add_mutually_exclusive_group()
-    input_group.add_argument("--ids-file", default="")
-    input_group.add_argument(
-        "--input-catalog",
-        default="",
-        help=(
-            "Frozen header--sublemma catalogue. Pair publication runs require "
-            "AcademicCloud and all three conditions."
-        ),
-    )
-    parser.add_argument(
-        "--dmw-input-manifest",
-        default="",
-        help=(
-            "Import manifest written by prepare_header_sublemma_environment.py."
-        ),
-    )
-    parser.add_argument("--limit", type=int, default=5)
-    parser.add_argument("--keep-duplicates", action="store_true")
-    parser.add_argument(
-        "--missing-id-policy",
-        choices=("skip", "fail"),
-        default="skip",
-    )
-    parser.add_argument(
-        "--conditions",
-        nargs="+",
-        choices=DEFAULT_CONDITIONS,
-        default=list(DEFAULT_CONDITIONS),
-    )
-    parser.add_argument("--output-dir", default="")
-    parser.add_argument("--run-id", default="")
-    parser.add_argument("--resume", action="store_true")
-    parser.add_argument(
-        "--output-cap-recovery-id",
-        default="",
-        help=(
-            "Immutable amendment ID for a resumed replay of terminal "
-            "output-cap failures. Requires --rerun-output-truncated-at-cap."
-        ),
-    )
-    parser.add_argument(
-        "--rerun-output-truncated-at-cap",
-        type=int,
-        default=None,
-        help=(
-            "Replay only terminal output-truncated observations whose stage "
-            "used this requested and effective cap."
-        ),
-    )
-    parser.add_argument(
-        "--provider-timeout-recovery-id",
-        default="",
-        help=(
-            "Immutable amendment ID for replaying exhausted provider-timeout "
-            "results that were already selected by --output-cap-recovery-id."
-        ),
-    )
-    parser.add_argument(
-        "--connection-recovery-id",
-        default="",
-        help=(
-            "Immutable amendment ID for replaying exhausted connection "
-            "failures after the local provider becomes reachable again."
-        ),
-    )
-    parser.add_argument(
-        "--local-runtime-recovery-id",
-        default="",
-        help=(
-            "Immutable amendment ID for a corrected local model context, "
-            "proxy mapping, or recorded HTTP 502 initial-response replay."
-        ),
-    )
-    parser.add_argument("--max-attempts", type=int, default=3)
-    parser.add_argument("--retry-delay-seconds", type=float, default=30.0)
-    parser.add_argument("--annotation-max-attempts", type=int, default=3)
-    parser.add_argument("--progress-poll-seconds", type=float, default=2.0)
-    parser.add_argument("--env-file", action="append", default=[])
-    parser.add_argument("--storage", default=None)
-    parser.add_argument(
-        "--provenance-file",
-        action="append",
-        default=[],
-        metavar="NAME=PATH",
-        help=(
-            "Additional frozen input, such as reference_ontology=... or "
-            "environment_lock=.... Repeat for each file."
-        ),
-    )
-    parser.add_argument(
-        "--publication-run",
-        action="store_true",
-        help=(
-            "Require reference_ontology, retrieval_workspace, and "
-            "environment_lock provenance inputs before creating the run."
-        ),
-    )
-    parser.add_argument(
-        "--provider-profile",
-        choices=tuple(PROVIDER_PROFILES),
-        default="academiccloud-qwen36",
-        help=(
-            "Pinned Qwen 3.6 27B provider environment. The exact provider "
-            "model identifier is selected by this profile."
-        ),
-    )
-    parser.add_argument("--base-url-override", default="")
-    parser.add_argument("--model", default="")
-    parser.add_argument("--max-output-tokens", type=int, default=60_000)
-    parser.add_argument(
-        "--direct-max-tokens",
-        dest="max_output_tokens",
-        type=int,
-        default=argparse.SUPPRESS,
-        help=(
-            "Deprecated alias for --max-output-tokens. The cap now applies "
-            "to every ontology-generation condition."
-        ),
-    )
-    parser.add_argument(
-        "--output-safety-margin-tokens",
-        type=int,
-        default=4_096,
-    )
-    parser.add_argument(
-        "--ontology-example-limit",
-        type=int,
-        default=1,
-    )
-    parser.add_argument("--direct-temperature", type=float, default=0.6)
-    parser.add_argument("--direct-top-p", type=float, default=0.95)
-    parser.add_argument("--direct-top-k", type=int, default=20)
-    parser.add_argument("--direct-min-p", type=float, default=0.0)
-    parser.add_argument("--direct-frequency-penalty", type=float, default=0.0)
-    parser.add_argument("--direct-presence-penalty", type=float, default=0.0)
-    parser.add_argument("--annotation-model", default="")
-    parser.add_argument("--annotation-guideline-version", default="1.5.8")
-    parser.add_argument("--annotation-min-version", default=None)
-    parser.add_argument("--annotation-top-n", type=int, default=5)
-    parser.add_argument("--annotation-example-limit", type=int, default=10)
-    parser.add_argument("--branch", required=True)
-    parser.add_argument("--ontology-context-version", required=True)
-    parser.add_argument("--ontology-min-example-version", default="1.0.0")
-    parser.add_argument(
-        "--ontology-user-input-file", default=str(DEFAULT_PROMPT_FILE)
-    )
-    parser.add_argument(
-        "--annotation-guidelines-file",
-        default=str(DEFAULT_ANNOTATION_GUIDELINES_FILE),
-    )
-    parser.add_argument(
-        "--use-only-existing-ontology-terms", action="store_true"
-    )
-    parser.set_defaults(include_annotations=True)
-    parser.add_argument(
-        "--include-annotations", dest="include_annotations", action="store_true"
-    )
-    parser.add_argument(
-        "--no-include-annotations",
-        dest="include_annotations",
-        action="store_false",
-    )
-    return parser
 
 
 def _run_condition_with_retries(

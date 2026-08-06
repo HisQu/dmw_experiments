@@ -3,7 +3,7 @@ from typing import Any, cast
 import httpx
 import pytest
 
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.datamodel_api import (
+from dmw_experiments.studies.haiu_comparison.data_collection.dmw.client import (
     DatamodelClient,
     WorkflowRequestConfig,
     build_workflow_payload,

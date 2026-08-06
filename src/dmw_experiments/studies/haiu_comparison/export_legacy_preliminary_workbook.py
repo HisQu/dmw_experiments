@@ -26,7 +26,7 @@ from rdflib.namespace import OWL, RDF, RDFS, SKOS
 from dmw_experiments.studies.haiu_comparison import (
     export_results_workbook as strict_export,
 )
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.metrics import (
+from dmw_experiments.studies.haiu_comparison.data_collection.measurements import (
     _TURTLE_PREFIXES,
 )
 

@@ -6,14 +6,14 @@ import time
 from datetime import datetime, timezone
 from typing import Any, cast
 
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.annotation_runner import (
+from dmw_experiments.studies.haiu_comparison.data_collection.dmw.annotations import (
     annotation_content_sha256,
 )
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.datamodel_api import (
+from dmw_experiments.studies.haiu_comparison.data_collection.dmw.client import (
     DatamodelClient,
     WorkflowRequestConfig,
 )
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.metrics import (
+from dmw_experiments.studies.haiu_comparison.data_collection.measurements import (
     output_token_fields,
     prompt_token_fields,
     turtle_syntax_fields,

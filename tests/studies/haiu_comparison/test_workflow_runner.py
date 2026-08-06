@@ -1,12 +1,12 @@
 from dataclasses import replace
 
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.annotation_runner import (
+from dmw_experiments.studies.haiu_comparison.data_collection.dmw.annotations import (
     annotation_content_sha256,
 )
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.datamodel_api import (
+from dmw_experiments.studies.haiu_comparison.data_collection.dmw.client import (
     WorkflowRequestConfig,
 )
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.workflow_runner import (
+from dmw_experiments.studies.haiu_comparison.data_collection.dmw.condition import (
     _normalize_workflow_payload,
 )
 

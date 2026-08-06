@@ -4,13 +4,13 @@ from typing import Any, cast
 
 import pytest
 
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.annotation_runner import (
+from dmw_experiments.studies.haiu_comparison.data_collection.dmw.annotations import (
     AnnotationPreparationConfig,
     FrozenAnnotationError,
     annotation_content_sha256,
     prepare_frozen_annotation,
 )
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.datamodel_api import (
+from dmw_experiments.studies.haiu_comparison.data_collection.dmw.client import (
     DatamodelClient,
     WorkflowRequestConfig,
 )

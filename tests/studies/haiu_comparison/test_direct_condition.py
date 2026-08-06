@@ -1,4 +1,4 @@
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.direct_condition import (
+from dmw_experiments.studies.haiu_comparison.data_collection.haiu.condition import (
     direct_trace_to_result,
 )
 from haiu.clients.llm.generation_budget import GenerationBudget

@@ -4,13 +4,13 @@ from pathlib import Path
 from dmw_experiments.studies.haiu_comparison.model.traces import (
     RegestText,
 )
-from dmw_experiments.studies.haiu_comparison.haiu_ontologizer.opa_prompt_renderer import (
+from dmw_experiments.studies.haiu_comparison.data_collection.haiu.prompt_renderer import (
     INTENTIONAL_STANDALONE_ADDITIONS,
     OPA_PROMPT_SOURCE_COMMIT,
     OPA_PROMPT_SOURCE_PATH,
     OPA_PROMPT_SOURCE_SHA256,
 )
-from dmw_experiments.studies.haiu_comparison.haiu_ontologizer.prompt_builder import (
+from dmw_experiments.studies.haiu_comparison.data_collection.haiu.prompts import (
     build_stage1_prompts,
     build_stage2_prompts,
     split_turtle_sections,

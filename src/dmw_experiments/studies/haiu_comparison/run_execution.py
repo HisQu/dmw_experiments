@@ -33,7 +33,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         require_app_wide_secrets=True,
     )
     if args.component == "runner":
-        from dmw_experiments.studies.haiu_comparison.run_experiment import (
+        from dmw_experiments.studies.haiu_comparison.data_collection.runner import (
             main as component_main,
         )
     elif execution.name == "academiccloud":

@@ -1,20 +1,20 @@
 from typing import Any, cast
 from types import SimpleNamespace
 
-from dmw_experiments.studies.haiu_comparison.haiu_ontologizer import (
-    direct_runner,
+from dmw_experiments.studies.haiu_comparison.data_collection.haiu import (
+    runner as direct_runner,
 )
 from haiu import HaiuRC
 from haiu.clients.llm.generation_budget import GenerationBudget
 from haiu.clients.llm.llm_metrics import LLMCallMeta, LLMCallMetrics
-from dmw_experiments.studies.haiu_comparison.haiu_ontologizer.direct_runner import (
+from dmw_experiments.studies.haiu_comparison.data_collection.haiu.runner import (
     DirectRunConfig,
     run_direct_baseline,
 )
 from dmw_experiments.studies.haiu_comparison.model.traces import (
     RegestText,
 )
-from dmw_experiments.studies.haiu_comparison.haiu_ontologizer.retrieval import (
+from dmw_experiments.studies.haiu_comparison.data_collection.haiu.retrieval import (
     RetrievalTrace,
 )
 

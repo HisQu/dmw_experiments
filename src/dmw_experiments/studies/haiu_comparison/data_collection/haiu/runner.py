@@ -16,12 +16,12 @@ from dmw_experiments.studies.haiu_comparison.model.traces import (
     PromptBundle,
     RegestText,
 )
-from dmw_experiments.studies.haiu_comparison.haiu_ontologizer.prompt_builder import (
+from dmw_experiments.studies.haiu_comparison.data_collection.haiu.prompts import (
     build_stage1_prompts,
     build_stage2_prompts,
     split_turtle_sections,
 )
-from dmw_experiments.studies.haiu_comparison.haiu_ontologizer.retrieval import (
+from dmw_experiments.studies.haiu_comparison.data_collection.haiu.retrieval import (
     RetrievalTrace,
     retrieve_regest_context,
 )

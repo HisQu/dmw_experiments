@@ -8,12 +8,15 @@ from typing import Any, cast
 
 import pytest
 
-from dmw_experiments.studies.haiu_comparison import (
-    run_experiment,
+from dmw_experiments.studies.haiu_comparison.data_collection import (
+    runner as run_experiment,
+)
+from dmw_experiments.studies.haiu_comparison.data_collection.arguments import (
+    build_parser as _build_parser,
 )
 from haiu import HaiuRC
 
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.annotation_runner import (
+from dmw_experiments.studies.haiu_comparison.data_collection.dmw.annotations import (
     FrozenAnnotationError,
 )
 from dmw_experiments.studies.haiu_comparison.model.results import (
@@ -38,8 +41,7 @@ from dmw_experiments.studies.haiu_comparison.preparation.dmw_storage import (
     build_import_manifest,
     write_manifest,
 )
-from dmw_experiments.studies.haiu_comparison.run_experiment import (
-    _build_parser,
+from dmw_experiments.studies.haiu_comparison.data_collection.runner import (
     _annotation_preparation_failure_result,
     _annotation_preparation_exhaustion_error,
     _condition_order_for_index,

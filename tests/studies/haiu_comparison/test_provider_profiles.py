@@ -8,7 +8,7 @@ from haiu import HaiuRC
 from dmw_experiments.studies.haiu_comparison.model.providers import (
     provider_profile,
 )
-from dmw_experiments.studies.haiu_comparison.run_experiment import (
+from dmw_experiments.studies.haiu_comparison.data_collection.runner import (
     _configure_provider_profile,
 )
 

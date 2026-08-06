@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from haiu import HaiuRC
 
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.metrics import (
+from dmw_experiments.studies.haiu_comparison.data_collection.measurements import (
     output_token_fields,
     prompt_token_fields,
     provider_usage_fields,
@@ -15,7 +15,7 @@ from dmw_experiments.studies.haiu_comparison.model.results import (
     ExperimentResult,
     TokenMeasurement,
 )
-from dmw_experiments.studies.haiu_comparison.haiu_ontologizer.direct_runner import (
+from dmw_experiments.studies.haiu_comparison.data_collection.haiu.runner import (
     DirectRunConfig,
     run_direct_baseline,
 )

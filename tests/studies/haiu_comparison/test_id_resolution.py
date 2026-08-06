@@ -3,10 +3,10 @@ from typing import Any
 
 import pytest
 
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.datamodel_api import (
+from dmw_experiments.studies.haiu_comparison.data_collection.dmw.client import (
     RegestNotFoundError,
 )
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.id_resolution import (
+from dmw_experiments.studies.haiu_comparison.data_collection.input_selection import (
     MissingRegestIdsError,
     resolve_available_regest_ids,
 )

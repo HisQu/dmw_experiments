@@ -5,7 +5,7 @@ import pytest
 
 import haiu.utils as ut
 
-from dmw_experiments.studies.haiu_comparison.comparison_experiment.artifacts import (
+from dmw_experiments.studies.haiu_comparison.data_collection.artifacts import (
     ArtifactWriter,
 )
 from dmw_experiments.studies.haiu_comparison.model.results import (
