@@ -39,6 +39,7 @@ def _tagged_origin(tmp_path: Path) -> Path:
     _git(origin, "init", "--quiet")
     _git(origin, "config", "user.name", "Experiment Test")
     _git(origin, "config", "user.email", "experiment@example.invalid")
+    _git(origin, "config", "commit.gpgsign", "false")
     (origin / "release.txt").write_text("published\n", encoding="utf-8")
     _git(origin, "add", "release.txt")
     _git(origin, "commit", "--quiet", "-m", "Publish test release")
