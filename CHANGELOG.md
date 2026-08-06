@@ -127,6 +127,15 @@ All notable changes to `dmw_experiments` will be documented in this file.
 
 <br>
 
+### 🔨 Fixed
+
+- Fixed first launch so stack-version validation reads the nested installed
+  package table returned by environment-lock capture.
+- Corrected AppRC setup documentation to use `config app init` and
+  `config edit`.
+
+<br>
+
 ---
 
 <br>

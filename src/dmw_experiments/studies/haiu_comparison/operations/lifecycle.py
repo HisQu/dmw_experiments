@@ -484,13 +484,13 @@ class ExperimentLifecycle:
         dmw_input_manifest: Path,
     ) -> Path:
         from dmw_experiments.studies.haiu_comparison.operations.environment_lock import (
-            APPROVED_DISTRIBUTIONS,
             _frozen_experiment_harness,
             _package_report,
             _sha256_file,
+            validated_stack_packages,
         )
 
-        packages = _package_report(runtime.publication_python)
+        package_report = _package_report(runtime.publication_python)
         stack_lock_path = workspace.root / "locks" / "stack-lock.json"
         stack_lock = json.loads(stack_lock_path.read_text(encoding="utf-8"))
         expected_versions = stack_lock.get("distributions")
@@ -498,18 +498,7 @@ class ExperimentLifecycle:
             raise ValueError(
                 "locks/stack-lock.json has no distributions table."
             )
-        for name, expected_version in expected_versions.items():
-            package = packages.get(name)
-            approved = APPROVED_DISTRIBUTIONS.get(name)
-            if (
-                not isinstance(package, dict)
-                or package.get("version") != expected_version
-                or approved is None
-                or approved.get("version") != expected_version
-            ):
-                raise ValueError(
-                    f"Installed publication package differs: {name}."
-                )
+        packages = validated_stack_packages(package_report, expected_versions)
         catalogue = load_header_sublemma_catalog(
             workspace.root / spec.input_catalog
         )
@@ -536,7 +525,10 @@ class ExperimentLifecycle:
             "run_id": spec.run_id,
             "execution": execution.name,
             "provider": provider,
-            "runtime": {"packages": packages},
+            "runtime": {
+                "python_version": package_report.get("python_version"),
+                "packages": packages,
+            },
             "stack_lock": {
                 "stack_id": stack_lock.get("stack_id"),
                 "sha256": _sha256_file(stack_lock_path),

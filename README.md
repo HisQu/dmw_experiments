@@ -76,8 +76,8 @@ real credential. Put real credentials and the machine-local
 `FAISS_INDEX_PATH` in AppRC's app-wide environment:
 
 ```bash
-dmw_experiments config init
-dmw_experiments config doctor
+dmw_experiments config app init
+dmw_experiments config edit
 ```
 
 > [!CAUTION]

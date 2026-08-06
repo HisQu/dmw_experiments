@@ -242,3 +242,25 @@ def test_approved_haiu_report_rejects_editable_installation() -> None:
             report,
             repositories,
         )
+
+
+def test_stack_version_validation_reads_nested_package_report() -> None:
+    """Lifecycle checks package versions below the report metadata wrapper."""
+    expected_versions = {
+        name: str(approved["version"])
+        for name, approved in capture_environment_lock.APPROVED_DISTRIBUTIONS.items()
+    }
+    packages = {
+        name: {"version": version}
+        for name, version in expected_versions.items()
+    }
+
+    result = capture_environment_lock.validated_stack_packages(
+        {
+            "python_version": "3.12",
+            "packages": packages,
+        },
+        expected_versions,
+    )
+
+    assert result == packages

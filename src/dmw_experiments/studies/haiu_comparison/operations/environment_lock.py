@@ -343,6 +343,37 @@ def _require_approved_distributions(
             )
 
 
+def validated_stack_packages(
+    package_report: dict[str, Any],
+    expected_versions: dict[str, Any],
+) -> dict[str, dict[str, Any]]:
+    """Return the installed package table after version-contract checks.
+
+    The subprocess report wraps packages beside its Python version. Keeping
+    that shape interpretation here prevents lifecycle callers from comparing
+    stack names against the outer report object.
+
+    :param package_report: Output from :func:`_package_report`.
+    :param expected_versions: Distribution versions from ``stack-lock.json``.
+    :return: Installed package records keyed by distribution name.
+    :raises ValueError: If the report shape or a pinned version differs.
+    """
+    packages = package_report.get("packages")
+    if not isinstance(packages, dict):
+        raise ValueError("Installed package report has no packages table.")
+    for name, expected_version in expected_versions.items():
+        package = packages.get(name)
+        approved = APPROVED_DISTRIBUTIONS.get(name)
+        if (
+            not isinstance(package, dict)
+            or package.get("version") != expected_version
+            or approved is None
+            or approved.get("version") != expected_version
+        ):
+            raise ValueError(f"Installed publication package differs: {name}.")
+    return packages
+
+
 def _is_git_commit_id(value: object) -> bool:
     """Return whether one value is a full lowercase Git object identifier.
 

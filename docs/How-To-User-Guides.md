@@ -15,8 +15,8 @@ Install the locked repository environment, then initialize AppRC:
 
 ```bash
 uv sync --locked --all-groups
-dmw_experiments config init
-dmw_experiments config doctor
+dmw_experiments config app init
+dmw_experiments config edit
 ```
 
 Put `DATAMODEL_LOGIN`, `DATAMODEL_PASSWORD`, `MONGO_URI`, `JWT_SECRET`,
@@ -51,6 +51,7 @@ Before launch:
 From the copied run directory:
 
 ```bash
+dmw_experiments config doctor
 ./run.sh validate
 ./run.sh start
 ```
