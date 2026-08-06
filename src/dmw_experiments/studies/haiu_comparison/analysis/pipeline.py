@@ -27,12 +27,13 @@ class AnalysisArtifacts:
     """Collect every derived artifact emitted by one invocation.
 
     :param providers: Provider-specific workbook exports keyed by execution.
-    :param provider_review: Fresh ungraded cross-provider review export.
+    :param provider_review: Fresh ungraded cross-provider review export when
+        both provider executions are enabled.
     :param plots: Timestamped figure and grade-analysis directory.
     """
 
     providers: dict[str, ExportPaths]
-    provider_review: HistorianProviderComparisonPaths
+    provider_review: HistorianProviderComparisonPaths | None
     plots: Path
 
 
@@ -48,7 +49,7 @@ def run_analysis(
 ) -> AnalysisArtifacts:
     """Export workbooks, a review packet, and figures inside one run.
 
-    :param run_dir: Complete copied run containing both provider executions.
+    :param run_dir: Complete copied run containing enabled provider executions.
     :param allow_partial: Permit labelled diagnostics before all cells finish.
     :param audit_csv: Emit machine-readable raw-derived audit tables.
     :param overwrite: Replace exporter-owned workbook files.
@@ -56,7 +57,8 @@ def run_analysis(
     :param quality_review_workbook: Optional separately evaluated review input.
     :param quality_reveal_key: Matching reveal key for the evaluated workbook.
     :return: Paths to provider workbooks, review files, and plots.
-    :raises ValueError: If both providers or paired grade inputs are missing.
+    :raises ValueError: If enabled provider data or paired grade inputs are
+        missing.
     """
     if (quality_review_workbook is None) != (quality_reveal_key is None):
         raise ValueError(
@@ -65,22 +67,13 @@ def run_analysis(
         )
     root = run_dir.expanduser().resolve()
     spec = load_run_contract(root)
-    required = ("academiccloud", "lmstudio")
-    missing = [name for name in required if not (root / f"raw-{name}").is_dir()]
+    enabled = tuple(execution.name for execution in spec.enabled_executions)
+    missing = [name for name in enabled if not (root / f"raw-{name}").is_dir()]
     if missing:
         raise ValueError(
-            "Cross-provider analysis requires provider directories: "
+            "Analysis requires enabled provider directories: "
             + ", ".join(missing)
         )
-    if not allow_partial:
-        disabled = [
-            name for name in required if not spec.execution(name).enabled
-        ]
-        if disabled:
-            raise ValueError(
-                "Strict cross-provider analysis requires enabled executions: "
-                + ", ".join(disabled)
-            )
 
     stamp = timestamp or datetime.now().astimezone().strftime("%Y%m%dT%H%M%S%Z")
     providers = {
@@ -90,29 +83,32 @@ def run_analysis(
             audit_csv=audit_csv,
             overwrite=overwrite,
         )
-        for name in required
+        for name in enabled
     }
-    review_path = (
-        root
-        / "analysis"
-        / "workbooks"
-        / f"historian_quality_review_academiccloud_lmstudio_{stamp}.xlsx"
-    )
-    if quality_review_workbook is not None and (
-        quality_review_workbook.expanduser().resolve() == review_path.resolve()
-    ):
-        raise ValueError(
-            "The fresh ungraded review cannot replace the evaluated input."
+    provider_review: HistorianProviderComparisonPaths | None = None
+    if set(enabled) == {"academiccloud", "lmstudio"}:
+        review_path = (
+            root
+            / "analysis"
+            / "workbooks"
+            / f"historian_quality_review_academiccloud_lmstudio_{stamp}.xlsx"
         )
-    provider_review = export_provider_historian_review_workbook(
-        academiccloud_run_dir=root / "raw-academiccloud",
-        lmstudio_run_dir=root / "raw-lmstudio",
-        workbook_path=review_path,
-        allow_partial=allow_partial,
-        overwrite=overwrite,
-    )
+        if quality_review_workbook is not None and (
+            quality_review_workbook.expanduser().resolve()
+            == review_path.resolve()
+        ):
+            raise ValueError(
+                "The fresh ungraded review cannot replace the evaluated input."
+            )
+        provider_review = export_provider_historian_review_workbook(
+            academiccloud_run_dir=root / "raw-academiccloud",
+            lmstudio_run_dir=root / "raw-lmstudio",
+            workbook_path=review_path,
+            allow_partial=allow_partial,
+            overwrite=overwrite,
+        )
     plots = plot_workbooks(
-        [providers[name].workbook for name in required],
+        [providers[name].workbook for name in enabled],
         output_root=root / "plots",
         timestamp=stamp,
         quality_review_workbook=quality_review_workbook,
@@ -159,7 +155,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     for name, provider in artifacts.providers.items():
         print(f"{name} workbook: {provider.workbook}")
-    print(f"Fresh provider review: {artifacts.provider_review.workbook}")
+    if artifacts.provider_review is not None:
+        print(f"Fresh provider review: {artifacts.provider_review.workbook}")
     print(f"Plots and grade analysis: {artifacts.plots}")
     return 0
 

@@ -95,8 +95,10 @@ Infrastructure interruption resumes only the same frozen contract.
 The run manifest records the stable shared-workspace identity; process logs
 record whether a launch had to synchronize it.
 
-Strict analysis requires every scheduled cell to be terminal. Derived files
-are organized as follows:
+Strict analysis requires every scheduled cell of every enabled execution to be
+terminal. Provider workbooks and plots follow the enabled execution set. The
+cross-provider historian review packet is emitted only when both executions
+are enabled. Derived files are organized as follows:
 
 | Path | Contents |
 | --- | --- |

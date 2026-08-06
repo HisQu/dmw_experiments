@@ -71,3 +71,52 @@ def test_run_analysis_requires_complete_grade_source_pair(
             run_dir=_run(tmp_path),
             quality_review_workbook=tmp_path / "evaluated.xlsx",
         )
+
+
+def test_run_analysis_uses_only_enabled_provider_executions(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An AcademicCloud-only run exports without cross-provider review."""
+    root = _run(tmp_path)
+    run_spec = root / "run.toml"
+    run_spec.write_text(
+        run_spec.read_text(encoding="utf-8").replace(
+            "[executions.lmstudio]\nenabled = true",
+            "[executions.lmstudio]\nenabled = false",
+        ),
+        encoding="utf-8",
+    )
+    calls: list[tuple[object, ...]] = []
+
+    def fake_export_run(run_dir: Path, **_: object) -> SimpleNamespace:
+        calls.append(("export", run_dir))
+        return SimpleNamespace(workbook=run_dir / "overview.xlsx")
+
+    def reject_review(**_: object) -> SimpleNamespace:
+        raise AssertionError("A one-provider run has no provider comparison.")
+
+    def fake_plots(workbooks: list[Path], **kwargs: object) -> Path:
+        calls.append(("plots", *workbooks))
+        return Path(str(kwargs["output_root"])) / "plots-test"
+
+    monkeypatch.setattr(run_analysis, "export_run", fake_export_run)
+    monkeypatch.setattr(
+        run_analysis,
+        "export_provider_historian_review_workbook",
+        reject_review,
+    )
+    monkeypatch.setattr(run_analysis, "plot_workbooks", fake_plots)
+
+    artifacts = run_analysis.run_analysis(
+        run_dir=root,
+        overwrite=True,
+        timestamp="test",
+    )
+
+    assert calls == [
+        ("export", root / "raw-academiccloud"),
+        ("plots", root / "raw-academiccloud" / "overview.xlsx"),
+    ]
+    assert set(artifacts.providers) == {"academiccloud"}
+    assert artifacts.provider_review is None

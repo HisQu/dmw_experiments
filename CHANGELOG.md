@@ -106,6 +106,9 @@ All notable changes to `dmw_experiments` will be documented in this file.
 - Added an authoritative branch-aware retrieval-workspace contract. Each
   pair run now verifies or prepares the shared reference index before timed
   conditions, so condition order cannot assign indexing work to one RAG path.
+- Added strict workbook and plot export for the provider executions enabled by
+  a run, including AcademicCloud-only studies. Cross-provider review export is
+  retained when both providers are enabled.
 
 <br>
 

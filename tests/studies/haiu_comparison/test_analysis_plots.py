@@ -94,6 +94,32 @@ def test_plot_workbooks_writes_timestamped_pdf_and_png_figures(
     assert "## `paired-absolute-metrics`" in captions
 
 
+def test_plot_workbooks_supports_one_enabled_provider(tmp_path: Path) -> None:
+    """AcademicCloud-only studies retain outcomes and paired metrics."""
+    academic = _write_workbook(
+        tmp_path / "academic/analysis/overview.xlsx",
+        profile_name="academiccloud-qwen36",
+        chat_provider="academiccloud",
+        quantization="FP8",
+        partial=True,
+    )
+
+    output_dir = plot_workbooks(
+        [academic],
+        output_root=tmp_path,
+        timestamp="20260807T000000CEST",
+    )
+
+    assert (output_dir / "outcomes.svg").is_file()
+    assert (output_dir / "paired-absolute-metrics.svg").is_file()
+    manifest = json.loads(
+        (output_dir / "plot_manifest.json").read_text(encoding="utf-8")
+    )
+    assert [item["provider_profile"] for item in manifest["inputs"]] == [
+        "academiccloud-qwen36"
+    ]
+
+
 def test_plot_workbooks_adds_paired_historian_grades_when_supplied(
     tmp_path: Path,
 ) -> None:
