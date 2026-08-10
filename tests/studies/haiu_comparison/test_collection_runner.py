@@ -283,6 +283,44 @@ def test_environment_lock_must_match_selected_runtime(tmp_path: Path) -> None:
         )
 
 
+def test_runtime_transition_keeps_initial_haiu_manifest_identity(
+    tmp_path: Path,
+) -> None:
+    """A patch release belongs in the transition, not frozen manifests."""
+    output = tmp_path / "raw-academiccloud"
+    provenance = output / "provenance"
+    provenance.mkdir(parents=True)
+    frozen = {
+        "version": "1.8.0",
+        "commit_id": "a" * 40,
+    }
+    live = {
+        "version": "1.8.1",
+        "commit_id": "b" * 40,
+    }
+    (provenance / "manifest.json").write_text(
+        json.dumps({"haiu_distribution": frozen}),
+        encoding="utf-8",
+    )
+
+    assert (
+        run_experiment._haiu_distribution_for_frozen_manifests(
+            output_dir=output,
+            live_distribution=live,
+            runtime_transition_adopted=True,
+        )
+        == frozen
+    )
+    assert (
+        run_experiment._haiu_distribution_for_frozen_manifests(
+            output_dir=output,
+            live_distribution=live,
+            runtime_transition_adopted=False,
+        )
+        == live
+    )
+
+
 def test_pair_environment_lock_binds_harness_and_prepared_inputs(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

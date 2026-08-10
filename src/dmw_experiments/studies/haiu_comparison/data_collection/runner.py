@@ -206,8 +206,9 @@ def main(argv: list[str] | None = None) -> int:
                 "dmw_input_manifest": dmw_input_manifest.path,
             }
         )
+    runtime_transition_adopted = False
     if args.publication_run:
-        _validate_environment_lock(
+        runtime_transition_adopted = _validate_environment_lock(
             path=provenance_files["environment_lock"],
             args=args,
             profile=profile,
@@ -232,6 +233,11 @@ def main(argv: list[str] | None = None) -> int:
     output_dir = Path(args.output_dir)
     writer = ArtifactWriter(output_dir)
     existing_rows = writer.load_existing_rows()
+    manifest_haiu_distribution = _haiu_distribution_for_frozen_manifests(
+        output_dir=output_dir,
+        live_distribution=haiu_distribution,
+        runtime_transition_adopted=runtime_transition_adopted,
+    )
     if existing_rows and not args.resume:
         raise SystemExit(
             f"Output directory already contains {len(existing_rows)} result(s): "
@@ -381,7 +387,7 @@ def main(argv: list[str] | None = None) -> int:
             provenance_input_files["regest_ids"] = input_source_file
         provenance_metadata = {
             "provider_profile": profile.manifest_entry(),
-            "haiu_distribution": haiu_distribution,
+            "haiu_distribution": manifest_haiu_distribution,
             "workflow_model_provenance": workflow_model_provenance,
             "raw_regest_snapshot": raw_regest_snapshot,
         }
@@ -416,7 +422,7 @@ def main(argv: list[str] | None = None) -> int:
                     raw_regest_snapshot=raw_regest_snapshot,
                     rc=rc,
                     profile=profile,
-                    haiu_distribution=haiu_distribution,
+                    haiu_distribution=manifest_haiu_distribution,
                     recovery_cap=recovery_cap,
                     input_population=input_population,
                 )
@@ -500,7 +506,7 @@ def main(argv: list[str] | None = None) -> int:
                         rc=rc,
                         profile=profile,
                         provenance=provenance,
-                        haiu_distribution=haiu_distribution,
+                        haiu_distribution=manifest_haiu_distribution,
                         workflow_model_provenance=workflow_model_provenance,
                         input_population=input_population,
                     ),
@@ -2418,6 +2424,47 @@ def _installed_haiu_distribution_provenance() -> dict[str, Any]:
     }
 
 
+def _haiu_distribution_for_frozen_manifests(
+    *,
+    output_dir: Path,
+    live_distribution: dict[str, Any],
+    runtime_transition_adopted: bool,
+) -> dict[str, Any]:
+    """Keep initial provenance immutable after an approved runtime patch.
+
+    The runtime-transition record owns the new package identity. Existing run
+    and provenance manifests continue to describe the environment that began
+    the experiment, so their embedded Haiu identity must not be rewritten or
+    compared against the replacement patch release.
+
+    :param output_dir: Provider evidence directory for this execution.
+    :param live_distribution: Haiu distribution imported by the current runner.
+    :param runtime_transition_adopted: Whether the environment gate verified an
+        exact runtime-transition record for this resume.
+    :return: Distribution identity used for immutable manifest comparison.
+    :raises SystemExit: If the frozen provenance manifest is malformed.
+    """
+    if not runtime_transition_adopted:
+        return live_distribution
+    path = output_dir / "provenance" / "manifest.json"
+    if not path.is_file():
+        return live_distribution
+    try:
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise SystemExit("Run provenance manifest is invalid JSON.") from exc
+    frozen_distribution = (
+        manifest.get("haiu_distribution")
+        if isinstance(manifest, dict)
+        else None
+    )
+    if not isinstance(frozen_distribution, dict):
+        raise SystemExit(
+            "Run provenance manifest has no frozen Haiu distribution."
+        )
+    return frozen_distribution
+
+
 def _require_published_haiu_distribution(provenance: dict[str, Any]) -> None:
     """Reject a clean-run environment outside the frozen Haiu release source.
 
@@ -2521,7 +2568,7 @@ def _validate_environment_lock(
     haiu_distribution: dict[str, Any],
     input_catalog: HeaderSublemmaCatalog | None = None,
     dmw_input_manifest: DmwPairImportManifest | None = None,
-) -> None:
+) -> bool:
     """Confirm a publication snapshot matches the selected live configuration.
 
     The environment lock does not configure a run.  It proves the frozen
@@ -2536,7 +2583,7 @@ def _validate_environment_lock(
     :param haiu_distribution: Actual imported Haiu distribution provenance.
     :param input_catalog: Optional pair population for schema-v2 locks.
     :param dmw_input_manifest: Optional prepared pair storage evidence.
-    :return: None.
+    :return: Whether an exact recorded runtime transition admits this resume.
     :raises SystemExit: If the document is malformed or differs from the
         selected publication configuration.
     """
@@ -2703,7 +2750,7 @@ def _validate_environment_lock(
         )
 
     if not pair_mode:
-        return
+        return runtime_transition_matches_live
     assert input_catalog is not None
     assert dmw_input_manifest is not None
     expected_input_population = {
@@ -2758,6 +2805,7 @@ def _validate_environment_lock(
             "environment_lock does not match the clean experiment harness "
             "commit."
         )
+    return runtime_transition_matches_live
 
 
 def _experiment_harness_identity() -> dict[str, str | bool]:
