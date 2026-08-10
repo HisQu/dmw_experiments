@@ -31,10 +31,11 @@ All notable changes to `dmw_experiments` will be documented in this file.
 1. [Changelog](#changelog)
    1. [Table Of Contents](#table-of-contents)
 2. [\[Unreleased\]](#unreleased)
-3. [0.4.0 - 2026-08-07](#040---2026-08-07)
-4. [0.3.0 - 2026-08-06](#030---2026-08-06)
-5. [0.2.0 - 2026-08-06](#020---2026-08-06)
-6. [0.1.0 - 2026-08-06](#010---2026-08-06)
+3. [0.4.1 - 2026-08-10](#041---2026-08-10)
+4. [0.4.0 - 2026-08-07](#040---2026-08-07)
+5. [0.3.0 - 2026-08-06](#030---2026-08-06)
+6. [0.2.0 - 2026-08-06](#020---2026-08-06)
+7. [0.1.0 - 2026-08-06](#010---2026-08-06)
 
 <br>
 
@@ -70,14 +71,28 @@ All notable changes to `dmw_experiments` will be documented in this file.
 
 ### 🔨 Fixed
 
+<br>
+
+### 🔒 Security
+
+<br>
+
+---
+
+<br>
+
+<!-- ======================================================== -->
+
+# 0.4.1 - 2026-08-10
+
+<br>
+
+### 🔨 Fixed
+
 - Removed obsolete TUSTEP layout controls from the 44 affected
   header--sublemma input units while preserving every unaffected text field
   byte-for-byte. The catalogue records the normalization evidence and rejects
   stale control-bearing inputs before external storage or provider work.
-
-<br>
-
-### 🔒 Security
 
 <br>
 
