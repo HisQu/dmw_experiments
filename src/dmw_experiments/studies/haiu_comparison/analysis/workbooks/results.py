@@ -30,6 +30,8 @@ from dmw_experiments.studies.haiu_comparison.model.artifact_records import (
 )
 from dmw_experiments.studies.haiu_comparison.model.ontology import (
     TURTLE_PREFIXES,
+    strip_outer_turtle_fence,
+    turtle_syntax_fields,
 )
 from dmw_experiments.studies.haiu_comparison.model.results import (
     provider_prompt_token_measurement,
@@ -927,6 +929,7 @@ def _load_rows(
         row["regest_id"] = regest_id
         row["raw_artifact_path"] = path.relative_to(layout.root).as_posix()
         row.update(artifact_paths)
+        _reconcile_turtle_projection(row)
         _reconcile_turtle_generation_input_tokens(row)
         rows.append(row)
         hashes[path.relative_to(layout.root).as_posix()] = _sha256_file(path)
@@ -1510,15 +1513,30 @@ def _schema_declarations(
 
 
 def _raw_turtle_from_row(row: dict[str, Any]) -> str:
-    """Read exact generated Turtle from the authoritative raw JSON payload.
+    """Project generated Turtle from the authoritative raw JSON payload.
 
     :param row: Raw result object enriched with artifact paths.
-    :return: Captured Stage-2 output without repair, or an empty string.
+    :return: Captured Stage-2 output with only an outer fence removed.
     """
     direct_output = row.get("raw_ttl_output")
     if isinstance(direct_output, str) and direct_output:
-        return direct_output
+        return strip_outer_turtle_fence(direct_output)[0]
     return ""
+
+
+def _reconcile_turtle_projection(row: dict[str, Any]) -> None:
+    """Recompute Turtle validity under the current lossless projection rule.
+
+    Older source payloads remain immutable. Recomputing derived validation
+    makes the same outer-fence rule apply to earlier and later observations.
+
+    :param row: Raw result row loaded from exact upstream evidence.
+    :return: ``None`` after derived syntax fields are current.
+    """
+    raw_output = row.get("raw_ttl_output")
+    if not isinstance(raw_output, str):
+        return
+    row.update(turtle_syntax_fields(raw_output))
 
 
 def _parse_generated_turtle(turtle: str) -> Graph:
@@ -2200,8 +2218,15 @@ def _metric_definitions() -> list[dict[str, Any]]:
         },
         {
             "metric": "invalid_turtle_rate",
-            "calculation": "Raw Stage-2 Turtle parser failures / received Stage-2 outputs.",
-            "source": "raw_ttl plus turtle_syntax_valid",
+            "calculation": (
+                "Turtle-projection parser failures / received Stage-2 outputs. "
+                "One complete outer Markdown Turtle fence is removed; the "
+                "raw response remains unchanged."
+            ),
+            "source": (
+                "raw_ttl projected through turtle_syntax_valid and "
+                "turtle_outer_fence_removed"
+            ),
         },
         {
             "metric": "stage1_context_reduction_rate",
@@ -2307,12 +2332,14 @@ def _legacy_row_artifact_paths(
         ).as_posix()
         for path in sorted(intermediate.glob(f"{regest_id}_*.md"))
     }
+    turtle_path = _raw_ttl_path(
+        layout,
+        condition,
+        regest_id,
+    )
     return {
-        "raw_ttl_artifact_path": _raw_ttl_path(
-            layout,
-            condition,
-            regest_id,
-        ),
+        "raw_ttl_artifact_path": turtle_path,
+        "ontology_artifact_path": turtle_path,
         "raw_stage1_artifact_path": (
             stage1_candidates[-1].relative_to(layout.root).as_posix()
             if stage1_candidates
@@ -2356,8 +2383,15 @@ def _v3_row_artifact_paths(record: dict[str, Any]) -> dict[str, Any]:
     }
     return {
         "raw_ttl_artifact_path": _v3_artifact_path(record, "stage2_response"),
+        "ontology_artifact_path": _v3_artifact_path(record, "ontology"),
         "raw_stage1_artifact_path": _v3_artifact_path(
             record, "stage1_response"
+        ),
+        "raw_stage1_provider_message_artifact_path": _v3_artifact_path(
+            record, "stage1_provider_message"
+        ),
+        "raw_stage2_provider_message_artifact_path": _v3_artifact_path(
+            record, "stage2_provider_message"
         ),
         "retrieved_ttl_artifact_path": _v3_artifact_path_from_reference(
             retrieval.get("context")

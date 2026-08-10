@@ -5,12 +5,12 @@ RUN_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 ACTION="${1:-help}"
 
 case "$ACTION" in
-  validate|start|status|pause|resume|migrate-artifacts|analyze|prepare-promotion)
+  validate|start|status|pause|resume|migrate-artifacts|refresh-artifacts|adopt-runtime-transition|analyze|prepare-promotion)
     shift
     ;;
   help|-h|--help)
     printf '%s\n' \
-      "Usage: ./run.sh <validate|start|status|pause|resume|migrate-artifacts|analyze|prepare-promotion> [options]"
+      "Usage: ./run.sh <validate|start|status|pause|resume|migrate-artifacts|refresh-artifacts|adopt-runtime-transition|analyze|prepare-promotion> [options]"
     exit 0
     ;;
   *)

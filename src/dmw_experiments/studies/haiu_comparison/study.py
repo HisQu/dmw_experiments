@@ -25,6 +25,9 @@ from dmw_experiments.studies.haiu_comparison.operations.run_factory import (
     create_run,
 )
 from dmw_experiments.studies.haiu_comparison.operations.status import RunStatus
+from dmw_experiments.studies.haiu_comparison.operations.runtime_transition import (
+    RuntimeTransitionReport,
+)
 
 
 class HaiuComparisonStudy:
@@ -193,6 +196,43 @@ class HaiuComparisonStudy:
         """
         return self._lifecycle.migrate_artifacts(
             run_dir,
+            execution_names=executions,
+        )
+
+    def refresh_artifacts(
+        self,
+        run_dir: Path,
+        *,
+        executions: tuple[str, ...] = (),
+    ) -> tuple[dict[str, object], ...]:
+        """Rebuild deterministic projections from immutable raw payloads.
+
+        :param run_dir: Existing copied run directory.
+        :param executions: Optional provider filter.
+        :return: Refresh counts for selected executions.
+        """
+        return self._lifecycle.refresh_artifacts(
+            run_dir,
+            execution_names=executions,
+        )
+
+    def adopt_runtime_transition(
+        self,
+        run_dir: Path,
+        *,
+        reason: str,
+        executions: tuple[str, ...] = (),
+    ) -> tuple[RuntimeTransitionReport, ...]:
+        """Record a stopped run's exact harness and Haiu patch identity.
+
+        :param run_dir: Existing copied run directory.
+        :param reason: Concise operational reason for the patch.
+        :param executions: Optional provider filter.
+        :return: Durable transition reports for selected executions.
+        """
+        return self._lifecycle.adopt_runtime_transition(
+            run_dir,
+            reason=reason,
             execution_names=executions,
         )
 

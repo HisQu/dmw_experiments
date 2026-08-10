@@ -14,7 +14,7 @@ class ReleaseRepositories:
     :param datamodel_workflow: Clean DMW v1.1.3 checkout.
     :param opa: Clean OPA v2.1.2 checkout.
     :param gta: Clean GTA v0.2.4 checkout.
-    :param haiu: Clean Haiu v1.8.0 checkout.
+    :param haiu: Clean Haiu v1.8.1 checkout.
     """
 
     datamodel_workflow: Path
@@ -68,8 +68,8 @@ class ReleaseStackManager:
             ),
             "haiu": ReleaseSource(
                 url="https://github.com/HisQu/haiu.git",
-                revision="v1.8.0",
-                destination_name="haiu-v1.8.0",
+                revision="v1.8.1",
+                destination_name="haiu-v1.8.1",
             ),
         }
         paths = {

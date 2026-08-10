@@ -71,6 +71,9 @@ All notable changes to `dmw_experiments` will be documented in this file.
   transition without rewriting the scientific environment lock.
 - Added content hashes to every external artifact reference and made analysis
   reject missing or changed schema-v3 evidence.
+- Added stopped-run artifact refresh and explicit runtime-transition commands.
+  They preserve the immutable environment lock while recording the exact
+  clean harness and Haiu patch identities adopted during a long run.
 
 <br>
 
@@ -81,6 +84,11 @@ All notable changes to `dmw_experiments` will be documented in this file.
 - Disabled DMW's redundant server-side debug-file copy because the returned
   debug payload is preserved exactly in the attempt's compressed upstream
   result.
+- Updated the experiment runtime to Haiu 1.8.1. Non-streaming calls now retain
+  complete provider assistant messages for terminal failure analysis.
+- Treat one complete outer Markdown `ttl` or `turtle` fence as a serialization
+  wrapper. Exact provider text stays in `stage-2.raw.txt`; `ontology.ttl`,
+  syntax validation, and downstream analysis use the unwrapped Turtle body.
 
 <br>
 
@@ -98,6 +106,9 @@ All notable changes to `dmw_experiments` will be documented in this file.
   capture metadata by giving both artifacts unambiguous schema-v3 paths.
 - Fixed copied Bash and PowerShell entry points using an unrelated system
   Python when the repository virtual environment is available.
+- Fixed failed standalone calls discarding provider-native output when
+  `message.content` is empty, and fixed fence-wrapped valid Turtle being
+  counted as a parser failure.
 
 <br>
 

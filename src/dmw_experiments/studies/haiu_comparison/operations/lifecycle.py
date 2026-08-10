@@ -24,6 +24,9 @@ from dmw_experiments.shared.supervision import ServiceUnits, UserServiceManager
 from dmw_experiments.studies.haiu_comparison.model.artifact_layout import (
     ExecutionArtifactLayout,
 )
+from dmw_experiments.studies.haiu_comparison.data_collection.artifacts import (
+    ArtifactWriter,
+)
 from dmw_experiments.studies.haiu_comparison.model.inputs import (
     load_dmw_pair_import_manifest,
     load_header_sublemma_catalog,
@@ -45,6 +48,10 @@ from dmw_experiments.studies.haiu_comparison.operations.repository_paths import 
 )
 from dmw_experiments.studies.haiu_comparison.operations.runtime import (
     RuntimePaths,
+)
+from dmw_experiments.studies.haiu_comparison.operations.runtime_transition import (
+    RuntimeTransitionReport,
+    record_runtime_transition,
 )
 from dmw_experiments.studies.haiu_comparison.operations.status import (
     ExecutionStatus,
@@ -259,17 +266,11 @@ class ExperimentLifecycle:
         spec = load_run_contract(run_root)
         reports: list[ArtifactMigrationReport] = []
         for execution in self._selected_executions(spec, execution_names):
-            units = ServiceUnits.for_run(spec.run_id, execution.name)
-            active = [
-                unit
-                for unit in asdict(units).values()
-                if self.services.is_active(unit)
-            ]
-            if active:
-                raise RuntimeError(
-                    "Pause the execution before artifact migration: "
-                    + ", ".join(active)
-                )
+            self._require_execution_stopped(
+                spec=spec,
+                execution=execution,
+                operation="artifact migration",
+            )
             workspace = RunWorkspace.open(run_root, execution.name)
             report = ArtifactLayoutMigrator(
                 run_root=run_root,
@@ -306,6 +307,109 @@ class ExperimentLifecycle:
             )
             reports.append(report)
         return tuple(reports)
+
+    def refresh_artifacts(
+        self,
+        run_root: Path,
+        *,
+        execution_names: tuple[str, ...] = (),
+    ) -> tuple[dict[str, Any], ...]:
+        """Rebuild deterministic terminal projections from exact raw payloads.
+
+        :param run_root: Existing copied run directory.
+        :param execution_names: Optional enabled provider filter.
+        :return: Refresh counts for each selected execution.
+        :raises RuntimeError: If any selected service can still write evidence.
+        """
+        spec = load_run_contract(run_root)
+        reports: list[dict[str, Any]] = []
+        for execution in self._selected_executions(spec, execution_names):
+            self._require_execution_stopped(
+                spec=spec,
+                execution=execution,
+                operation="artifact refresh",
+            )
+            workspace = RunWorkspace.open(run_root, execution.name)
+            writer = ArtifactWriter(run_root / execution.output_directory_name)
+            counts = writer.refresh_terminal_projections()
+            writer.write_final_outputs(writer.load_existing_rows())
+            report = {"execution": execution.name, **counts}
+            workspace.append_event(
+                event="terminal_artifacts_refreshed",
+                detail=(
+                    "Rebuilt deterministic projections from exact retained "
+                    "provider payloads."
+                ),
+                **counts,
+            )
+            reports.append(report)
+        return tuple(reports)
+
+    def adopt_runtime_transition(
+        self,
+        run_root: Path,
+        *,
+        reason: str,
+        execution_names: tuple[str, ...] = (),
+    ) -> tuple[RuntimeTransitionReport, ...]:
+        """Record a stopped run's exact harness and Haiu patch transition.
+
+        :param run_root: Existing copied run directory.
+        :param reason: Concise operational reason for the patch.
+        :param execution_names: Optional enabled provider filter.
+        :return: One durable transition report per selected execution.
+        :raises RuntimeError: If any selected service can still write evidence.
+        """
+        spec = load_run_contract(run_root)
+        reports: list[RuntimeTransitionReport] = []
+        for execution in self._selected_executions(spec, execution_names):
+            self._require_execution_stopped(
+                spec=spec,
+                execution=execution,
+                operation="runtime transition",
+            )
+            report = record_runtime_transition(
+                run_root=run_root,
+                execution=execution.name,
+                reason=reason,
+            )
+            workspace = RunWorkspace.open(run_root, execution.name)
+            workspace.append_event(
+                event="runtime_transition_adopted",
+                detail=reason,
+                source_harness_commit=report.source_harness_commit,
+                target_harness_commit=report.target_harness_commit,
+                source_haiu_version=report.source_haiu_version,
+                target_haiu_version=report.target_haiu_version,
+            )
+            reports.append(report)
+        return tuple(reports)
+
+    def _require_execution_stopped(
+        self,
+        *,
+        spec: RunContract,
+        execution: ProviderExecutionSpec,
+        operation: str,
+    ) -> None:
+        """Reject derived-data or identity changes while services are active.
+
+        :param spec: Frozen run contract.
+        :param execution: Selected provider execution.
+        :param operation: Human-readable requested operation.
+        :return: None when all three provider services are inactive.
+        :raises RuntimeError: If any provider service remains active.
+        """
+        units = ServiceUnits.for_run(spec.run_id, execution.name)
+        active = [
+            unit
+            for unit in asdict(units).values()
+            if self.services.is_active(unit)
+        ]
+        if active:
+            raise RuntimeError(
+                f"Pause the execution before {operation}: " + ", ".join(active)
+            )
 
     def _start_or_resume(
         self,

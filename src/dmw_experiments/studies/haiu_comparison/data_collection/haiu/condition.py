@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 from haiu import HaiuRC
+from haiu.clients.llm.llm_metrics import LLMCallMeta
 
 from dmw_experiments.studies.haiu_comparison.data_collection.measurements import (
     output_token_fields,
     prompt_token_fields,
     provider_usage_fields,
     turtle_generation_input_tokens,
+)
+from dmw_experiments.studies.haiu_comparison.model.ontology import (
     turtle_syntax_fields,
 )
 from dmw_experiments.studies.haiu_comparison.model.results import (
@@ -80,8 +83,10 @@ def _success_payload(trace: DirectRunTrace) -> dict[str, object]:
         "raw_stage1_output": trace.stage1.output,
         "raw_stage1_capture_complete": bool(trace.stage1.output),
         "raw_stage1_output_source": "direct_haiu_stage1",
+        "raw_stage1_provider_message": _provider_message(trace.stage1.response),
         "raw_ttl_output": trace.stage2.output,
         "raw_ttl_capture_complete": bool(trace.stage2.output),
+        "raw_stage2_provider_message": _provider_message(trace.stage2.response),
         "parse_warning": trace.parse_warning,
         "prompts": _prompt_payload(trace),
         "stage_metrics": _stage_metrics(trace),
@@ -127,8 +132,10 @@ def _failure_payload(trace: DirectRunTrace) -> dict[str, object]:
         "raw_stage1_output": trace.stage1.output,
         "raw_stage1_capture_complete": bool(trace.stage1.output),
         "raw_stage1_output_source": "direct_haiu_stage1",
+        "raw_stage1_provider_message": _provider_message(trace.stage1.response),
         "raw_ttl_output": trace.stage2.output,
         "raw_ttl_capture_complete": bool(trace.stage2.output),
+        "raw_stage2_provider_message": _provider_message(trace.stage2.response),
         "prompts": _prompt_payload(trace),
         "stage_metrics": _stage_metrics(trace),
         "generation_budget": _generation_budget_payload(trace),
@@ -165,6 +172,19 @@ def _prompt_payload(trace: DirectRunTrace) -> dict[str, dict[str, str]]:
             "user": trace.stage2.prompts.user,
         },
     }
+
+
+def _provider_message(
+    response: LLMCallMeta | None,
+) -> dict[str, object] | None:
+    """Return a detached provider message from one Haiu response.
+
+    :param response: Normalized Haiu response metadata.
+    :return: Complete parsed assistant message when the provider returned one.
+    """
+    if response is None or response.provider_message is None:
+        return None
+    return dict(response.provider_message)
 
 
 def _stage_metrics(trace: DirectRunTrace) -> dict[str, dict[str, object]]:

@@ -9,6 +9,7 @@ resolution-markers = [
 [manifest]
 overrides = [
     { name = "gta", git = "https://github.com/HisQu/GTA.git?rev=v0.2.4" },
+    { name = "haiu", extras = ["rag", "bench"], git = "https://github.com/HisQu/haiu.git?rev=v1.8.1" },
     { name = "mongodbapi", git = "https://github.com/HisQu/MongoDBAPI.git?rev=v1.0.2" },
 ]
 
@@ -741,7 +742,7 @@ requires-dist = [
     { name = "build", specifier = ">=1.2,<2" },
     { name = "datamodel-workflow", git = "https://github.com/HisQu/datamodel-workflow.git?rev=v1.1.3" },
     { name = "gta", git = "https://github.com/HisQu/GTA.git?rev=v0.2.4" },
-    { name = "haiu", extras = ["rag", "bench"], git = "https://github.com/HisQu/haiu.git?rev=v1.8.0" },
+    { name = "haiu", extras = ["rag", "bench"], git = "https://github.com/HisQu/haiu.git?rev=v1.8.1" },
     { name = "matplotlib" },
     { name = "mongodbapi", git = "https://github.com/HisQu/MongoDBAPI.git?rev=v1.0.2" },
     { name = "numpy" },
@@ -1198,8 +1199,8 @@ wheels = [
 
 [[package]]
 name = "haiu"
-version = "1.8.0"
-source = { git = "https://github.com/HisQu/haiu.git?rev=v1.8.0#e95097c382a71bc8442d2ec7231bc9b4c66b19e9" }
+version = "1.8.1"
+source = { git = "https://github.com/HisQu/haiu.git?rev=v1.8.1#8a22b271db93ade7e0599c1c6f06c0134c008db7" }
 dependencies = [
     { name = "apprc", extra = ["tui"] },
     { name = "filelock" },
@@ -2164,7 +2165,7 @@ dependencies = [
     { name = "google-generativeai" },
     { name = "gta" },
     { name = "h11" },
-    { name = "haiu", extra = ["rag"] },
+    { name = "haiu", extra = ["bench", "rag"] },
     { name = "httpcore" },
     { name = "httpx" },
     { name = "idna" },

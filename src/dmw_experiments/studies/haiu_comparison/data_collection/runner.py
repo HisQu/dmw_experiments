@@ -130,6 +130,9 @@ from dmw_experiments.studies.haiu_comparison.model.traces import (
 from dmw_experiments.studies.haiu_comparison.operations.repository_paths import (
     REPOSITORY_ROOT,
 )
+from dmw_experiments.studies.haiu_comparison.operations.runtime_transition import (
+    runtime_transition_matches,
+)
 
 
 class _ConditionWallClockTimeout(BaseException):
@@ -2640,6 +2643,8 @@ def _validate_environment_lock(
             "environment_lock does not contain installed packages."
         )
     for distribution_name, expected in APPROVED_RUNTIME_DISTRIBUTIONS.items():
+        if distribution_name == "haiu":
+            continue
         package = packages.get(distribution_name)
         source = package.get("source") if isinstance(package, dict) else None
         repository = repositories.get(str(expected["repository"]))
@@ -2673,16 +2678,26 @@ def _validate_environment_lock(
         raise SystemExit(
             "environment_lock does not prove the approved Haiu release."
         )
+    live_harness = _experiment_harness_identity() if pair_mode else {}
     locked_commit = haiu_source.get("commit_id")
-    if (
-        haiu_package.get("version") != PUBLISHED_HAIU_VERSION
-        or haiu_source.get("editable")
-        or haiu_source.get("vcs") != "git"
-        or haiu_source.get("url") != APPROVED_HAIU_VCS_URL
-        or haiu_source.get("requested_revision") != APPROVED_HAIU_VCS_REVISION
-        or not _is_git_commit_id(locked_commit)
-        or locked_commit != haiu_distribution.get("commit_id")
-    ):
+    haiu_lock_matches = (
+        haiu_package.get("version") == PUBLISHED_HAIU_VERSION
+        and not haiu_source.get("editable")
+        and haiu_source.get("vcs") == "git"
+        and haiu_source.get("url") == APPROVED_HAIU_VCS_URL
+        and haiu_source.get("requested_revision") == APPROVED_HAIU_VCS_REVISION
+        and _is_git_commit_id(locked_commit)
+        and locked_commit == haiu_distribution.get("commit_id")
+    )
+    runtime_transition_matches_live = False
+    if pair_mode and not haiu_lock_matches:
+        runtime_transition_matches_live = runtime_transition_matches(
+            output_dir=Path(args.output_dir).expanduser().resolve(),
+            frozen_haiu_package=haiu_package,
+            live_haiu_distribution=haiu_distribution,
+            live_harness=live_harness,
+        )
+    if not haiu_lock_matches and not runtime_transition_matches_live:
         raise SystemExit(
             "environment_lock does not match the imported approved Haiu release."
         )
@@ -2720,16 +2735,24 @@ def _validate_environment_lock(
             "environment_lock does not match the prepared pair DMW identity."
         )
     harness = payload.get("experiment_harness")
-    live_harness = _experiment_harness_identity()
     harness_matches = (
         isinstance(harness, dict)
         and harness.get("commit") == live_harness["commit"]
         and harness.get("worktree_clean") is True
     )
-    if not harness_matches and not _artifact_layout_migration_allows_harness(
-        args=args,
-        frozen_harness=harness,
-        live_harness=live_harness,
+    migration_matches = False
+    if not harness_matches:
+        migration_matches = _artifact_layout_migration_allows_harness(
+            args=args,
+            frozen_harness=harness,
+            live_harness=live_harness,
+        )
+    if not any(
+        (
+            harness_matches,
+            migration_matches,
+            runtime_transition_matches_live,
+        )
     ):
         raise SystemExit(
             "environment_lock does not match the clean experiment harness "

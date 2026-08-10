@@ -404,6 +404,47 @@ def migrate_artifacts_cmd(
     rc.cli.dump_json([asdict(report) for report in reports])
 
 
+@app.command("refresh-artifacts")
+def refresh_artifacts_cmd(
+    run_dir: Annotated[Path, typer.Option(help="Copied run directory.")],
+    execution: Annotated[
+        list[str] | None,
+        typer.Option("--execution", help="Optional provider filter."),
+    ] = None,
+) -> None:
+    """Refresh stopped-run projections from exact retained payloads."""
+    reports = _run_lifecycle(
+        lambda: _study().refresh_artifacts(
+            run_dir,
+            executions=_execution_filter(execution),
+        )
+    )
+    rc.cli.dump_json(list(reports))
+
+
+@app.command("adopt-runtime-transition")
+def adopt_runtime_transition_cmd(
+    run_dir: Annotated[Path, typer.Option(help="Copied run directory.")],
+    reason: Annotated[
+        str,
+        typer.Option(help="Concise factual reason for the runtime patch."),
+    ],
+    execution: Annotated[
+        list[str] | None,
+        typer.Option("--execution", help="Optional provider filter."),
+    ] = None,
+) -> None:
+    """Record a stopped run's exact non-scientific runtime transition."""
+    reports = _run_lifecycle(
+        lambda: _study().adopt_runtime_transition(
+            run_dir,
+            reason=reason,
+            executions=_execution_filter(execution),
+        )
+    )
+    rc.cli.dump_json([asdict(report) for report in reports])
+
+
 @app.command("prepare-promotion")
 def prepare_promotion_cmd(
     run_dir: Annotated[Path, typer.Option(help="Copied run directory.")],

@@ -16,8 +16,10 @@ from dmw_experiments.studies.haiu_comparison.data_collection.dmw.client import (
 from dmw_experiments.studies.haiu_comparison.data_collection.measurements import (
     output_token_fields,
     prompt_token_fields,
-    turtle_syntax_fields,
     turtle_generation_input_tokens,
+)
+from dmw_experiments.studies.haiu_comparison.model.ontology import (
+    turtle_syntax_fields,
 )
 from dmw_experiments.studies.haiu_comparison.model.results import (
     ExperimentResult,

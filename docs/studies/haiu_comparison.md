@@ -159,7 +159,7 @@ are enabled. Derived files are organized as follows:
 | DMW | 1.1.3 |
 | OPA | 2.1.2 |
 | GTA | 0.2.4 |
-| Haiu | 1.8.0 |
+| Haiu | 1.8.1 |
 | MongoDBAPI | 1.0.2 |
 
 The template locks remote releases. Local editable checkouts are temporary

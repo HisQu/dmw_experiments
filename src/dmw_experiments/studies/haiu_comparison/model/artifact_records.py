@@ -23,6 +23,8 @@ EXTERNALIZED_RESULT_FIELDS = frozenset(
         "prompts",
         "raw_response",
         "raw_stage1_output",
+        "raw_stage1_provider_message",
+        "raw_stage2_provider_message",
         "raw_ttl_output",
         "tbox",
     }
@@ -251,15 +253,13 @@ class CellResultRecord:
         return record
 
 
-def load_upstream_payload(
-    record: dict[str, Any], *, run_root: Path
-) -> dict[str, Any]:
-    """Load and verify the exact source payload indexed by a v3 record.
+def load_upstream_bytes(record: dict[str, Any], *, run_root: Path) -> bytes:
+    """Load and verify the exact decoded source bytes indexed by a v3 record.
 
     :param record: Parsed schema-v3 terminal or attempt metadata.
     :param run_root: Copied run used to resolve portable artifact paths.
-    :return: Original flat JSON-compatible payload.
-    :raises ValueError: If the artifact is absent, corrupted, or malformed.
+    :return: Original uncompressed JSON bytes.
+    :raises ValueError: If the artifact is absent or corrupted.
     """
     artifacts = record.get("artifacts")
     upstream = (
@@ -290,9 +290,23 @@ def load_upstream_payload(
         raise ValueError(
             f"Decoded upstream-result artifact hash changed: {relative}"
         )
+    return decoded
+
+
+def load_upstream_payload(
+    record: dict[str, Any], *, run_root: Path
+) -> dict[str, Any]:
+    """Load and verify the exact source payload indexed by a v3 record.
+
+    :param record: Parsed schema-v3 terminal or attempt metadata.
+    :param run_root: Copied run used to resolve portable artifact paths.
+    :return: Original flat JSON-compatible payload.
+    :raises ValueError: If the artifact is absent, corrupted, or malformed.
+    """
+    decoded = load_upstream_bytes(record, run_root=run_root)
     payload = json.loads(decoded.decode("utf-8"))
     if not isinstance(payload, dict):
-        raise ValueError(f"Upstream result is not a JSON object: {relative}")
+        raise ValueError("Upstream result is not a JSON object.")
     return payload
 
 

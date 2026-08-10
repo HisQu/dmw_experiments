@@ -237,7 +237,7 @@ def test_approved_haiu_report_rejects_editable_installation() -> None:
     }
     report = {"packages": packages}
 
-    with pytest.raises(SystemExit, match="non-editable haiu==1.8.0"):
+    with pytest.raises(SystemExit, match="non-editable haiu==1.8.1"):
         capture_environment_lock._require_approved_distributions(
             report,
             repositories,

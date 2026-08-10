@@ -1041,7 +1041,7 @@ def test_run_manifest_captures_resume_sensitive_configuration() -> None:
         profile=provider_profile("academiccloud-qwen36"),
         provenance={"schema_version": 1, "inputs": {}},
         haiu_distribution={
-            "version": "1.8.0",
+            "version": "1.8.1",
             "distribution_archive_hash": "sha256=example",
         },
     )
@@ -1052,7 +1052,7 @@ def test_run_manifest_captures_resume_sensitive_configuration() -> None:
     }
     assert manifest["regest_ids"] == ["1", "2"]
     assert manifest["schema_version"] == 5
-    assert manifest["haiu_distribution"]["version"] == "1.8.0"
+    assert manifest["haiu_distribution"]["version"] == "1.8.1"
     assert manifest["workflow"]["shared_frozen_annotation"] is True
     assert manifest["workflow"]["existing_data_policy"] == "reuse"
     assert manifest["workflow"]["require_existing_annotation"] is True
@@ -1096,7 +1096,7 @@ def test_pair_run_manifest_uses_new_schema_without_changing_legacy_shape() -> (
         },
         profile=provider_profile("academiccloud-qwen36"),
         provenance={"schema_version": 1, "inputs": {}},
-        haiu_distribution={"version": "1.8.0"},
+        haiu_distribution={"version": "1.8.1"},
         input_population=input_population,
     )
 
@@ -1134,12 +1134,12 @@ def test_selected_model_entry_keeps_effective_generation_settings() -> None:
 def test_publication_distribution_gate_accepts_hashed_wheel() -> None:
     run_experiment._require_published_haiu_distribution(
         {
-            "version": "1.8.0",
+            "version": "1.8.1",
             "editable": False,
             "vcs": None,
             "direct_url": (
-                "https://github.com/HisQu/haiu/releases/download/v1.8.0/"
-                "haiu-1.8.0-py3-none-any.whl"
+                "https://github.com/HisQu/haiu/releases/download/v1.8.1/"
+                "haiu-1.8.1-py3-none-any.whl"
             ),
             "distribution_archive_hash": "sha256=" + "a" * 64,
         }
@@ -1150,7 +1150,7 @@ def test_publication_distribution_gate_rejects_editable_checkout() -> None:
     with pytest.raises(SystemExit, match="non-editable Haiu installation"):
         run_experiment._require_published_haiu_distribution(
             {
-                "version": "1.8.0",
+                "version": "1.8.1",
                 "editable": True,
                 "vcs": None,
                 "direct_url": "file:///workspace/haiu",
@@ -1162,11 +1162,11 @@ def test_publication_distribution_gate_rejects_editable_checkout() -> None:
 def test_publication_distribution_gate_accepts_approved_vcs_release() -> None:
     run_experiment._require_published_haiu_distribution(
         {
-            "version": "1.8.0",
+            "version": "1.8.1",
             "editable": False,
             "vcs": "git",
             "direct_url": "https://github.com/HisQu/haiu.git",
-            "requested_revision": "v1.8.0",
+            "requested_revision": "v1.8.1",
             "commit_id": "a" * 40,
         }
     )
@@ -1176,11 +1176,11 @@ def test_publication_distribution_gate_rejects_incomplete_vcs_commit() -> None:
     with pytest.raises(SystemExit, match="approved Haiu Git release source"):
         run_experiment._require_published_haiu_distribution(
             {
-                "version": "1.8.0",
+                "version": "1.8.1",
                 "editable": False,
                 "vcs": "git",
                 "direct_url": "https://github.com/HisQu/haiu.git",
-                "requested_revision": "v1.8.0",
+                "requested_revision": "v1.8.1",
                 "commit_id": "wrong-commit",
             }
         )

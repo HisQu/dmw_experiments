@@ -21,7 +21,7 @@ dependencies = [
     "build>=1.2,<2",
     "datamodel-workflow @ git+https://github.com/HisQu/datamodel-workflow.git@v1.1.3",
     "gta @ git+https://github.com/HisQu/GTA.git@v0.2.4",
-    "haiu[rag,bench] @ git+https://github.com/HisQu/haiu.git@v1.8.0",
+    "haiu[rag,bench] @ git+https://github.com/HisQu/haiu.git@v1.8.1",
     "matplotlib",
     "MongoDBAPI @ git+https://github.com/HisQu/MongoDBAPI.git@v1.0.2",
     "numpy",
@@ -35,12 +35,14 @@ dependencies = [
 ]
 
 [tool.uv]
-# > OPA 2.1.2 and NER 0.1.2 name older MongoDBAPI and GTA commits while DMW
-# > 1.1.3 requires the published MongoDBAPI 1.0.2 and GTA 0.2.4 releases. These
-# > are published-metadata compatibility corrections, not local-source
-# > convenience overrides. Both direct dependencies above remain remote and
-# > the resolved commits are frozen in uv.lock/pylock.toml.
+# > OPA 2.1.2 and NER 0.1.2 name older Haiu, MongoDBAPI, and GTA releases while
+# > this harness requires the compatible Haiu 1.8.1 observability patch and DMW
+# > 1.1.3 requires MongoDBAPI 1.0.2 and GTA 0.2.4. These are published-metadata
+# > compatibility corrections, not local-source convenience overrides. All
+# > direct dependencies above remain remote and the resolved commits are frozen
+# > in uv.lock/pylock.toml.
 override-dependencies = [
+    "haiu[rag,bench] @ git+https://github.com/HisQu/haiu.git@v1.8.1",
     "MongoDBAPI @ git+https://github.com/HisQu/MongoDBAPI.git@v1.0.2",
     "gta @ git+https://github.com/HisQu/GTA.git@v0.2.4",
 ]

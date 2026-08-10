@@ -240,14 +240,16 @@ def _review_seed(run_manifest: dict[str, Any], *, purpose: str) -> int:
 def _canonical_turtle_graph(
     *, run_dir: Path, row: dict[str, Any]
 ) -> _SourceOrderedGraph | None:
-    """Parse one canonical raw-Turtle sidecar while retaining source order.
+    """Parse one canonical Turtle projection while retaining source order.
 
     :param run_dir: Root directory of the experiment run.
-    :param row: Observation that identifies the canonical Turtle sidecar.
+    :param row: Observation that identifies the canonical Turtle projection.
     :return: Parsed source-ordered graph, or None when the sidecar is absent
         or not valid Turtle.
     """
-    relative = row.get("raw_ttl_artifact_path")
+    relative = row.get("ontology_artifact_path") or row.get(
+        "raw_ttl_artifact_path"
+    )
     if not isinstance(relative, str):
         return None
     path = run_dir / relative

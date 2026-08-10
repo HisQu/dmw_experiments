@@ -208,7 +208,7 @@ h11==0.16.0
     #   opa
     #   uvicorn
     #   wsproto
-haiu @ git+https://github.com/HisQu/haiu.git@e95097c382a71bc8442d2ec7231bc9b4c66b19e9
+haiu @ git+https://github.com/HisQu/haiu.git@8a22b271db93ade7e0599c1c6f06c0134c008db7
     # via
     #   dmw-experiments
     #   opa

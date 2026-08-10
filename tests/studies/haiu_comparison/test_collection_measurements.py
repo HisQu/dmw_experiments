@@ -1,6 +1,8 @@
 from dmw_experiments.studies.haiu_comparison.data_collection.measurements import (
     summarize_rows,
     turtle_generation_input_tokens,
+)
+from dmw_experiments.studies.haiu_comparison.model.ontology import (
     turtle_syntax_fields,
 )
 from dmw_experiments.studies.haiu_comparison.model.results import (
@@ -42,6 +44,30 @@ def test_turtle_syntax_fields_reports_invalid_output() -> None:
     assert fields["turtle_syntax_valid"] is False
     assert fields["turtle_triple_count"] is None
     assert fields["turtle_syntax_error"]
+
+
+def test_turtle_syntax_fields_accepts_one_outer_turtle_fence() -> None:
+    fields = turtle_syntax_fields(
+        "```ttl\n@prefix : <x:> .\n:i a :Thing .\n```"
+    )
+
+    assert fields["turtle_syntax_valid"] is True
+    assert fields["turtle_triple_count"] == 1
+    assert fields["turtle_outer_fence_removed"] is True
+
+
+def test_turtle_syntax_fields_does_not_hide_partial_fence() -> None:
+    fields = turtle_syntax_fields("```ttl\n:i a :Thing .")
+
+    assert fields["turtle_syntax_valid"] is False
+    assert fields["turtle_outer_fence_removed"] is False
+
+
+def test_turtle_syntax_fields_does_not_guess_unlabelled_fence() -> None:
+    fields = turtle_syntax_fields("```\n:i a :Thing .\n```")
+
+    assert fields["turtle_syntax_valid"] is False
+    assert fields["turtle_outer_fence_removed"] is False
 
 
 def test_summary_excludes_failures_from_success_metrics() -> None:

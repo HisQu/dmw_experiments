@@ -6,6 +6,9 @@ from dmw_experiments.studies.haiu_comparison.model.traces import (
     PromptBundle,
     RegestText,
 )
+from dmw_experiments.studies.haiu_comparison.model.ontology import (
+    strip_outer_turtle_fence,
+)
 from dmw_experiments.studies.haiu_comparison.data_collection.haiu.prompt_renderer import (
     build_stage1_prompts as _render_opa_stage1,
 )
@@ -69,7 +72,7 @@ def split_turtle_sections(ttl_output: str) -> tuple[str, str, str | None]:
     :param ttl_output: Unmodified Stage-2 model response.
     :return: TBox text, ABox text, and an optional parsing warning.
     """
-    cleaned_output = _strip_outer_turtle_fence(ttl_output)
+    cleaned_output, _ = strip_outer_turtle_fence(ttl_output)
     lines = cleaned_output.splitlines()
     tbox_index = _marker_index(lines, "# --- TBOX ---")
     abox_index = _marker_index(lines, "# --- ABOX ---")
@@ -78,23 +81,6 @@ def split_turtle_sections(ttl_output: str) -> tuple[str, str, str | None]:
     tbox = "\n".join(lines[:abox_index]).strip()
     abox = "\n".join(lines[abox_index:]).strip()
     return tbox, abox, None
-
-
-def _strip_outer_turtle_fence(ttl: str) -> str:
-    """Remove one optional Markdown fence while retaining all other raw text.
-
-    :param ttl: Raw model response.
-    :return: Response without one recognized outer code fence.
-    """
-    lines = ttl.strip().splitlines()
-    opening_fences = {"```", "```ttl", "```turtle"}
-    if (
-        len(lines) >= 2
-        and lines[0].strip().lower() in opening_fences
-        and lines[-1].strip() == "```"
-    ):
-        lines = lines[1:-1]
-    return "\n".join(lines).strip()
 
 
 def _marker_index(lines: list[str], marker: str) -> int | None:

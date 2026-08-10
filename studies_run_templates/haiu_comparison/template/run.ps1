@@ -1,10 +1,10 @@
 $ErrorActionPreference = "Stop"
 $RunRoot = $PSScriptRoot
 $Action = if ($args.Count -gt 0) { $args[0] } else { "help" }
-$Allowed = @("validate", "start", "status", "pause", "resume", "migrate-artifacts", "analyze", "prepare-promotion")
+$Allowed = @("validate", "start", "status", "pause", "resume", "migrate-artifacts", "refresh-artifacts", "adopt-runtime-transition", "analyze", "prepare-promotion")
 
 if ($Action -in @("help", "-h", "--help")) {
-    Write-Output "Usage: .\run.ps1 <validate|start|status|pause|resume|migrate-artifacts|analyze|prepare-promotion> [options]"
+    Write-Output "Usage: .\run.ps1 <validate|start|status|pause|resume|migrate-artifacts|refresh-artifacts|adopt-runtime-transition|analyze|prepare-promotion> [options]"
     exit 0
 }
 if ($Action -notin $Allowed) {

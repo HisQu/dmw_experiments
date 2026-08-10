@@ -6,7 +6,6 @@ import hashlib
 import json
 import os
 import shutil
-import subprocess
 from copy import deepcopy
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
@@ -29,8 +28,8 @@ from dmw_experiments.studies.haiu_comparison.data_collection.artifacts import (
 from dmw_experiments.studies.haiu_comparison.model.run_contract import (
     CONDITIONS,
 )
-from dmw_experiments.studies.haiu_comparison.operations.repository_paths import (
-    REPOSITORY_ROOT,
+from dmw_experiments.studies.haiu_comparison.operations.runtime_transition import (
+    clean_harness_identity as _clean_harness_identity,
 )
 
 SOURCE_SCHEMA_VERSION = 2
@@ -573,40 +572,6 @@ def migration_report_payload(report: ArtifactMigrationReport) -> dict[str, Any]:
     :return: Plain dictionary preserving every report field.
     """
     return asdict(report)
-
-
-def _clean_harness_identity() -> dict[str, Any]:
-    """Capture the committed harness that performs the migration.
-
-    :return: Commit, branch, and clean-worktree evidence.
-    :raises ValueError: If Git cannot prove a clean committed checkout.
-    """
-    commands = {
-        "commit": ("git", "rev-parse", "HEAD"),
-        "branch": ("git", "branch", "--show-current"),
-        "status": ("git", "status", "--porcelain"),
-    }
-    outputs: dict[str, str] = {}
-    for label, command in commands.items():
-        completed = subprocess.run(
-            command,
-            cwd=REPOSITORY_ROOT,
-            check=False,
-            capture_output=True,
-            text=True,
-        )
-        if completed.returncode:
-            raise ValueError(f"Cannot inspect experiment harness Git {label}.")
-        outputs[label] = completed.stdout.strip()
-    if outputs["status"]:
-        raise ValueError(
-            "Commit the artifact-layout implementation before migrating a run."
-        )
-    return {
-        "commit": outputs["commit"],
-        "branch": outputs["branch"],
-        "worktree_clean": True,
-    }
 
 
 def _inventory_digest(inventory: dict[str, str]) -> str:

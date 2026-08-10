@@ -2,6 +2,7 @@ from dmw_experiments.studies.haiu_comparison.data_collection.haiu.condition impo
     direct_trace_to_result,
 )
 from haiu.clients.llm.generation_budget import GenerationBudget
+from haiu.clients.llm.llm_metrics import LLMCallMeta, LLMCallMetrics
 from dmw_experiments.studies.haiu_comparison.model.traces import (
     DirectRunTrace,
     DirectStageTrace,
@@ -77,7 +78,21 @@ def test_direct_truncation_is_terminal() -> None:
         ),
         stage2=DirectStageTrace(
             prompts=PromptBundle(system="SYS 2", user="USER 2"),
+            output="unfinished provider output",
             attempted=True,
+            response=LLMCallMeta(
+                text="unfinished provider output",
+                model="cl100k_base",
+                metrics=LLMCallMetrics(
+                    total_time_s=1.0,
+                    completion_tokens=20_000,
+                    finish_reason="length",
+                ),
+                provider_message={
+                    "content": "unfinished provider output",
+                    "reasoning_content": "provider-native reasoning",
+                },
+            ),
             generation_budget=GenerationBudget(
                 requested_max_output_tokens=20_000,
                 predicted_max_output_tokens=20_000,
@@ -104,3 +119,8 @@ def test_direct_truncation_is_terminal() -> None:
     assert result.payload["non_retryable"] is True
     assert result.payload["raw_stage1_output"] == ""
     assert result.payload["raw_stage1_capture_complete"] is False
+    assert result.payload["raw_ttl_output"] == "unfinished provider output"
+    assert result.payload["raw_stage2_provider_message"] == {
+        "content": "unfinished provider output",
+        "reasoning_content": "provider-native reasoning",
+    }

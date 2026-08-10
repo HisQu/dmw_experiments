@@ -406,6 +406,35 @@ def test_historian_review_uses_direct_turtle_parsing_for_triplet_selection(
     assert len(rows[1:]) == 3
 
 
+def test_exporter_treats_one_outer_turtle_fence_as_serialization(
+    tmp_path: Path,
+) -> None:
+    run_dir = _complete_run(tmp_path)
+    raw_path = (
+        run_dir / "raw-academiccloud/result-haiu_rag_ontologizer/11010116.json"
+    )
+    raw = json.loads(raw_path.read_text(encoding="utf-8"))
+    raw["raw_ttl_output"] = f"```ttl\n{raw['raw_ttl_output']}\n```"
+    raw["turtle_syntax_valid"] = False
+    _write_json(raw_path, raw)
+
+    paths = _export_run(run_dir)
+
+    workbook = load_workbook(paths.workbook, read_only=True)
+    rows = list(workbook["04_Observations"].values)
+    headers = rows[0]
+    condition_index = headers.index("condition")
+    syntax_index = headers.index("turtle_syntax_valid")
+    fence_index = headers.index("turtle_outer_fence_removed")
+    direct = next(
+        row
+        for row in rows[1:]
+        if row[condition_index] == "haiu_rag_ontologizer"
+    )
+    assert direct[syntax_index] is True
+    assert direct[fence_index] is True
+
+
 def test_exporter_reconciles_full_turtle_generation_input_context(
     tmp_path: Path,
 ) -> None:

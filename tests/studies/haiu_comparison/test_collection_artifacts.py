@@ -49,6 +49,9 @@ def test_artifact_paths_are_relative_to_run_directory(tmp_path: Path) -> None:
         "raw-academiccloud/intermediates-workflow_full_ontology/"
         "11000127/attempts/001/responses/stage-2.raw.txt"
     )
+    assert row["ontology_artifact_path"] == (
+        "raw-academiccloud/result-workflow_full_ontology/11000127/ontology.ttl"
+    )
     assert row["raw_yaml_artifact_path"] is None
     assert row["retrieved_ttl_artifact_path"] is None
     assert row["retrieved_yaml_artifact_path"] is None
@@ -379,6 +382,95 @@ def test_failed_runner_attempt_uses_explicit_failed_directory(
         / "raw-academiccloud/intermediates-workflow_full_ontology/"
         "11000127/attempts/001-failed/responses/stage-2.raw.txt"
     ).read_text(encoding="utf-8") == "```ttl\ninvalid\n```"
+
+
+def test_artifacts_preserve_raw_fence_and_provider_message(
+    tmp_path: Path,
+) -> None:
+    writer = _writer(tmp_path / "run")
+    raw_turtle = "```ttl\n@prefix : <x:> .\n:i a :Thing .\n```"
+    provider_message = {
+        "content": None,
+        "reasoning_content": "provider-native reasoning",
+    }
+
+    row = writer.write_result(
+        ExperimentResult(
+            condition="haiu_rag_ontologizer",
+            regest_id="11000127",
+            success=True,
+            payload={
+                "condition": "haiu_rag_ontologizer",
+                "regest_id": "11000127",
+                "success": True,
+                "raw_ttl_output": raw_turtle,
+                "raw_stage2_provider_message": provider_message,
+            },
+        )
+    )
+
+    raw_path = tmp_path / "run" / str(row["raw_ttl_artifact_path"])
+    ontology_path = tmp_path / "run" / str(row["ontology_artifact_path"])
+    assert raw_path.read_text(encoding="utf-8") == raw_turtle
+    assert ontology_path.read_text(encoding="utf-8") == (
+        "@prefix : <x:> .\n:i a :Thing ."
+    )
+    assert row["turtle_syntax_valid"] is True
+    assert row["turtle_outer_fence_removed"] is True
+    record = json.loads(
+        (tmp_path / "run" / str(row["raw_artifact_path"])).read_text(
+            encoding="utf-8"
+        )
+    )
+    provider_path = (
+        tmp_path
+        / "run"
+        / record["artifacts"]["stage2_provider_message"]["path"]
+    )
+    assert row["raw_stage2_provider_message_artifact_path"] == (
+        provider_path.relative_to(tmp_path / "run").as_posix()
+    )
+    assert json.loads(provider_path.read_text(encoding="utf-8")) == (
+        provider_message
+    )
+
+
+def test_refresh_terminal_projections_keeps_exact_upstream(
+    tmp_path: Path,
+) -> None:
+    writer = _writer(tmp_path / "run")
+    raw_turtle = "```ttl\n@prefix : <x:> .\n:i a :Thing .\n```"
+    row = writer.write_result(
+        ExperimentResult(
+            condition="haiu_rag_ontologizer",
+            regest_id="11000127",
+            success=True,
+            payload={
+                "condition": "haiu_rag_ontologizer",
+                "regest_id": "11000127",
+                "success": True,
+                "raw_ttl_output": raw_turtle,
+                "turtle_syntax_valid": False,
+            },
+        )
+    )
+    result_path = tmp_path / "run" / str(row["raw_artifact_path"])
+    before = json.loads(result_path.read_text(encoding="utf-8"))
+    upstream_path = (
+        tmp_path / "run" / before["artifacts"]["upstream_result"]["path"]
+    )
+    upstream_bytes = upstream_path.read_bytes()
+
+    counts = writer.refresh_terminal_projections()
+
+    after = json.loads(result_path.read_text(encoding="utf-8"))
+    assert counts == {"terminal_cells": 1, "outer_fences_removed": 1}
+    assert upstream_path.read_bytes() == upstream_bytes
+    assert (
+        json.loads(gzip.decompress(upstream_bytes))["turtle_syntax_valid"]
+        is False
+    )
+    assert after["validation"]["turtle_syntax_valid"] is True
 
 
 def test_native_haiu_retrieval_snapshot_is_written_with_portable_paths(

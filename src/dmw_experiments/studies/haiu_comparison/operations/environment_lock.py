@@ -53,9 +53,9 @@ APPROVED_DISTRIBUTIONS = {
         "repository": "gta",
     },
     "haiu": {
-        "version": "1.8.0",
+        "version": "1.8.1",
         "url": "https://github.com/HisQu/haiu.git",
-        "revision": "v1.8.0",
+        "revision": "v1.8.1",
         "repository": "haiu",
     },
 }
@@ -108,7 +108,7 @@ def _build_parser() -> argparse.ArgumentParser:
         required=True,
         help=(
             "Clean dmw_experiments checkout containing the harness; distinct "
-            "from --haiu-repo, which remains at the published v1.8.0 tag."
+            "from --haiu-repo, which remains at the published v1.8.1 tag."
         ),
     )
     parser.add_argument(
@@ -223,7 +223,7 @@ def _frozen_repository(repo: Path, *, label: str) -> dict[str, Any]:
 def _frozen_experiment_harness(repo: Path) -> dict[str, Any]:
     """Capture the clean commit that owns the experiment orchestration.
 
-    This identity is separate from the installed ``haiu==1.8.0`` package
+    This identity is separate from the installed ``haiu==1.8.1`` package
     evidence. The experiment branch may advance without changing the runtime
     package used by the measured conditions.
 

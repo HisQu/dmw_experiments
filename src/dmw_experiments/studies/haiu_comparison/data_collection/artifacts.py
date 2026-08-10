@@ -24,6 +24,7 @@ from dmw_experiments.studies.haiu_comparison.model.artifact_layout import (
 from dmw_experiments.studies.haiu_comparison.model.artifact_records import (
     ArtifactReference,
     CellResultRecord,
+    load_upstream_bytes,
     load_upstream_payload,
     verify_artifact_references,
 )
@@ -32,6 +33,10 @@ from dmw_experiments.studies.haiu_comparison.data_collection.measurements import
 )
 from dmw_experiments.studies.haiu_comparison.model.results import (
     ExperimentResult,
+)
+from dmw_experiments.studies.haiu_comparison.model.ontology import (
+    strip_outer_turtle_fence,
+    turtle_syntax_fields,
 )
 from dmw_experiments.studies.haiu_comparison.model.traces import (
     RegestText,
@@ -55,6 +60,8 @@ NORMALIZED_ROW_OMITTED_FIELDS = frozenset(
         "prompts",
         "raw_ttl_output",
         "raw_stage1_output",
+        "raw_stage1_provider_message",
+        "raw_stage2_provider_message",
         "explanation",
         "tbox",
         "abox",
@@ -357,6 +364,7 @@ class ArtifactWriter:
                 f"{conflicting_attempt.relative_to(self.path_root)}"
             )
         attempt_dir.mkdir(parents=True, exist_ok=True)
+        projected_payload = _projected_payload(payload)
         artifacts, raw_document_paths, prompt_paths = (
             self._write_attempt_documents(
                 condition=condition,
@@ -368,7 +376,7 @@ class ArtifactWriter:
             )
         )
         record = CellResultRecord.from_payload(
-            payload=payload,
+            payload=projected_payload,
             condition=condition,
             unit_id=regest_id,
             artifacts=artifacts,
@@ -386,13 +394,54 @@ class ArtifactWriter:
         else:
             raw_path = metadata_path
         return self._normalized_row(
-            payload=payload,
+            payload=projected_payload,
             condition=condition,
             regest_id=regest_id,
             raw_path=raw_path,
             raw_document_paths=raw_document_paths,
             prompt_paths=prompt_paths,
         )
+
+    def refresh_terminal_projections(self) -> dict[str, int]:
+        """Rebuild terminal derived artifacts from exact retained payloads.
+
+        Provider payload bytes remain unchanged. This operation only refreshes
+        schema-v3 metadata, navigational sidecars, and the canonical Turtle
+        projection using the current deterministic artifact policy.
+
+        :return: Counts of refreshed cells and removed outer Turtle fences.
+        """
+        result_records = list(self.layout.iter_result_records())
+        counts = {"terminal_cells": 0, "outer_fences_removed": 0}
+        for condition, result_path in result_records:
+            record = _load_json_object(result_path)
+            verify_artifact_references(record, run_root=self.path_root)
+            source_json = load_upstream_bytes(record, run_root=self.path_root)
+            payload = json.loads(source_json.decode("utf-8"))
+            if not isinstance(payload, dict):
+                raise ValueError(
+                    "Upstream result is not a JSON object: "
+                    f"{result_path.relative_to(self.path_root)}"
+                )
+            regest_id = str(payload.get("regest_id") or result_path.parent.name)
+            recorded_condition = str(payload.get("condition") or condition)
+            if recorded_condition != condition:
+                raise ValueError(
+                    "Result condition differs from its directory: "
+                    f"{result_path.relative_to(self.path_root)}"
+                )
+            row = self._write_payload(
+                payload=payload,
+                condition=condition,
+                regest_id=regest_id,
+                source_json=source_json,
+                terminal=True,
+            )
+            counts["terminal_cells"] += 1
+            counts["outer_fences_removed"] += int(
+                row.get("turtle_outer_fence_removed") is True
+            )
+        return counts
 
     def _write_retained_attempt_history(
         self,
@@ -696,9 +745,10 @@ class ArtifactWriter:
         :param prompt_paths: Paths written from complete prompt content.
         :return: Compact normalized row with portable artifact paths.
         """
+        projected_payload = _projected_payload(payload)
         row = {
             key: value
-            for key, value in payload.items()
+            for key, value in projected_payload.items()
             if key not in NORMALIZED_ROW_OMITTED_FIELDS
         }
         row["condition"] = condition
@@ -707,9 +757,16 @@ class ArtifactWriter:
             self.path_root
         ).as_posix()
         row["raw_ttl_artifact_path"] = raw_document_paths.get("ttl")
+        row["ontology_artifact_path"] = raw_document_paths.get("ontology")
         row["raw_stage1_artifact_path"] = raw_document_paths.get("stage1")
         row["raw_stage1_metadata_artifact_path"] = raw_document_paths.get(
             "stage1_metadata"
+        )
+        row["raw_stage1_provider_message_artifact_path"] = (
+            raw_document_paths.get("stage1_provider_message")
+        )
+        row["raw_stage2_provider_message_artifact_path"] = (
+            raw_document_paths.get("stage2_provider_message")
         )
         row["attempt_ttl_artifact_paths"] = raw_document_paths.get(
             "attempt_ttl"
@@ -1244,6 +1301,27 @@ class ArtifactWriter:
                 "reason": stage1_capture["reason"],
             }
 
+        for stage_number in (1, 2):
+            provider_message = payload.get(
+                f"raw_stage{stage_number}_provider_message"
+            )
+            if not isinstance(provider_message, dict):
+                continue
+            provider_path = (
+                response_dir / f"stage-{stage_number}.provider-message.json"
+            )
+            _write_json_atomic(provider_path, provider_message)
+            artifacts[f"stage{stage_number}_provider_message"] = (
+                ArtifactReference.from_path(
+                    provider_path,
+                    run_root=self.path_root,
+                    media_type="application/json",
+                ).as_dict()
+            )
+            raw_paths[f"stage{stage_number}_provider_message"] = artifacts[
+                f"stage{stage_number}_provider_message"
+            ]["path"]
+
         turtle_text = _raw_turtle_text(payload)
         if not turtle_text:
             legacy_turtle = (
@@ -1269,12 +1347,21 @@ class ArtifactWriter:
             if terminal:
                 ontology_path = self.layout.ontology(condition, regest_id)
                 ontology_path.parent.mkdir(parents=True, exist_ok=True)
-                _replace_hardlink(stage2_path, ontology_path)
-                artifacts["ontology"] = ArtifactReference.from_path(
+                ontology_text, fence_removed = strip_outer_turtle_fence(
+                    turtle_text
+                )
+                if fence_removed:
+                    _write_text_atomic(ontology_path, ontology_text)
+                else:
+                    _replace_hardlink(stage2_path, ontology_path)
+                ontology_reference = ArtifactReference.from_path(
                     ontology_path,
                     run_root=self.path_root,
                     media_type="text/turtle",
                 ).as_dict()
+                ontology_reference["outer_fence_removed"] = fence_removed
+                artifacts["ontology"] = ontology_reference
+                raw_paths["ontology"] = ontology_reference["path"]
         else:
             artifacts["stage2_response"] = {
                 "status": "unavailable",
@@ -1604,8 +1691,10 @@ def _paths_from_v3_record(
     )
     stage1 = artifacts.get("stage1_response")
     stage2 = artifacts.get("stage2_response")
+    ontology = artifacts.get("ontology")
     stage1_path = _artifact_path(stage1)
     stage2_path = _artifact_path(stage2)
+    ontology_path = _artifact_path(ontology)
     stage1_status = (
         str(stage1.get("status") or "unavailable")
         if isinstance(stage1, dict)
@@ -1626,8 +1715,15 @@ def _paths_from_v3_record(
         "yaml": None,
         "stage1": stage1_path,
         "stage1_metadata": metadata_path,
+        "stage1_provider_message": _artifact_path(
+            artifacts.get("stage1_provider_message")
+        ),
+        "stage2_provider_message": _artifact_path(
+            artifacts.get("stage2_provider_message")
+        ),
         "stage1_capture_status": stage1_status,
         "ttl": stage2_path,
+        "ontology": ontology_path,
         "attempt_ttl": (
             {f"attempt_{attempt_label}": stage2_path}
             if stage2_path is not None
@@ -1749,6 +1845,19 @@ def _raw_turtle_text(payload: dict[str, Any]) -> str:
     if isinstance(raw_output, str) and raw_output:
         return raw_output
     return ""
+
+
+def _projected_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    """Apply deterministic Turtle validation without changing raw evidence.
+
+    :param payload: Exact provider-derived result payload.
+    :return: Shallow copy with current derived Turtle validation fields.
+    """
+    projected = dict(payload)
+    turtle_text = _raw_turtle_text(payload)
+    if turtle_text:
+        projected.update(turtle_syntax_fields(turtle_text))
+    return projected
 
 
 def _stage1_response_capture(payload: dict[str, Any]) -> dict[str, str | None]:

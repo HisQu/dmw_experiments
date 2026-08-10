@@ -138,6 +138,29 @@ def test_status_reads_nested_schema_v3_results_and_checkpoints(
     assert provider.retry_pending_cells == 1
 
 
+@pytest.mark.parametrize(
+    "operation",
+    ("refresh_artifacts", "adopt_runtime_transition"),
+)
+def test_runtime_patch_operations_refuse_active_provider_services(
+    tmp_path: Path,
+    operation: str,
+) -> None:
+    root = _smoke_run(tmp_path)
+    lifecycle = ExperimentLifecycle(
+        config=AppRuntimeConfig(),
+        services=UserServiceManager(runner=_active_runner),
+    )
+    kwargs: dict[str, object] = {
+        "execution_names": ("academiccloud",),
+    }
+    if operation == "adopt_runtime_transition":
+        kwargs["reason"] = "test transition"
+
+    with pytest.raises(RuntimeError, match="Pause the execution"):
+        getattr(lifecycle, operation)(root, **kwargs)
+
+
 def test_artifact_migration_refuses_active_provider_services(
     tmp_path: Path,
 ) -> None:

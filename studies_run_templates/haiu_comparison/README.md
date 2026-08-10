@@ -82,6 +82,12 @@ only the verified active duplicates, and records the clean harness transition.
 It refuses a `retry_pending` schema-v2 checkpoint because that result is not
 terminal. Resume only after the retry chain and migration both succeed.
 
+For a stopped long run that adopts an operational patch, record the exact
+clean source and dependency transition with `./run.sh
+adopt-runtime-transition --reason "<factual reason>"`. Use `./run.sh
+refresh-artifacts` to rebuild only deterministic metadata and Turtle
+projections from the unchanged compressed upstream payloads.
+
 ## Lessons learned
 
 - Smoke and full runs require separate run directories, DMW branches, and

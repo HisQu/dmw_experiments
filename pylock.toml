@@ -781,8 +781,8 @@ wheels = [{ url = "https://files.pythonhosted.org/packages/04/4b/29cac41a4d98d14
 
 [[packages]]
 name = "haiu"
-version = "1.8.0"
-vcs = { type = "git", url = "https://github.com/HisQu/haiu.git", requested-revision = "v1.8.0", commit-id = "e95097c382a71bc8442d2ec7231bc9b4c66b19e9" }
+version = "1.8.1"
+vcs = { type = "git", url = "https://github.com/HisQu/haiu.git", requested-revision = "v1.8.1", commit-id = "8a22b271db93ade7e0599c1c6f06c0134c008db7" }
 
 [[packages]]
 name = "hf-xet"

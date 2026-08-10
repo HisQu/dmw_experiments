@@ -7,7 +7,6 @@ from collections import defaultdict
 from statistics import mean, median
 from typing import Any
 
-import haiu
 import haiu.utils as ut
 from haiu.clients.llm.llm_metrics import LLMCallMeta
 
@@ -17,10 +16,6 @@ from dmw_experiments.studies.haiu_comparison.model.results import (
 )
 from dmw_experiments.studies.haiu_comparison.model.traces import (
     PromptBundle,
-)
-
-from dmw_experiments.studies.haiu_comparison.model.ontology import (
-    TURTLE_PREFIXES,
 )
 
 
@@ -160,48 +155,6 @@ def output_token_fields(
     return {
         **tokens.as_dict(prefix),
         f"{prefix}_chars": len(text),
-    }
-
-
-def turtle_syntax_fields(
-    turtle_text: str,
-    *,
-    prefix: str = "turtle",
-) -> dict[str, bool | int | str | None]:
-    """Parse generated Turtle and return syntax diagnostics.
-
-    DMW stores TBox and ABox without the prompt's prefix declarations. The
-    shared prompt prefix block is therefore prepended when the output has no
-    declarations of its own.
-
-    :param turtle_text: Generated Turtle document or joined TBox/ABox fragments.
-    :param prefix: Metric field prefix.
-    :return: Syntax status, parsed triple count, and compact parser error.
-    """
-    cleaned = turtle_text.strip()
-    if not cleaned:
-        return {
-            f"{prefix}_syntax_valid": None,
-            f"{prefix}_triple_count": None,
-            f"{prefix}_syntax_error": None,
-        }
-    parse_input = (
-        cleaned
-        if "@prefix" in cleaned
-        else "\n\n".join((TURTLE_PREFIXES, cleaned))
-    )
-    try:
-        graph = haiu.parse_rdf_data(parse_input, format="turtle", log=False)
-    except RuntimeError as exc:
-        return {
-            f"{prefix}_syntax_valid": False,
-            f"{prefix}_triple_count": None,
-            f"{prefix}_syntax_error": " ".join(str(exc).split()),
-        }
-    return {
-        f"{prefix}_syntax_valid": True,
-        f"{prefix}_triple_count": len(graph),
-        f"{prefix}_syntax_error": None,
     }
 
 
