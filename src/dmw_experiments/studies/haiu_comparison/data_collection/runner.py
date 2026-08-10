@@ -190,7 +190,8 @@ def main(argv: list[str] | None = None) -> int:
         storage=args.storage,
     )
     rc = HaiuRC()
-    haiu_distribution = _installed_haiu_distribution_provenance()
+    runtime_distributions = _installed_runtime_distribution_provenance()
+    haiu_distribution = runtime_distributions["haiu"]
     if args.publication_run:
         _require_published_haiu_distribution(haiu_distribution)
     model = profile.provider_generation_model
@@ -214,6 +215,7 @@ def main(argv: list[str] | None = None) -> int:
             profile=profile,
             rc=rc,
             haiu_distribution=haiu_distribution,
+            runtime_distributions=runtime_distributions,
             input_catalog=input_catalog,
             dmw_input_manifest=dmw_input_manifest,
         )
@@ -2380,11 +2382,43 @@ def _installed_haiu_distribution_provenance() -> dict[str, Any]:
     :return: Non-secret imported-package and installed-distribution evidence.
     :raises SystemExit: If Python cannot resolve an installed Haiu distribution.
     """
+    return _installed_distribution_provenance(
+        name="haiu",
+        imported_package_path=Path(haiu.__file__ or "").resolve(),
+    )
+
+
+def _installed_runtime_distribution_provenance() -> dict[str, dict[str, Any]]:
+    """Describe every distribution governed by the publication lock.
+
+    :return: Non-secret provenance keyed by distribution name.
+    :raises SystemExit: If any required distribution is not installed.
+    """
+    provenance = {
+        name: _installed_distribution_provenance(name=name)
+        for name in APPROVED_RUNTIME_DISTRIBUTIONS
+    }
+    provenance["haiu"] = _installed_haiu_distribution_provenance()
+    return provenance
+
+
+def _installed_distribution_provenance(
+    *,
+    name: str,
+    imported_package_path: Path | None = None,
+) -> dict[str, Any]:
+    """Describe one installed distribution without recording credentials.
+
+    :param name: Installed distribution name.
+    :param imported_package_path: Resolved imported module path when available.
+    :return: Non-secret installed-distribution evidence.
+    :raises SystemExit: If Python cannot resolve the distribution.
+    """
     try:
-        distribution = importlib_metadata.distribution("haiu")
+        distribution = importlib_metadata.distribution(name)
     except importlib_metadata.PackageNotFoundError as exc:
         raise SystemExit(
-            "The experiment process has no installed haiu distribution. "
+            f"The experiment process has no installed {name} distribution. "
             "Install the published release before running it."
         ) from exc
 
@@ -2404,11 +2438,12 @@ def _installed_haiu_distribution_provenance() -> dict[str, Any]:
     dir_info = dir_info if isinstance(dir_info, dict) else {}
     vcs_info = direct_url.get("vcs_info")
     vcs_info = vcs_info if isinstance(vcs_info, dict) else {}
-    package_path = Path(haiu.__file__ or "").resolve()
     return {
         "distribution_name": distribution.metadata["Name"],
         "version": distribution.version,
-        "imported_package_path": str(package_path),
+        "imported_package_path": (
+            str(imported_package_path) if imported_package_path else None
+        ),
         "distribution_root": str(
             Path(str(distribution.locate_file("."))).resolve()
         ),
@@ -2510,6 +2545,26 @@ def _require_published_haiu_distribution(provenance: dict[str, Any]) -> None:
         )
 
 
+def _distribution_matches_release(
+    provenance: dict[str, Any],
+    expected: dict[str, str],
+) -> bool:
+    """Check one live Git installation against its approved release tag.
+
+    :param provenance: Installed-distribution evidence from this process.
+    :param expected: Approved version, repository URL, and revision.
+    :return: Whether the live non-editable distribution matches exactly.
+    """
+    return (
+        provenance.get("version") == expected["version"]
+        and not provenance.get("editable")
+        and provenance.get("vcs") == "git"
+        and provenance.get("direct_url") == expected["url"]
+        and provenance.get("requested_revision") == expected["revision"]
+        and _is_git_commit_id(provenance.get("commit_id"))
+    )
+
+
 def _condition_order_for_index(
     *, conditions: tuple[str, ...], index: int
 ) -> tuple[str, ...]:
@@ -2566,6 +2621,7 @@ def _validate_environment_lock(
     profile: ProviderProfile,
     rc: HaiuRC,
     haiu_distribution: dict[str, Any],
+    runtime_distributions: dict[str, dict[str, Any]] | None = None,
     input_catalog: HeaderSublemmaCatalog | None = None,
     dmw_input_manifest: DmwPairImportManifest | None = None,
 ) -> bool:
@@ -2581,6 +2637,7 @@ def _validate_environment_lock(
     :param profile: Pinned generation and embedding provider profile.
     :param rc: Resolved Haiu client configuration after profile application.
     :param haiu_distribution: Actual imported Haiu distribution provenance.
+    :param runtime_distributions: Actual installed DMW-stack provenance.
     :param input_catalog: Optional pair population for schema-v2 locks.
     :param dmw_input_manifest: Optional prepared pair storage evidence.
     :return: Whether an exact recorded runtime transition admits this resume.
@@ -2689,32 +2746,58 @@ def _validate_environment_lock(
         raise SystemExit(
             "environment_lock does not contain installed packages."
         )
+    live_harness = _experiment_harness_identity() if pair_mode else {}
+    runtime_transition_matches_live = False
+    transition_output_dir = getattr(args, "output_dir", None)
+    if pair_mode and transition_output_dir:
+        runtime_transition_matches_live = runtime_transition_matches(
+            output_dir=Path(transition_output_dir).expanduser().resolve(),
+            frozen_haiu_package=packages.get("haiu", {}),
+            live_haiu_distribution=haiu_distribution,
+            live_harness=live_harness,
+            frozen_packages=packages,
+            live_distributions=runtime_distributions,
+        )
     for distribution_name, expected in APPROVED_RUNTIME_DISTRIBUTIONS.items():
         if distribution_name == "haiu":
             continue
         package = packages.get(distribution_name)
         source = package.get("source") if isinstance(package, dict) else None
         repository = repositories.get(str(expected["repository"]))
-        if (
-            not isinstance(package, dict)
-            or not isinstance(source, dict)
-            or package.get("version") != expected["version"]
-            or source.get("editable")
-            or source.get("vcs") != "git"
-            or source.get("url") != expected["url"]
-            or source.get("requested_revision") != expected["revision"]
-            or not _is_git_commit_id(source.get("commit_id"))
-            or (
-                schema_version in {1, 2}
-                and (
-                    not isinstance(repository, dict)
-                    or source.get("commit_id") != repository.get("commit")
+        frozen_package_matches = (
+            isinstance(package, dict)
+            and isinstance(source, dict)
+            and package.get("version") == expected["version"]
+            and not source.get("editable")
+            and source.get("vcs") == "git"
+            and source.get("url") == expected["url"]
+            and source.get("requested_revision") == expected["revision"]
+            and _is_git_commit_id(source.get("commit_id"))
+            and (
+                schema_version not in {1, 2}
+                or (
+                    isinstance(repository, dict)
+                    and source.get("commit_id") == repository.get("commit")
                 )
             )
-        ):
+        )
+        if not frozen_package_matches and not runtime_transition_matches_live:
             raise SystemExit(
                 "environment_lock does not prove the approved, non-editable, "
                 f"commit-matched {distribution_name} release."
+            )
+        live_distribution = (
+            runtime_distributions.get(distribution_name)
+            if runtime_distributions is not None
+            else None
+        )
+        if live_distribution is not None and not _distribution_matches_release(
+            live_distribution,
+            expected,
+        ):
+            raise SystemExit(
+                "The live runtime does not match the approved "
+                f"{distribution_name} release."
             )
 
     haiu_package = packages.get("haiu")
@@ -2725,7 +2808,6 @@ def _validate_environment_lock(
         raise SystemExit(
             "environment_lock does not prove the approved Haiu release."
         )
-    live_harness = _experiment_harness_identity() if pair_mode else {}
     locked_commit = haiu_source.get("commit_id")
     haiu_lock_matches = (
         haiu_package.get("version") == PUBLISHED_HAIU_VERSION
@@ -2736,14 +2818,6 @@ def _validate_environment_lock(
         and _is_git_commit_id(locked_commit)
         and locked_commit == haiu_distribution.get("commit_id")
     )
-    runtime_transition_matches_live = False
-    if pair_mode and not haiu_lock_matches:
-        runtime_transition_matches_live = runtime_transition_matches(
-            output_dir=Path(args.output_dir).expanduser().resolve(),
-            frozen_haiu_package=haiu_package,
-            live_haiu_distribution=haiu_distribution,
-            live_harness=live_harness,
-        )
     if not haiu_lock_matches and not runtime_transition_matches_live:
         raise SystemExit(
             "environment_lock does not match the imported approved Haiu release."
