@@ -147,6 +147,7 @@ def runtime_transition_matches(
         )
         frozen_haiu = _package_haiu_identity(frozen_haiu_package)
         live_haiu = _distribution_haiu_identity(live_haiu_distribution)
+        target_harness = record.get("target_harness")
     except (OSError, ValueError):
         return False
     return (
@@ -156,7 +157,10 @@ def runtime_transition_matches(
         and record.get("execution") == execution
         and record.get("scientific_contract_changed") is False
         and record.get("source_harness") == source_harness
-        and record.get("target_harness") == live_harness
+        and isinstance(target_harness, dict)
+        and target_harness.get("commit") == live_harness.get("commit")
+        and target_harness.get("worktree_clean") is True
+        and live_harness.get("worktree_clean") is True
         and record.get("source_haiu") == frozen_haiu
         and record.get("target_haiu") == live_haiu
     )

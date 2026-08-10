@@ -98,15 +98,19 @@ def test_runtime_transition_records_and_verifies_exact_identities(
         "commit_id": "e" * 40,
         "editable": False,
     }
+    runner_harness = {
+        "commit": target_harness["commit"],
+        "worktree_clean": True,
+    }
     assert runtime_transition_matches(
         output_dir=output,
         frozen_haiu_package=source_haiu,
         live_haiu_distribution=live_distribution,
-        live_harness=target_harness,
+        live_harness=runner_harness,
     )
     assert not runtime_transition_matches(
         output_dir=output,
         frozen_haiu_package=source_haiu,
         live_haiu_distribution={**live_distribution, "commit_id": "f" * 40},
-        live_harness=target_harness,
+        live_harness=runner_harness,
     )
