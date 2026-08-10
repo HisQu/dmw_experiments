@@ -18,6 +18,7 @@ from dmw_experiments.studies.haiu_comparison.model.run_contract import (
 )
 from dmw_experiments.studies.haiu_comparison.operations.lifecycle import (
     ExperimentLifecycle,
+    _condition_wall_clock_timeout_seconds,
 )
 from dmw_experiments.studies.haiu_comparison.operations.runtime import (
     RuntimePaths,
@@ -184,6 +185,17 @@ def test_default_python_keeps_active_interpreter_path() -> None:
 
     assert runtime.publication_python.is_absolute()
     assert runtime.publication_python.name.startswith("python")
+
+
+def test_condition_timeout_outlives_worker_and_two_provider_calls() -> None:
+    """The outer guard leaves enough time to retain inner failure details."""
+    timeout_seconds = _condition_wall_clock_timeout_seconds(
+        ontology_worker_timeout_seconds=7_200,
+        provider_timeout_seconds=3_600,
+        haiu_timeout_seconds=3_600,
+    )
+
+    assert timeout_seconds == 7_500
 
 
 def test_haiu_storage_is_created_for_new_run_and_required_for_resume(

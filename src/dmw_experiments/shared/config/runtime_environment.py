@@ -182,6 +182,7 @@ class ResolvedRunEnvironment:
             "jwt",
             "github",
             "provider",
+            "ontology_worker",
             "ner",
             "haiu",
         ):

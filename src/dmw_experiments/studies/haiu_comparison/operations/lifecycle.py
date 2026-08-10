@@ -63,6 +63,7 @@ BACKEND_URLS = {
     "academiccloud": "http://127.0.0.1:8000",
     "lmstudio": "http://127.0.0.1:8001",
 }
+CONDITION_TIMEOUT_GRACE_SECONDS = 300
 
 
 class ExperimentLifecycle:
@@ -854,6 +855,7 @@ class ExperimentLifecycle:
                     execution=execution,
                     runtime=runtime,
                     workspace=workspace,
+                    resolved=resolved,
                     dmw_input_manifest=dmw_input_manifest,
                     environment_lock=environment_lock,
                     resume=resume,
@@ -956,11 +958,19 @@ class ExperimentLifecycle:
         execution: ProviderExecutionSpec,
         runtime: RuntimePaths,
         workspace: RunWorkspace,
+        resolved: ResolvedRunEnvironment,
         dmw_input_manifest: Path,
         environment_lock: Path,
         resume: bool,
     ) -> list[str]:
         input_root = workspace.root / "INPUTS"
+        condition_timeout_seconds = _condition_wall_clock_timeout_seconds(
+            ontology_worker_timeout_seconds=(
+                resolved.config.ontology_worker.ontology_timeout_seconds
+            ),
+            provider_timeout_seconds=resolved.config.provider.timeout_seconds,
+            haiu_timeout_seconds=resolved.config.haiu.timeout_llm,
+        )
         command = _execution_wrapper_command(
             runtime=runtime,
             workspace=workspace,
@@ -972,7 +982,7 @@ class ExperimentLifecycle:
                 "--base-url",
                 BACKEND_URLS[execution.name],
                 "--timeout-seconds",
-                "3600",
+                str(condition_timeout_seconds),
                 "--input-catalog",
                 str(workspace.root / spec.input_catalog),
                 "--dmw-input-manifest",
@@ -1043,6 +1053,31 @@ class ExperimentLifecycle:
         if completed.returncode:
             detail = completed.stderr.strip() or completed.stdout.strip()
             raise RuntimeError(f"Setup command failed: {detail}")
+
+
+def _condition_wall_clock_timeout_seconds(
+    *,
+    ontology_worker_timeout_seconds: int,
+    provider_timeout_seconds: int,
+    haiu_timeout_seconds: int,
+) -> int:
+    """Keep the harness guard outside every governed worker boundary.
+
+    Workflow and standalone conditions can each make two sequential generation
+    calls. The harness must let those provider calls or the DMW ontology worker
+    return their own diagnostic response before it interrupts the condition.
+
+    :param ontology_worker_timeout_seconds: DMW ontology worker limit.
+    :param provider_timeout_seconds: GTA provider-call limit.
+    :param haiu_timeout_seconds: Haiu provider-call limit.
+    :return: Outer wall-clock limit including a short response-handling grace.
+    """
+    governed_timeout = max(
+        ontology_worker_timeout_seconds,
+        2 * provider_timeout_seconds,
+        2 * haiu_timeout_seconds,
+    )
+    return governed_timeout + CONDITION_TIMEOUT_GRACE_SECONDS
 
 
 def _execution_wrapper_command(

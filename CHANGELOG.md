@@ -31,13 +31,14 @@ All notable changes to `dmw_experiments` will be documented in this file.
 1. [Changelog](#changelog)
    1. [Table Of Contents](#table-of-contents)
 2. [\[Unreleased\]](#unreleased)
-3. [0.5.1 - 2026-08-10](#051---2026-08-10)
-4. [0.5.0 - 2026-08-10](#050---2026-08-10)
-5. [0.4.1 - 2026-08-10](#041---2026-08-10)
-6. [0.4.0 - 2026-08-07](#040---2026-08-07)
-7. [0.3.0 - 2026-08-06](#030---2026-08-06)
-8. [0.2.0 - 2026-08-06](#020---2026-08-06)
-9. [0.1.0 - 2026-08-06](#010---2026-08-06)
+3. [0.5.2 - 2026-08-10](#052---2026-08-10)
+4. [0.5.1 - 2026-08-10](#051---2026-08-10)
+5. [0.5.0 - 2026-08-10](#050---2026-08-10)
+6. [0.4.1 - 2026-08-10](#041---2026-08-10)
+7. [0.4.0 - 2026-08-07](#040---2026-08-07)
+8. [0.3.0 - 2026-08-06](#030---2026-08-06)
+9. [0.2.0 - 2026-08-06](#020---2026-08-06)
+10. [0.1.0 - 2026-08-06](#010---2026-08-06)
 
 <br>
 
@@ -76,6 +77,24 @@ All notable changes to `dmw_experiments` will be documented in this file.
 <br>
 
 ### 🔒 Security
+
+<br>
+
+---
+
+<br>
+
+<!-- ======================================================== -->
+
+# 0.5.2 - 2026-08-10
+
+<br>
+
+### 🔨 Fixed
+
+- Extended the outer condition wall-clock guard beyond the configured DMW
+  worker and sequential provider-call limits. Provider and worker failures can
+  now return their diagnostic payload before the harness interrupts a cell.
 
 <br>
 

@@ -140,6 +140,19 @@ class ProviderRuntimeConfig(rc.Config):
     )
 
 
+@APP_RC.config(
+    "ontology_worker", prefix="ONTOLOGY_", title="DMW ontology worker"
+)
+class OntologyWorkerRuntimeConfig(rc.Config):
+    """Timeout owned by the local DMW ontology worker process."""
+
+    ontology_timeout_seconds: int = rc.field(
+        "ONTOLOGY_WORKER_TIMEOUT_SECONDS",
+        default=7_200,
+        title="Ontology worker timeout",
+    )
+
+
 @APP_RC.config("ner", prefix="FAISS_", title="NER resources")
 class NerRuntimeConfig(rc.Config):
     """Machine-local NER asset required by the DMW annotation stage."""
@@ -235,5 +248,6 @@ class StudyRuntimeConfig:
     jwt: JwtRuntimeConfig
     github: GithubRuntimeConfig
     provider: ProviderRuntimeConfig
+    ontology_worker: OntologyWorkerRuntimeConfig
     ner: NerRuntimeConfig
     haiu: HaiuStudyRuntimeConfig
