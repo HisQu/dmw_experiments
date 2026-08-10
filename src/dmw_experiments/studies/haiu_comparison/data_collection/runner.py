@@ -1013,7 +1013,10 @@ def main(argv: list[str] | None = None) -> int:
                             local_runtime_annotation_attempt_archives
                         ),
                     )
-                    rows_by_key[key] = writer.write_result(attempt_result)
+                    rows_by_key[key] = writer.write_result(
+                        attempt_result,
+                        terminal=False,
+                    )
                     checkpoint_rows = _ordered_rows(
                         ids=ids,
                         conditions=conditions,
@@ -2718,10 +2721,15 @@ def _validate_environment_lock(
         )
     harness = payload.get("experiment_harness")
     live_harness = _experiment_harness_identity()
-    if (
-        not isinstance(harness, dict)
-        or harness.get("commit") != live_harness["commit"]
-        or harness.get("worktree_clean") is not True
+    harness_matches = (
+        isinstance(harness, dict)
+        and harness.get("commit") == live_harness["commit"]
+        and harness.get("worktree_clean") is True
+    )
+    if not harness_matches and not _artifact_layout_migration_allows_harness(
+        args=args,
+        frozen_harness=harness,
+        live_harness=live_harness,
     ):
         raise SystemExit(
             "environment_lock does not match the clean experiment harness "
@@ -2758,6 +2766,58 @@ def _experiment_harness_identity() -> dict[str, str | bool]:
             "the same clean commit."
         )
     return {"commit": outputs["commit"], "worktree_clean": True}
+
+
+def _artifact_layout_migration_allows_harness(
+    *,
+    args: argparse.Namespace,
+    frozen_harness: Any,
+    live_harness: dict[str, str | bool],
+) -> bool:
+    """Accept one recorded storage-only harness revision after migration.
+
+    The original environment lock remains immutable. A schema-v3 migration
+    records both its original and replacement clean harness commits, allowing
+    resume without pretending that the first launch used the newer writer.
+
+    :param args: Runner arguments containing the provider output directory.
+    :param frozen_harness: Original identity from the environment lock.
+    :param live_harness: Clean identity of the current checkout.
+    :return: Whether a completed migration proves this exact transition.
+    """
+    if not isinstance(frozen_harness, dict):
+        return False
+    output_dir = Path(args.output_dir).expanduser().resolve()
+    if not output_dir.name.startswith("raw-"):
+        return False
+    execution = output_dir.name.removeprefix("raw-")
+    record_path = (
+        output_dir.parent
+        / "environment"
+        / f"{execution}-artifact-layout-migration.json"
+    )
+    manifest_path = output_dir / "manifest.json"
+    if not record_path.is_file() or not manifest_path.is_file():
+        return False
+    try:
+        record = json.loads(record_path.read_text(encoding="utf-8"))
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    return (
+        isinstance(record, dict)
+        and record.get("status") == "completed"
+        and record.get("execution") == execution
+        and record.get("source_schema_version") == 2
+        and record.get("target_schema_version") == 3
+        and record.get("source_harness") == frozen_harness
+        and isinstance(record.get("target_harness"), dict)
+        and record["target_harness"].get("commit") == live_harness["commit"]
+        and record["target_harness"].get("worktree_clean") is True
+        and isinstance(manifest, dict)
+        and manifest.get("schema_version") == 3
+        and manifest.get("record_type") == "haiu_comparison_execution_manifest"
+    )
 
 
 def _is_git_commit_id(value: object) -> bool:

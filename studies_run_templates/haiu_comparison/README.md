@@ -43,22 +43,44 @@ and derives collection and Haiu storage values from `run.toml`.
 
 ## Directory contract
 
-Keep provider and condition outputs flat:
+Keep provider and condition outputs flat. Organize evidence below each
+condition by input unit and attempt:
 
 ```text
 raw-<execution>/
-├── intermediates-workflow_full_ontology/
-├── intermediates-workflow_rag/
-├── intermediates-haiu_rag_ontologizer/
-├── result-workflow_full_ontology/
-├── result-workflow_rag/
-└── result-haiu_rag_ontologizer/
+├── manifest.json
+├── provenance/
+├── intermediates-shared_annotations/<unit-id>/
+│   ├── annotation.json
+│   └── attempts.json
+├── intermediates-workflow_full_ontology/<unit-id>/
+│   ├── checkpoint.json
+│   └── attempts/<NNN[-failed]>/
+├── intermediates-workflow_rag/<unit-id>/
+├── intermediates-haiu_rag_ontologizer/<unit-id>/
+├── result-workflow_full_ontology/<unit-id>/
+│   ├── result.json
+│   └── ontology.ttl
+├── result-workflow_rag/<unit-id>/
+└── result-haiu_rag_ontologizer/<unit-id>/
 ```
 
 Do not introduce a nested `raw/`, `conditions/`, or `executions/` layer.
+Every failed attempt has the explicit suffix `-failed`. Each attempt contains
+its metadata, prompts, responses, optional retrieval evidence, and the exact
+upstream result as compressed JSON. `result.json` is a small terminal index;
+it does not repeat the complete provider payload. Shared annotations are
+stored once because both DMW conditions consume the same frozen annotation.
 Analysis intermediates and workbooks stay below `analysis/`; final figures and
 captions stay below `plots/`; service logs and BABYSIT journals stay below
 `logs/`.
+
+For a stopped run written by the former flat layout, use
+`./run.sh migrate-artifacts`. The migration retains a hash-inventoried recovery
+snapshot, verifies all new artifact references and exact payloads, removes
+only the verified active duplicates, and records the clean harness transition.
+It refuses a `retry_pending` schema-v2 checkpoint because that result is not
+terminal. Resume only after the retry chain and migration both succeed.
 
 ## Lessons learned
 

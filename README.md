@@ -124,6 +124,11 @@ storage, logs, and BABYSIT journals. Either may advance without waiting for
 the other. A resume reuses the exact frozen `run.toml`; terminal model
 failures, including context exhaustion, remain evidence.
 
+Runs started before the per-unit evidence layout can be converted at a durable
+pause with `./run.sh migrate-artifacts`. The command retains a hash-inventoried
+schema-v2 recovery snapshot, verifies the new bundles, and records the clean
+harness transition before the same run resumes.
+
 ## Analyze and promote
 
 ```bash
@@ -149,8 +154,9 @@ Review the run, then copy it to
 ## Python API and study package
 
 `HaiuComparisonStudy` is the supported Python entry point. It exposes the same
-`new_run`, `validate`, `start`, `status`, `pause`, `resume`, `analyze`, and
-`prepare_promotion` lifecycle used by the CLI:
+`new_run`, `validate`, `start`, `status`, `pause`, `resume`,
+`migrate_artifacts`, `analyze`, and `prepare_promotion` lifecycle used by the
+CLI:
 
 ```python
 from dmw_experiments.shared.config import AppRuntimeConfig

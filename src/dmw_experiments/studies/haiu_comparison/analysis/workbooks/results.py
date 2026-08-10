@@ -19,6 +19,15 @@ import xlsxwriter
 from rdflib import Graph, Literal, URIRef
 from rdflib.namespace import OWL, RDF, RDFS, SKOS
 
+from dmw_experiments.studies.haiu_comparison.model.artifact_layout import (
+    ARTIFACT_SCHEMA_VERSION,
+    ExecutionArtifactLayout,
+    compatibility_prompt_key,
+)
+from dmw_experiments.studies.haiu_comparison.model.artifact_records import (
+    load_upstream_payload,
+    verify_artifact_references,
+)
 from dmw_experiments.studies.haiu_comparison.model.ontology import (
     TURTLE_PREFIXES,
 )
@@ -120,11 +129,17 @@ class _RunLayout:
     @property
     def manifest(self) -> Path:
         """Return the immutable runner manifest for this provider."""
+        current = self.output / "manifest.json"
+        if current.is_file():
+            return current
         return self.root / "environment" / f"{self.execution}-run-manifest.json"
 
     @property
     def provenance(self) -> Path:
         """Return the frozen input-provenance manifest for this provider."""
+        current = self.output / "provenance" / "manifest.json"
+        if current.is_file():
+            return current
         return (
             self.output
             / "intermediates-haiu_rag_ontologizer"
@@ -409,7 +424,7 @@ def export_run(
 
     layout = _RunLayout.from_output(run_dir)
     run_dir = layout.root
-    manifest = _load_json(layout.manifest)
+    manifest = _load_run_manifest(layout)
     provenance = _load_json(layout.provenance, allow_missing=allow_partial)
     rows, source_hashes = _load_rows(layout)
     _validate_provenance(provenance=provenance, run_dir=layout.root)
@@ -729,7 +744,7 @@ def _load_historian_review_source(
 
     layout = _RunLayout.from_output(run_dir)
     run_dir = layout.root
-    run_manifest = _load_json(layout.manifest)
+    run_manifest = _load_run_manifest(layout)
     provenance = _load_json(layout.provenance, allow_missing=allow_partial)
     rows, _ = _load_rows(layout)
     _validate_provenance(provenance=provenance, run_dir=layout.root)
@@ -876,14 +891,31 @@ def _load_rows(
     raw_dir = layout.output
     rows: list[dict[str, Any]] = []
     hashes: dict[str, str] = {}
-    for path in sorted(raw_dir.glob("result-*/*.json")):
-        payload = _load_json(path)
+    artifact_layout = ExecutionArtifactLayout(raw_dir)
+    result_paths: dict[tuple[str, str], Path] = {}
+    for condition, result_path in artifact_layout.iter_result_records():
+        result_paths[(condition, result_path.parent.name)] = result_path
+    for condition, result_path in artifact_layout.iter_legacy_result_records():
+        result_paths.setdefault((condition, result_path.stem), result_path)
+    for (directory_condition, directory_regest_id), path in sorted(
+        result_paths.items()
+    ):
+        record = _load_json(path)
+        if record.get("schema_version") == ARTIFACT_SCHEMA_VERSION:
+            verify_artifact_references(record, run_root=layout.root)
+            payload = load_upstream_payload(record, run_root=layout.root)
+            artifact_paths = _v3_row_artifact_paths(record)
+        else:
+            payload = record
+            artifact_paths = _legacy_row_artifact_paths(
+                layout=layout,
+                condition=directory_condition,
+                regest_id=directory_regest_id,
+            )
         if not isinstance(payload, dict):
             raise ValueError(f"Raw result is not an object: {path}")
-        condition = str(
-            payload.get("condition") or path.parent.name.removeprefix("result-")
-        )
-        regest_id = str(payload.get("regest_id") or path.stem)
+        condition = str(payload.get("condition") or directory_condition)
+        regest_id = str(payload.get("regest_id") or directory_regest_id)
         if _is_retry_pending(
             layout=layout,
             condition=condition,
@@ -894,9 +926,7 @@ def _load_rows(
         row["condition"] = condition
         row["regest_id"] = regest_id
         row["raw_artifact_path"] = path.relative_to(layout.root).as_posix()
-        row["raw_ttl_artifact_path"] = _raw_ttl_path(
-            layout, condition, regest_id
-        )
+        row.update(artifact_paths)
         _reconcile_turtle_generation_input_tokens(row)
         rows.append(row)
         hashes[path.relative_to(layout.root).as_posix()] = _sha256_file(path)
@@ -954,9 +984,11 @@ def _is_retry_pending(
     :return: Whether the matching attempt state explicitly requests a retry.
     """
     attempt_state = _load_json(
-        layout.output
-        / f"intermediates-{condition}"
-        / f"{regest_id}.attempt.json",
+        _attempt_checkpoint_path(
+            layout=layout,
+            condition=condition,
+            regest_id=regest_id,
+        ),
         allow_missing=True,
     )
     return attempt_state.get("status") == "retry_pending"
@@ -966,8 +998,7 @@ def _validate_raw_contract(
     *, layout: _RunLayout, rows: list[dict[str, Any]], allow_partial: bool
 ) -> None:
     expected_ids = {
-        str(value)
-        for value in _load_json(layout.manifest).get("regest_ids", [])
+        str(value) for value in _load_run_manifest(layout).get("regest_ids", [])
     }
     observed: set[tuple[str, str]] = set()
     failures: list[str] = []
@@ -975,21 +1006,23 @@ def _validate_raw_contract(
         condition = str(row["condition"])
         regest_id = str(row["regest_id"])
         observed.add((condition, regest_id))
-        result_dir = layout.output / f"result-{condition}"
-        intermediate_dir = layout.output / f"intermediates-{condition}"
-        raw_yaml = result_dir / f"{regest_id}.yaml"
-        if not raw_yaml.is_file():
-            failures.append(f"missing raw YAML: {condition}/{regest_id}")
         if condition in RETRIEVAL_CONDITIONS:
-            retrieval_base = intermediate_dir / f"{regest_id}.retrieved"
-            for suffix in (".ttl", ".yaml"):
-                if not Path(f"{retrieval_base}{suffix}").is_file():
+            for label in (
+                "retrieved_ttl_artifact_path",
+                "retrieved_yaml_artifact_path",
+            ):
+                relative = row.get(label)
+                if (
+                    not isinstance(relative, str)
+                    or not (layout.root / relative).is_file()
+                ):
                     failures.append(
-                        f"missing retrieval {suffix}: {condition}/{regest_id}"
+                        "missing retrieval evidence: "
+                        f"{condition}/{regest_id}/{label}"
                     )
-        if (
-            bool(row.get("success"))
-            and not (result_dir / f"{regest_id}.ttl").is_file()
+        if bool(row.get("success")) and (
+            not isinstance(row.get("raw_ttl_artifact_path"), str)
+            or not (layout.root / str(row["raw_ttl_artifact_path"])).is_file()
         ):
             failures.append(
                 f"missing successful Turtle: {condition}/{regest_id}"
@@ -1317,7 +1350,11 @@ def _reference_resource_label(
     :param reference_ontology: Label index for the frozen ontology snapshot.
     :return: Preferred label or a concise local identifier when unlabelled.
     """
-    return reference_ontology.labels.get(resource, frag_uri(resource))
+    label = reference_ontology.labels.get(resource)
+    if label is not None:
+        return label
+    fragment = frag_uri(resource)
+    return fragment if fragment is not None else str(resource)
 
 
 def _reference_resource_list(
@@ -2212,8 +2249,154 @@ def _metric_definitions() -> list[dict[str, Any]]:
 def _raw_ttl_path(
     layout: _RunLayout, condition: str, regest_id: str
 ) -> str | None:
-    path = layout.output / f"result-{condition}" / f"{regest_id}.ttl"
-    return path.relative_to(layout.root).as_posix() if path.is_file() else None
+    v3_path = layout.output / f"result-{condition}" / regest_id / "ontology.ttl"
+    if v3_path.is_file():
+        return v3_path.relative_to(layout.root).as_posix()
+    legacy_path = layout.output / f"result-{condition}" / f"{regest_id}.ttl"
+    return (
+        legacy_path.relative_to(layout.root).as_posix()
+        if legacy_path.is_file()
+        else None
+    )
+
+
+def _attempt_checkpoint_path(
+    *, layout: _RunLayout, condition: str, regest_id: str
+) -> Path:
+    """Resolve a v3 checkpoint or its pre-v3 predecessor.
+
+    :param layout: Provider execution paths.
+    :param condition: Stable scientific condition identifier.
+    :param regest_id: Stable input-unit identifier.
+    :return: Existing checkpoint when found, otherwise the v3 location.
+    """
+    v3_path = (
+        layout.output
+        / f"intermediates-{condition}"
+        / regest_id
+        / "checkpoint.json"
+    )
+    if v3_path.is_file():
+        return v3_path
+    legacy_path = (
+        layout.output
+        / f"intermediates-{condition}"
+        / f"{regest_id}.attempt.json"
+    )
+    return legacy_path if legacy_path.is_file() else v3_path
+
+
+def _legacy_row_artifact_paths(
+    *, layout: _RunLayout, condition: str, regest_id: str
+) -> dict[str, Any]:
+    """Locate sidecars used by a pre-v3 flat terminal result.
+
+    :param layout: Provider execution paths.
+    :param condition: Stable scientific condition identifier.
+    :param regest_id: Stable input-unit identifier.
+    :return: Compatibility artifact fields used by validation and analysis.
+    """
+    intermediate = layout.output / f"intermediates-{condition}"
+    retrieval_ttl = intermediate / f"{regest_id}.retrieved.ttl"
+    retrieval_yaml = intermediate / f"{regest_id}.retrieved.yaml"
+    stage1_candidates = sorted(intermediate.glob(f"{regest_id}.*.md"))
+    prompt_prefix = f"{regest_id}_"
+    prompt_paths = {
+        path.stem.removeprefix(prompt_prefix): path.relative_to(
+            layout.root
+        ).as_posix()
+        for path in sorted(intermediate.glob(f"{regest_id}_*.md"))
+    }
+    return {
+        "raw_ttl_artifact_path": _raw_ttl_path(
+            layout,
+            condition,
+            regest_id,
+        ),
+        "raw_stage1_artifact_path": (
+            stage1_candidates[-1].relative_to(layout.root).as_posix()
+            if stage1_candidates
+            else None
+        ),
+        "retrieved_ttl_artifact_path": (
+            retrieval_ttl.relative_to(layout.root).as_posix()
+            if retrieval_ttl.is_file()
+            else None
+        ),
+        "retrieved_yaml_artifact_path": (
+            retrieval_yaml.relative_to(layout.root).as_posix()
+            if retrieval_yaml.is_file()
+            else None
+        ),
+        "retrieval_sidecars_complete": (
+            retrieval_ttl.is_file() and retrieval_yaml.is_file()
+        ),
+        "prompt_artifact_paths": prompt_paths,
+    }
+
+
+def _v3_row_artifact_paths(record: dict[str, Any]) -> dict[str, Any]:
+    """Flatten schema-v3 artifact references for existing analysis code.
+
+    :param record: Parsed nested terminal record.
+    :return: Legacy-compatible artifact path fields.
+    """
+    artifacts = record.get("artifacts")
+    if not isinstance(artifacts, dict):
+        return {}
+    retrieval = artifacts.get("retrieval")
+    retrieval = retrieval if isinstance(retrieval, dict) else {}
+    prompts = artifacts.get("prompts")
+    prompt_paths = {
+        compatibility_prompt_key(str(label)): path
+        for label, reference in (
+            prompts.items() if isinstance(prompts, dict) else ()
+        )
+        if (path := _v3_artifact_path_from_reference(reference)) is not None
+    }
+    return {
+        "raw_ttl_artifact_path": _v3_artifact_path(record, "stage2_response"),
+        "raw_stage1_artifact_path": _v3_artifact_path(
+            record, "stage1_response"
+        ),
+        "retrieved_ttl_artifact_path": _v3_artifact_path_from_reference(
+            retrieval.get("context")
+        ),
+        "retrieved_yaml_artifact_path": _v3_artifact_path_from_reference(
+            retrieval.get("metadata")
+        ),
+        "retrieval_snapshot_fidelity": retrieval.get("snapshot_fidelity"),
+        "retrieval_sidecars_complete": bool(
+            _v3_artifact_path_from_reference(retrieval.get("context"))
+            and _v3_artifact_path_from_reference(retrieval.get("metadata"))
+        ),
+        "prompt_artifact_paths": prompt_paths,
+    }
+
+
+def _v3_artifact_path(record: dict[str, Any], role: str) -> str | None:
+    """Read one run-relative path from a schema-v3 artifact role.
+
+    :param record: Parsed nested terminal record.
+    :param role: Semantic artifact key.
+    :return: Portable path or ``None``.
+    """
+    artifacts = record.get("artifacts")
+    if not isinstance(artifacts, dict):
+        return None
+    return _v3_artifact_path_from_reference(artifacts.get(role))
+
+
+def _v3_artifact_path_from_reference(reference: Any) -> str | None:
+    """Read one path from an optional schema-v3 artifact reference.
+
+    :param reference: Candidate artifact dictionary.
+    :return: Portable path or ``None``.
+    """
+    if not isinstance(reference, dict):
+        return None
+    path = reference.get("path")
+    return path if isinstance(path, str) and path else None
 
 
 def _prepare_output_dir(
@@ -2352,6 +2535,22 @@ def _write_analysis_readme(
         ),
         encoding="utf-8",
     )
+
+
+def _load_run_manifest(layout: _RunLayout) -> dict[str, Any]:
+    """Load the scientific contract from either manifest format.
+
+    :param layout: Provider execution paths.
+    :return: Immutable scientific run identity.
+    :raises ValueError: If a schema-v3 wrapper lacks its run object.
+    """
+    record = _load_json(layout.manifest)
+    if record.get("schema_version") != ARTIFACT_SCHEMA_VERSION:
+        return record
+    run_manifest = record.get("run")
+    if not isinstance(run_manifest, dict):
+        raise ValueError("Schema-v3 execution manifest has no run object.")
+    return run_manifest
 
 
 def _load_json(path: Path, *, allow_missing: bool = False) -> dict[str, Any]:

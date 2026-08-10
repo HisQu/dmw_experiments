@@ -13,6 +13,9 @@ from dmw_experiments.studies.haiu_comparison.analysis.pipeline import (
 from dmw_experiments.studies.haiu_comparison.operations.lifecycle import (
     ExperimentLifecycle,
 )
+from dmw_experiments.studies.haiu_comparison.operations.artifact_migration import (
+    ArtifactMigrationReport,
+)
 from dmw_experiments.studies.haiu_comparison.operations.promotion import (
     PromotionArtifacts,
     prepare_promotion,
@@ -174,6 +177,23 @@ class HaiuComparisonStudy:
             timestamp=timestamp,
             quality_review_workbook=quality_review_workbook,
             quality_reveal_key=quality_reveal_key,
+        )
+
+    def migrate_artifacts(
+        self,
+        run_dir: Path,
+        *,
+        executions: tuple[str, ...] = (),
+    ) -> tuple[ArtifactMigrationReport, ...]:
+        """Convert stopped legacy outputs into navigable per-unit bundles.
+
+        :param run_dir: Existing copied run directory.
+        :param executions: Optional provider filter.
+        :return: Verified migration reports for selected executions.
+        """
+        return self._lifecycle.migrate_artifacts(
+            run_dir,
+            execution_names=executions,
         )
 
     def prepare_promotion(

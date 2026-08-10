@@ -51,13 +51,36 @@ All notable changes to `dmw_experiments` will be documented in this file.
 
 ### 💥 Breaking changes
 
+- Breaking: Replaced flat per-condition result files and duplicate full-result
+  JSON/YAML mirrors with schema-v3 per-unit attempt and terminal bundles.
+  Affected: Scripts that read `result-<condition>/<unit-id>.*` or
+  `intermediates-<condition>/<unit-id>.*` directly.
+  Migration: Pause the provider, run `./run.sh migrate-artifacts --execution
+  <execution>`, verify `./run.sh status`, then resume the same frozen run. New
+  readers should follow artifact references from each nested `result.json`.
+
 <br>
 
 ### ➕ Added
 
+- Added immutable numbered attempt directories whose failed attempts always
+  end in `-failed`, with separate metadata, prompts, responses, retrieval
+  evidence, and an exact compressed upstream result.
+- Added verified, idempotent migration for stopped schema-v2 runs. It retains
+  a hash-inventoried recovery snapshot and records the clean experiment-harness
+  transition without rewriting the scientific environment lock.
+- Added content hashes to every external artifact reference and made analysis
+  reject missing or changed schema-v3 evidence.
+
 <br>
 
 ### 💔 Changed
+
+- Stored a shared NER annotation once per input unit instead of copying it into
+  both DMW condition directories.
+- Disabled DMW's redundant server-side debug-file copy because the returned
+  debug payload is preserved exactly in the attempt's compressed upstream
+  result.
 
 <br>
 
@@ -70,6 +93,11 @@ All notable changes to `dmw_experiments` will be documented in this file.
 <br>
 
 ### 🔨 Fixed
+
+- Fixed completed schema-v2 cells overwriting the annotation JSON with Stage-1
+  capture metadata by giving both artifacts unambiguous schema-v3 paths.
+- Fixed copied Bash and PowerShell entry points using an unrelated system
+  Python when the repository virtual environment is available.
 
 <br>
 

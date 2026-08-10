@@ -52,8 +52,10 @@ captions, and operator notes. A tired operator does not need to correlate an
 analysis directory with a separately named raw run or log directory.
 
 Providers remain flat siblings inside that run. Conditions remain flat
-siblings inside each provider. This makes both axes visible in paths without a
-deep execution/condition/raw hierarchy.
+siblings inside each provider. Within a condition, one input-unit directory
+owns its checkpoint, numbered attempts, and terminal result. This keeps both
+experimental axes visible while preventing prompts, responses, and retries
+from becoming one undifferentiated file list.
 
 ## Configuration model
 
@@ -73,10 +75,17 @@ Each provider owns a backend, runner, watchdog, DMW branch, MongoDB
 collections, Haiu storage, logs, and BABYSIT journal. Provider progress is
 independent.
 
-The runner checkpoints attempts and terminal results before continuing. The
-watchdog observes both `result-*` and `intermediates-*`. After infrastructure
-interruption, resume uses the exact frozen contract. Context or length
-exhaustion is a terminal model outcome and is not retried as infrastructure.
+The runner checkpoints attempts and terminal results before continuing. Every
+unsuccessful attempt is visibly named `<NNN>-failed`; terminal model failure
+does not look like a missing attempt. Shared annotation evidence is stored
+once, while each condition attempt owns its prompts, responses, retrieval
+evidence, and exact compressed upstream payload. The small terminal index
+groups scalar fields and verifies its external files by hash.
+
+The watchdog observes both `result-*` and `intermediates-*`. After
+infrastructure interruption, resume uses the exact frozen contract. Context or
+length exhaustion is a terminal model outcome and is not retried as
+infrastructure.
 
 ## Promotion model
 

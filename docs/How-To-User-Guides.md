@@ -6,8 +6,9 @@
 2. [Create a run](#create-a-run)
 3. [Validate and start](#validate-and-start)
 4. [Inspect, pause, and resume](#inspect-pause-and-resume)
-5. [Analyze](#analyze)
-6. [Promote a selected run](#promote-a-selected-run)
+5. [Migrate a stopped legacy run](#migrate-a-stopped-legacy-run)
+6. [Analyze](#analyze)
+7. [Promote a selected run](#promote-a-selected-run)
 
 ## Configure the machine
 
@@ -83,6 +84,33 @@ not block the other provider. `pause` stops watchdog, runner, then backend.
 > A terminal model failure is a datapoint. Do not change settings or use a
 > recovery amendment unless the user separately approves a scientific
 > amendment.
+
+## Migrate a stopped legacy run
+
+Only runs started with the former flat result layout need this operation.
+Finish the current provider attempt or stop at another durable checkpoint,
+then run:
+
+```bash
+./run.sh pause --execution academiccloud
+./run.sh migrate-artifacts --execution academiccloud
+./run.sh status --execution academiccloud
+./run.sh resume --execution academiccloud
+```
+
+The migration refuses to start while a selected backend, runner, or watchdog
+is active or while a schema-v2 checkpoint still says `retry_pending`. Resume
+until that retry chain is terminal before migrating. The migration retains an
+exact, hash-inventoried source snapshot below
+`environment/artifact-migration-backups/`, writes and verifies the per-unit
+bundles, and records the old and new clean harness commits in
+`environment/<execution>-artifact-layout-migration.json`. The original
+scientific environment lock is not rewritten.
+
+> [!IMPORTANT]
+> Do not delete the migration backup during collection. If the command reports
+> a partial migration instead of a completed record, inspect the snapshot and
+> active paths before retrying or resuming.
 
 ## Analyze
 

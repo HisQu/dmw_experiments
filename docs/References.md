@@ -43,9 +43,9 @@
 Construct
 `dmw_experiments.studies.haiu_comparison.HaiuComparisonStudy` with
 `AppRuntimeConfig`. Its public methods are `new_run`, `validate`, `start`,
-`status`, `pause`, `resume`, `analyze`, and `prepare_promotion`. The Typer CLI
-calls this façade. The lifecycle packages above are implementation modules,
-not a second public orchestration interface.
+`status`, `pause`, `resume`, `migrate_artifacts`, `analyze`, and
+`prepare_promotion`. The Typer CLI calls this façade. The lifecycle packages
+above are implementation modules, not a second public orchestration interface.
 
 ## Commands
 
@@ -57,6 +57,7 @@ not a second public orchestration interface.
 | `dmw_experiments status --run-dir PATH` | Count terminal and provisional cells. |
 | `dmw_experiments pause --run-dir PATH` | Stop selected provider services safely. |
 | `dmw_experiments resume --run-dir PATH` | Resume the exact frozen run. |
+| `dmw_experiments migrate-artifacts --run-dir PATH` | Convert a stopped flat schema-v2 execution into verified per-unit schema-v3 bundles. |
 | `dmw_experiments analyze --run-dir PATH` | Regenerate derived workbooks and plots. |
 | `dmw_experiments prepare-promotion --run-dir PATH` | Validate publication readiness and build harness distributions. |
 
@@ -74,8 +75,13 @@ Omitting the filter selects every enabled execution.
 | `run.AGENT.md` | Agent entry point and evidence rules. |
 | `INPUTS/` | Frozen study inputs copied before launch. |
 | `locks/` | Stack and dependency locks; promotion distributions. |
-| `raw-<execution>/intermediates-<condition>/` | Pipeline checkpoints and sidecars. |
-| `raw-<execution>/result-<condition>/` | Terminal JSON, YAML, and Turtle. |
+| `raw-<execution>/manifest.json` | Execution manifest and frozen run identity. |
+| `raw-<execution>/provenance/` | Execution-wide frozen inputs and raw-unit snapshots. |
+| `raw-<execution>/intermediates-shared_annotations/<unit-id>/` | Shared NER annotation and preparation-attempt evidence. |
+| `raw-<execution>/intermediates-<condition>/<unit-id>/checkpoint.json` | Latest crash-recovery state for one matrix cell. |
+| `raw-<execution>/intermediates-<condition>/<unit-id>/attempts/<NNN[-failed]>/` | Immutable attempt metadata, prompts, responses, retrieval sidecars, and compressed upstream result. |
+| `raw-<execution>/result-<condition>/<unit-id>/result.json` | Small terminal index with scalar measurements and artifact hashes. |
+| `raw-<execution>/result-<condition>/<unit-id>/ontology.ttl` | Verbatim terminal Stage-2 text when available. |
 | `environment/` | Frozen locks, manifests, events, and service identities. |
 | `logs/` | Provider logs and BABYSIT journals. |
 | `analysis/` | Intermediates, diagnostics, and workbooks. |

@@ -386,6 +386,24 @@ def analyze_cmd(
     typer.echo(f"Analysis written: {artifacts.plots}")
 
 
+@app.command("migrate-artifacts")
+def migrate_artifacts_cmd(
+    run_dir: Annotated[Path, typer.Option(help="Copied run directory.")],
+    execution: Annotated[
+        list[str] | None,
+        typer.Option("--execution", help="Optional provider filter."),
+    ] = None,
+) -> None:
+    """Convert stopped schema-v2 output into per-unit schema-v3 bundles."""
+    reports = _run_lifecycle(
+        lambda: _study().migrate_artifacts(
+            run_dir,
+            executions=_execution_filter(execution),
+        )
+    )
+    rc.cli.dump_json([asdict(report) for report in reports])
+
+
 @app.command("prepare-promotion")
 def prepare_promotion_cmd(
     run_dir: Annotated[Path, typer.Option(help="Copied run directory.")],

@@ -21,6 +21,9 @@ from dmw_experiments.studies.haiu_comparison.analysis.workbooks.historian import
     _human_readable_relationships,
     _shared_input_lineage,
 )
+from dmw_experiments.studies.haiu_comparison.data_collection.artifacts import (
+    ArtifactWriter,
+)
 
 
 CONDITIONS = (
@@ -772,7 +775,47 @@ def test_exporter_rejects_missing_retrieval_sidecar(tmp_path: Path) -> None:
         / "raw-academiccloud/intermediates-workflow_rag/11010116.retrieved.yaml"
     ).unlink()
 
-    with pytest.raises(ValueError, match="missing retrieval .yaml"):
+    with pytest.raises(
+        ValueError,
+        match="missing retrieval evidence: .*retrieved_yaml_artifact_path",
+    ):
+        _export_run(run_dir)
+
+
+def test_exporter_reads_schema_v3_result_bundles(tmp_path: Path) -> None:
+    """Exercise the public export after converting every legacy fixture row."""
+    run_dir = _complete_run(tmp_path)
+    writer = ArtifactWriter(run_dir / "raw-academiccloud")
+
+    counts = writer.materialize_existing_raw_documents()
+    paths = _export_run(run_dir)
+
+    assert counts["result"] == 3
+    assert (
+        len(
+            tuple(
+                (run_dir / "raw-academiccloud").glob("result-*/*/result.json")
+            )
+        )
+        == 3
+    )
+    workbook = load_workbook(paths.workbook, read_only=True)
+    result_rows = list(workbook["01_Results"].values)
+    assert len(result_rows) == 4
+
+
+def test_exporter_rejects_changed_schema_v3_evidence(tmp_path: Path) -> None:
+    """Reject a sidecar whose bytes no longer match its result index."""
+    run_dir = _complete_run(tmp_path)
+    writer = ArtifactWriter(run_dir / "raw-academiccloud")
+    writer.materialize_existing_raw_documents()
+    context = (
+        run_dir / "raw-academiccloud/intermediates-workflow_rag/11010116/"
+        "attempts/001/retrieval/context.ttl"
+    )
+    context.write_text("changed after capture\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="Artifact reference hash changed"):
         _export_run(run_dir)
 
 

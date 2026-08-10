@@ -570,7 +570,10 @@ def build_workflow_payload(
             "allow_text_interpretation": config.allow_text_interpretation,
             "include_annotations": config.include_annotations,
         },
-        "persist_debug_output": True,
+        # > The API response already returns the complete debug payload. The
+        # > artifact writer retains that response losslessly, so asking DMW to
+        # > write another process-local copy only creates an unowned duplicate.
+        "persist_debug_output": False,
         "existing_data_policy": config.existing_data_policy,
         "require_existing_annotation": config.require_existing_annotation,
     }

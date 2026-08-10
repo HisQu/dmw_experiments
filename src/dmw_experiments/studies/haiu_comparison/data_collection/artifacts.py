@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import gzip
 import hashlib
 import json
 import os
@@ -12,8 +13,20 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
-import haiu.utils as ut
+import haiu.utils as haiu_utils
 
+from dmw_experiments.studies.haiu_comparison.model.artifact_layout import (
+    ARTIFACT_SCHEMA_VERSION,
+    ExecutionArtifactLayout,
+    compatibility_prompt_key,
+    portable_name,
+)
+from dmw_experiments.studies.haiu_comparison.model.artifact_records import (
+    ArtifactReference,
+    CellResultRecord,
+    load_upstream_payload,
+    verify_artifact_references,
+)
 from dmw_experiments.studies.haiu_comparison.data_collection.measurements import (
     summarize_rows,
 )
@@ -50,53 +63,36 @@ NORMALIZED_ROW_OMITTED_FIELDS = frozenset(
 
 
 class ArtifactWriter:
-    """Write one execution's evidence into the flat run-directory contract.
+    """Write one execution's evidence into navigable per-unit bundles.
 
     :param output_dir: Top-level ``raw-<execution>`` directory.
     """
 
     def __init__(self, output_dir: Path) -> None:
-        self.output_dir = output_dir
-        if not output_dir.name.startswith("raw-"):
-            raise ValueError(
-                "ArtifactWriter output must be a raw-<execution> directory."
-            )
-        self.execution_name = output_dir.name.removeprefix("raw-")
-        self.run_root = output_dir.parent
+        self.layout = ExecutionArtifactLayout(output_dir)
+        self.layout.prepare()
+        self.output_dir = self.layout.output
+        self.execution_name = self.layout.execution
+        self.run_root = self.layout.run_root
         self.path_root = self.run_root
         self.intermediate_dirs = {
-            condition: output_dir / f"intermediates-{condition}"
+            condition: self.layout.intermediate_condition(condition)
             for condition in CONDITIONS
         }
         self.result_dirs = {
-            condition: output_dir / f"result-{condition}"
+            condition: self.layout.result_condition(condition)
             for condition in CONDITIONS
         }
-        self.raw_annotation_dir = self.intermediate_dirs[
-            "workflow_full_ontology"
-        ]
-        self.annotation_mirror_dir = self.intermediate_dirs["workflow_rag"]
         self.normalized_dir = self.run_root / "analysis" / "intermediate"
         self.diagnostics_dir = self.run_root / "analysis" / "diagnostics"
         self.environment_dir = self.run_root / "environment"
-        self.amendment_dir = self.environment_dir / (
-            f"{self.execution_name}-amendments"
-        )
-        self.superseded_dir = self.environment_dir / (
-            f"{self.execution_name}-superseded"
-        )
-        self.provenance_dir = (
-            self.intermediate_dirs["haiu_rag_ontologizer"] / "provenance"
-        )
+        self.amendment_dir = self.layout.amendments
+        self.superseded_dir = self.layout.superseded
+        self.provenance_dir = self.layout.provenance
         for path in (
-            *self.intermediate_dirs.values(),
-            *self.result_dirs.values(),
             self.normalized_dir,
             self.diagnostics_dir,
             self.environment_dir,
-            self.amendment_dir,
-            self.superseded_dir,
-            self.provenance_dir,
         ):
             path.mkdir(parents=True, exist_ok=True)
 
@@ -118,7 +114,7 @@ class ArtifactWriter:
             if not source.is_file():
                 raise ValueError(f"Provenance input does not exist: {label}")
             suffix = source.suffix or ".bin"
-            target = self.provenance_dir / f"{_safe_name(label)}{suffix}"
+            target = self.provenance_dir / f"{portable_name(label)}{suffix}"
             content = source.read_bytes()
             digest = hashlib.sha256(content).hexdigest()
             if target.exists() and target.read_bytes() != content:
@@ -133,7 +129,7 @@ class ArtifactWriter:
                 "sha256": digest,
             }
         payload = {"schema_version": 1, "inputs": frozen_inputs, **metadata}
-        path = self.provenance_dir / "provenance_manifest.json"
+        path = self.provenance_dir / "manifest.json"
         if path.exists():
             existing = json.loads(path.read_text(encoding="utf-8"))
             if existing != payload:
@@ -159,7 +155,7 @@ class ArtifactWriter:
         :return: None.
         :raises ValueError: If a required frozen input is missing or differs.
         """
-        manifest_path = self.provenance_dir / "provenance_manifest.json"
+        manifest_path = self.provenance_dir / "manifest.json"
         if not manifest_path.is_file():
             raise ValueError(
                 "Cannot amend a run without its provenance manifest."
@@ -219,12 +215,12 @@ class ArtifactWriter:
         :raises ValueError: If an existing snapshot is malformed or differs
             from the requested frozen population.
         """
-        snapshot_dir = self.provenance_dir / "raw_regests"
+        snapshot_dir = self.provenance_dir / "raw-regests"
         snapshot_dir.mkdir(parents=True, exist_ok=True)
         records: dict[str, dict[str, str]] = {}
         regests: dict[str, RegestText] = {}
         for regest_id in regest_ids:
-            path = snapshot_dir / f"{_safe_name(regest_id)}.json"
+            path = snapshot_dir / f"{portable_name(regest_id)}.json"
             if path.is_file():
                 regest = _frozen_regest_from_payload(
                     json.loads(path.read_text(encoding="utf-8"))
@@ -260,7 +256,7 @@ class ArtifactWriter:
             "source": "preflight_frozen_raw_regest_snapshot",
             "records": records,
         }
-        manifest_path = self.provenance_dir / "raw_regests_manifest.json"
+        manifest_path = snapshot_dir / "manifest.json"
         if manifest_path.exists():
             existing = json.loads(manifest_path.read_text(encoding="utf-8"))
             if existing != manifest:
@@ -279,41 +275,209 @@ class ArtifactWriter:
             "count": len(regests),
         }
 
-    def write_result(self, result: ExperimentResult) -> dict[str, Any]:
-        """Write per-result artifacts and return the normalized row.
+    def write_result(
+        self,
+        result: ExperimentResult,
+        *,
+        terminal: bool = True,
+    ) -> dict[str, Any]:
+        """Write one attempt bundle and optionally its terminal result.
 
-        :param result: Condition result.
-        :return: Normalized row with artifact paths.
+        A retryable failed attempt is complete evidence but not a terminal
+        matrix cell. Callers therefore pass ``terminal=False`` from the retry
+        checkpoint and write the final attempt with the default value.
+
+        :param result: Condition result for one completed attempt.
+        :param terminal: Whether this attempt terminates the matrix cell.
+        :return: Compact legacy-compatible row used by runner checkpoints.
         """
-        condition_raw_dir = self.result_dirs[result.condition]
-        condition_prompt_dir = self.intermediate_dirs[result.condition]
-        safe_id = _safe_name(result.regest_id)
-        raw_path = condition_raw_dir / f"{safe_id}.json"
+        source_payload = dict(result.payload)
+        source_payload.setdefault("condition", result.condition)
+        source_payload.setdefault("regest_id", result.regest_id)
+        source_payload.setdefault("success", result.success)
+        if source_payload["condition"] != result.condition:
+            raise ValueError("Result condition differs from its payload.")
+        if source_payload["regest_id"] != result.regest_id:
+            raise ValueError("Result input-unit ID differs from its payload.")
+        if bool(source_payload["success"]) != result.success:
+            raise ValueError("Result success flag differs from its payload.")
         raw_json = json.dumps(
-            result.payload, indent=2, ensure_ascii=False, default=str
-        )
-        _write_text_atomic(
-            raw_path,
-            raw_json,
-        )
-        prompt_paths = self._write_prompts(
-            condition_prompt_dir=condition_prompt_dir,
-            safe_id=safe_id,
-            prompts=result.payload.get("prompts"),
-        )
-        raw_document_paths = self._write_raw_documents(
-            condition=result.condition,
-            safe_id=safe_id,
-            payload=json.loads(raw_json),
-        )
-        return self._normalized_row(
-            payload=result.payload,
+            source_payload, indent=2, ensure_ascii=False, default=str
+        ).encode("utf-8")
+        payload = json.loads(raw_json.decode("utf-8"))
+        return self._write_payload(
+            payload=payload,
             condition=result.condition,
             regest_id=result.regest_id,
+            source_json=raw_json,
+            terminal=terminal,
+        )
+
+    def _write_payload(
+        self,
+        *,
+        payload: dict[str, Any],
+        condition: str,
+        regest_id: str,
+        source_json: bytes,
+        terminal: bool,
+    ) -> dict[str, Any]:
+        """Materialize one already-serialized result without field loss.
+
+        :param payload: Parsed complete source payload.
+        :param condition: Stable condition owner.
+        :param regest_id: Stable input-unit identifier.
+        :param source_json: Exact JSON bytes retained under gzip.
+        :param terminal: Whether to expose a terminal result bundle.
+        :return: Compact runner and analysis row.
+        """
+        attempt_number = _positive_attempt_number(payload)
+        self._write_retained_attempt_history(
+            condition=condition,
+            regest_id=regest_id,
+            current_attempt=attempt_number,
+            payload=payload,
+        )
+        failed = not bool(payload.get("success"))
+        attempt_dir = self.layout.attempt(
+            condition,
+            regest_id,
+            attempt_number,
+            failed=failed,
+        )
+        conflicting_attempt = self.layout.attempt(
+            condition,
+            regest_id,
+            attempt_number,
+            failed=not failed,
+        )
+        if conflicting_attempt.exists():
+            raise ValueError(
+                "Attempt outcome differs from existing evidence: "
+                f"{conflicting_attempt.relative_to(self.path_root)}"
+            )
+        attempt_dir.mkdir(parents=True, exist_ok=True)
+        artifacts, raw_document_paths, prompt_paths = (
+            self._write_attempt_documents(
+                condition=condition,
+                regest_id=regest_id,
+                attempt_dir=attempt_dir,
+                payload=payload,
+                source_json=source_json,
+                terminal=terminal,
+            )
+        )
+        record = CellResultRecord.from_payload(
+            payload=payload,
+            condition=condition,
+            unit_id=regest_id,
+            artifacts=artifacts,
+        ).as_dict()
+        metadata_path = attempt_dir / "metadata.json"
+        _write_json_atomic(
+            metadata_path,
+            {**record, "record_type": "haiu_comparison_attempt"},
+        )
+        if terminal:
+            result_path = self.layout.result_record(condition, regest_id)
+            result_path.parent.mkdir(parents=True, exist_ok=True)
+            _write_json_atomic(result_path, record)
+            raw_path = result_path
+        else:
+            raw_path = metadata_path
+        return self._normalized_row(
+            payload=payload,
+            condition=condition,
+            regest_id=regest_id,
             raw_path=raw_path,
             raw_document_paths=raw_document_paths,
             prompt_paths=prompt_paths,
         )
+
+    def _write_retained_attempt_history(
+        self,
+        *,
+        condition: str,
+        regest_id: str,
+        current_attempt: int,
+        payload: dict[str, Any],
+    ) -> None:
+        """Expose every available pre-current attempt as a named directory.
+
+        Schema-v2 overwrote its temporary result when a retry succeeded, but
+        retained scalar attempt summaries in the final payload. A migration
+        cannot reconstruct absent prompts or responses, so this method writes
+        exactly the surviving summary and states that limitation. Native
+        schema-v3 collection has already written the complete failed bundle;
+        an existing directory is therefore left unchanged.
+
+        :param condition: Scientific condition that owns the attempt.
+        :param regest_id: Input-unit identifier.
+        :param current_attempt: Attempt represented by the complete payload.
+        :param payload: Complete current result with optional attempt history.
+        :return: ``None`` after every retained earlier attempt is visible.
+        :raises ValueError: If the history declares an invalid or conflicting
+            attempt identity.
+        """
+        history = payload.get("attempt_history")
+        if not isinstance(history, list):
+            return
+        for summary in history:
+            if not isinstance(summary, dict):
+                raise ValueError("Attempt history entries must be objects.")
+            number = summary.get("attempt")
+            if not isinstance(number, int) or number < 1:
+                raise ValueError(
+                    "Attempt history has an invalid attempt number."
+                )
+            if number >= current_attempt:
+                continue
+            failed = not bool(summary.get("success"))
+            attempt_dir = self.layout.attempt(
+                condition,
+                regest_id,
+                number,
+                failed=failed,
+            )
+            conflicting = self.layout.attempt(
+                condition,
+                regest_id,
+                number,
+                failed=not failed,
+            )
+            if conflicting.exists():
+                raise ValueError(
+                    "Attempt history differs from existing evidence: "
+                    f"{conflicting.relative_to(self.path_root)}"
+                )
+            metadata = attempt_dir / "metadata.json"
+            if metadata.is_file():
+                continue
+            record = {
+                "schema_version": ARTIFACT_SCHEMA_VERSION,
+                "record_type": "haiu_comparison_legacy_attempt_summary",
+                "identity": {
+                    "condition": condition,
+                    "regest_id": regest_id,
+                },
+                "outcome": {
+                    "success": bool(summary.get("success")),
+                },
+                "attempts": {
+                    "attempt": number,
+                    "legacy_attempt_history": deepcopy(summary),
+                },
+                "artifacts": {
+                    "upstream_result": {
+                        "status": "unavailable",
+                        "reason": (
+                            "Schema v2 retained only this scalar attempt "
+                            "summary after a later retry replaced the result."
+                        ),
+                    }
+                },
+            }
+            _write_json_atomic(metadata, record)
 
     def load_existing_rows(self) -> list[dict[str, Any]]:
         """Rebuild normalized rows from authoritative per-result artifacts.
@@ -324,18 +488,63 @@ class ArtifactWriter:
 
         :return: Normalized rows recovered from the run directory.
         """
-        rows: list[dict[str, Any]] = []
-        for condition, result_dir in self.result_dirs.items():
-            for raw_path in sorted(result_dir.glob("*.json")):
-                rows.append(
-                    self._row_from_existing_result(
-                        raw_path=raw_path,
-                        condition=condition,
-                    )
-                )
+        rows_by_key: dict[tuple[str, str], dict[str, Any]] = {}
+        for condition, result_path in self.layout.iter_result_records():
+            row = self._row_from_v3_result(
+                result_path=result_path,
+                condition=condition,
+            )
+            rows_by_key[(condition, str(row["regest_id"]))] = row
+        for condition, raw_path in self.layout.iter_legacy_result_records():
+            legacy_id = raw_path.stem
+            key = (condition, legacy_id)
+            if key in rows_by_key:
+                continue
+            rows_by_key[key] = self._row_from_legacy_result(
+                raw_path=raw_path,
+                condition=condition,
+            )
+        rows = list(rows_by_key.values())
         return rows
 
-    def _row_from_existing_result(
+    def _row_from_v3_result(
+        self,
+        *,
+        result_path: Path,
+        condition: str,
+    ) -> dict[str, Any]:
+        """Rebuild a compact row from one schema-v3 terminal record.
+
+        :param result_path: Canonical nested ``result.json``.
+        :param condition: Condition encoded by the owning directory.
+        :return: Compact row with portable evidence paths.
+        """
+        record = _load_json_object(result_path)
+        if record.get("schema_version") != ARTIFACT_SCHEMA_VERSION:
+            raise ValueError(
+                f"Unsupported result schema in {result_path}: "
+                f"{record.get('schema_version')!r}"
+            )
+        verify_artifact_references(record, run_root=self.path_root)
+        payload = load_upstream_payload(record, run_root=self.path_root)
+        regest_id = str(payload.get("regest_id") or result_path.parent.name)
+        recorded_condition = str(payload.get("condition") or condition)
+        if recorded_condition != condition:
+            raise ValueError(
+                "Result condition differs from its directory: "
+                f"{result_path.relative_to(self.path_root)}"
+            )
+        raw_document_paths, prompt_paths = _paths_from_v3_record(record)
+        return self._normalized_row(
+            payload=payload,
+            condition=condition,
+            regest_id=regest_id,
+            raw_path=result_path,
+            raw_document_paths=raw_document_paths,
+            prompt_paths=prompt_paths,
+        )
+
+    def _row_from_legacy_result(
         self,
         *,
         raw_path: Path,
@@ -359,8 +568,8 @@ class ArtifactWriter:
                 f"Result condition differs from its directory: {raw_path.name}."
             )
         regest_id = str(payload.get("regest_id") or raw_path.stem)
-        safe_id = _safe_name(regest_id)
-        raw_document_paths = self._write_raw_documents(
+        safe_id = portable_name(regest_id)
+        raw_document_paths = self._write_legacy_raw_documents(
             condition=condition,
             safe_id=safe_id,
             payload=payload,
@@ -378,45 +587,50 @@ class ArtifactWriter:
         )
 
     def materialize_existing_raw_documents(self) -> dict[str, int]:
-        """Backfill Stage-1, Turtle, and YAML documents from raw JSON artifacts.
+        """Convert legacy flat results into schema-v3 per-unit bundles.
 
-        This method only writes derived per-result documents. It does not
-        replace aggregate JSONL, CSV, or summary checkpoints, so it is safe to
-        use while the experiment runner is active.
+        Source files remain untouched. Full in-place migration moves them only
+        after the new bundles pass independent verification.
 
         :return: Counts of written derived documents and unavailable Stage-1
             captures.
         """
         counts = {
-            "yaml": 0,
+            "result": 0,
             "ttl": 0,
             "stage1": 0,
             "stage1_unavailable": 0,
-            "retrieved_yaml": 0,
+            "retrieved_metadata": 0,
             "retrieved_ttl": 0,
         }
-        for condition, result_dir in self.result_dirs.items():
-            for raw_path in sorted(result_dir.glob("*.json")):
-                payload = json.loads(raw_path.read_text(encoding="utf-8"))
-                if not isinstance(payload, dict):
-                    raise ValueError(
-                        f"Raw result is not a JSON object: "
-                        f"{raw_path.relative_to(self.path_root)}"
-                    )
-                regest_id = str(payload.get("regest_id") or raw_path.stem)
-                written = self._write_raw_documents(
-                    condition=condition,
-                    safe_id=_safe_name(regest_id),
-                    payload=payload,
+        for condition, raw_path in self.layout.iter_legacy_result_records():
+            source_json = raw_path.read_bytes()
+            payload = json.loads(source_json.decode("utf-8"))
+            if not isinstance(payload, dict):
+                raise ValueError(
+                    f"Raw result is not a JSON object: "
+                    f"{raw_path.relative_to(self.path_root)}"
                 )
-                counts["yaml"] += 1
-                counts["ttl"] += int("ttl" in written)
-                counts["stage1"] += int("stage1" in written)
-                counts["stage1_unavailable"] += int(
-                    written["stage1_capture_status"] == "unavailable"
-                )
-                counts["retrieved_yaml"] += int("retrieved_yaml" in written)
-                counts["retrieved_ttl"] += int("retrieved_ttl" in written)
+            regest_id = str(payload.get("regest_id") or raw_path.stem)
+            row = self._write_payload(
+                payload=payload,
+                condition=condition,
+                regest_id=regest_id,
+                source_json=source_json,
+                terminal=True,
+            )
+            counts["result"] += 1
+            counts["ttl"] += int(bool(row.get("raw_ttl_artifact_path")))
+            counts["stage1"] += int(bool(row.get("raw_stage1_artifact_path")))
+            counts["stage1_unavailable"] += int(
+                not bool(row.get("raw_stage1_artifact_path"))
+            )
+            counts["retrieved_metadata"] += int(
+                bool(row.get("retrieved_yaml_artifact_path"))
+            )
+            counts["retrieved_ttl"] += int(
+                bool(row.get("retrieved_ttl_artifact_path"))
+            )
         return counts
 
     def write_final_outputs(
@@ -494,13 +708,13 @@ class ArtifactWriter:
         ).as_posix()
         row["raw_ttl_artifact_path"] = raw_document_paths.get("ttl")
         row["raw_stage1_artifact_path"] = raw_document_paths.get("stage1")
-        row["raw_stage1_metadata_artifact_path"] = raw_document_paths[
+        row["raw_stage1_metadata_artifact_path"] = raw_document_paths.get(
             "stage1_metadata"
-        ]
+        )
         row["attempt_ttl_artifact_paths"] = raw_document_paths.get(
             "attempt_ttl"
         )
-        row["raw_yaml_artifact_path"] = raw_document_paths["yaml"]
+        row["raw_yaml_artifact_path"] = raw_document_paths.get("yaml")
         row["retrieved_ttl_artifact_path"] = raw_document_paths.get(
             "retrieved_ttl"
         )
@@ -514,6 +728,13 @@ class ArtifactWriter:
             "retrieval_sidecars_complete"
         )
         row["prompt_artifact_paths"] = prompt_paths
+        annotation_path = (
+            self.layout.annotation_unit(regest_id) / "annotation.json"
+        )
+        if annotation_path.is_file():
+            row["frozen_annotation_artifact_paths"] = {
+                "json": annotation_path.relative_to(self.path_root).as_posix()
+            }
         return row
 
     def write_id_selection(self, payload: dict[str, Any]) -> Path:
@@ -539,7 +760,7 @@ class ArtifactWriter:
         :param regest_id: Datamodel regest identifier.
         :return: Parsed snapshot, or ``None`` before preparation succeeds.
         """
-        path = self.raw_annotation_dir / f"{_safe_name(regest_id)}.json"
+        path = self.layout.annotation_unit(regest_id) / "annotation.json"
         if not path.exists():
             return None
         payload = json.loads(path.read_text(encoding="utf-8"))
@@ -553,33 +774,18 @@ class ArtifactWriter:
         regest_id: str,
         payload: dict[str, Any],
     ) -> dict[str, str]:
-        """Persist the exact accepted annotation in JSON and YAML.
+        """Persist the exact accepted annotation once as canonical JSON.
 
         :param regest_id: Datamodel regest identifier.
         :param payload: Portable raw annotation and preparation provenance.
-        :return: Run-relative JSON and YAML paths.
+        :return: Run-relative canonical annotation path.
         """
-        safe_id = _safe_name(regest_id)
-        json_path = self.raw_annotation_dir / f"{safe_id}.json"
-        yaml_path = self.raw_annotation_dir / f"{safe_id}.yaml"
-        _write_text_atomic(
-            json_path,
-            json.dumps(payload, indent=2, ensure_ascii=False, default=str),
-        )
-        _write_yaml_atomic(yaml_path, payload)
-        mirror_json = self.annotation_mirror_dir / json_path.name
-        mirror_yaml = self.annotation_mirror_dir / yaml_path.name
-        shutil.copy2(json_path, mirror_json)
-        shutil.copy2(yaml_path, mirror_yaml)
+        annotation_dir = self.layout.annotation_unit(regest_id)
+        annotation_dir.mkdir(parents=True, exist_ok=True)
+        json_path = annotation_dir / "annotation.json"
+        _write_json_atomic(json_path, payload)
         return {
             "json": json_path.relative_to(self.path_root).as_posix(),
-            "yaml": yaml_path.relative_to(self.path_root).as_posix(),
-            "workflow_rag_json": mirror_json.relative_to(
-                self.path_root
-            ).as_posix(),
-            "workflow_rag_yaml": mirror_yaml.relative_to(
-                self.path_root
-            ).as_posix(),
         }
 
     def write_annotation_attempt_state(
@@ -594,14 +800,9 @@ class ArtifactWriter:
         :param payload: JSON-friendly retry state.
         :return: Written attempt-state path.
         """
-        path = self.raw_annotation_dir / (
-            f"{_safe_name(regest_id)}.annotation-attempt.json"
-        )
-        _write_text_atomic(
-            path,
-            json.dumps(payload, indent=2, ensure_ascii=False, default=str),
-        )
-        shutil.copy2(path, self.annotation_mirror_dir / path.name)
+        path = self.layout.annotation_unit(regest_id) / "attempts.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        _write_json_atomic(path, payload)
         return path
 
     def load_annotation_attempt_state(
@@ -618,9 +819,7 @@ class ArtifactWriter:
         :return: Parsed attempt state, or ``None`` when preparation never ran.
         :raises ValueError: If the durable state is not a JSON object.
         """
-        path = self.raw_annotation_dir / (
-            f"{_safe_name(regest_id)}.annotation-attempt.json"
-        )
+        path = self.layout.annotation_unit(regest_id) / "attempts.json"
         if not path.exists():
             return None
         payload = json.loads(path.read_text(encoding="utf-8"))
@@ -651,8 +850,8 @@ class ArtifactWriter:
         :raises ValueError: If an existing archive disagrees with the active
             durable state.
         """
-        safe_id = _safe_name(regest_id)
-        source = self.raw_annotation_dir / f"{safe_id}.annotation-attempt.json"
+        safe_id = portable_name(regest_id)
+        source = self.layout.annotation_unit(regest_id) / "attempts.json"
         archive_root = self.superseded_dir / amendment_id
         index_path = archive_root / "annotation_attempt_archive_index.json"
         key = safe_id
@@ -780,10 +979,18 @@ class ArtifactWriter:
         :param has_existing_results: Whether authoritative raw results exist.
         :return: Manifest artifact path.
         """
-        path = self.environment_dir / f"{self.execution_name}-run-manifest.json"
+        path = self.layout.manifest
+        record = {
+            "schema_version": ARTIFACT_SCHEMA_VERSION,
+            "record_type": "haiu_comparison_execution_manifest",
+            "run": payload,
+        }
         if path.exists():
             existing = json.loads(path.read_text(encoding="utf-8"))
-            if existing != payload:
+            existing_run = (
+                existing.get("run") if isinstance(existing, dict) else None
+            )
+            if existing_run != payload:
                 raise ValueError(
                     "Run manifest differs from the requested experiment "
                     "configuration."
@@ -793,10 +1000,7 @@ class ArtifactWriter:
             raise ValueError(
                 "Cannot safely resume raw results without a run manifest."
             )
-        _write_text_atomic(
-            path,
-            json.dumps(payload, indent=2, ensure_ascii=False, default=str),
-        )
+        _write_json_atomic(path, record)
         return path
 
     def load_run_manifest(self) -> dict[str, Any]:
@@ -805,10 +1009,11 @@ class ArtifactWriter:
         :return: Parsed run-manifest payload.
         :raises ValueError: If no valid immutable base identity exists.
         """
-        path = self.environment_dir / f"{self.execution_name}-run-manifest.json"
+        path = self.layout.manifest
         if not path.is_file():
             raise ValueError("Cannot amend a run without its run manifest.")
-        payload = json.loads(path.read_text(encoding="utf-8"))
+        record = json.loads(path.read_text(encoding="utf-8"))
+        payload = record.get("run") if isinstance(record, dict) else None
         if not isinstance(payload, dict):
             raise ValueError("Run manifest is not a JSON object.")
         return payload
@@ -830,7 +1035,7 @@ class ArtifactWriter:
         :return: Immutable amendment path.
         :raises ValueError: If the identifier is unsafe or evidence differs.
         """
-        safe_id = _safe_name(amendment_id)
+        safe_id = portable_name(amendment_id)
         if not amendment_id or safe_id != amendment_id:
             raise ValueError(
                 "Run amendment ID must be a non-empty portable filename."
@@ -866,11 +1071,11 @@ class ArtifactWriter:
         :raises ValueError: If no canonical raw result exists or a prior archive
             does not match the source evidence.
         """
-        safe_id = _safe_name(regest_id)
+        safe_id = portable_name(regest_id)
         archive_root = self.superseded_dir / amendment_id
         index_path = archive_root / "archive_index.json"
         key = f"{condition}/{safe_id}"
-        raw_path = self.result_dirs[condition] / f"{safe_id}.json"
+        raw_path = self.layout.result_record(condition, regest_id)
         if not raw_path.is_file():
             raise ValueError(
                 "Cannot archive an amendment result without canonical raw "
@@ -935,257 +1140,403 @@ class ArtifactWriter:
         :param safe_id: Portable regest identifier.
         :return: Existing result artifacts in deterministic relative order.
         """
-        result_dir = self.result_dirs[condition]
-        intermediate_dir = self.intermediate_dirs[condition]
-        patterns = (
-            result_dir / f"{safe_id}.json",
-            result_dir / f"{safe_id}.yaml",
-            result_dir / f"{safe_id}.ttl",
-            intermediate_dir / f"{safe_id}.attempt.json",
+        result_unit = self.layout.result_unit(condition, safe_id)
+        intermediate_unit = self.layout.intermediate_unit(condition, safe_id)
+        return sorted(
+            {
+                artifact
+                for directory in (result_unit, intermediate_unit)
+                if directory.is_dir()
+                for artifact in directory.rglob("*")
+                if artifact.is_file()
+            }
         )
-        paths = [path for path in patterns if path.is_file()]
-        for directory, pattern in (
-            (result_dir, f"{safe_id}.attempt-*.ttl"),
-            (intermediate_dir, f"{safe_id}.*"),
-            (intermediate_dir, f"{safe_id}_*"),
-        ):
-            if directory.is_dir():
-                paths.extend(sorted(directory.glob(pattern)))
-        return sorted({path for path in paths if path.is_file()})
 
-    def _write_prompts(
+    def _write_attempt_documents(
         self,
         *,
-        condition_prompt_dir: Path,
-        safe_id: str,
+        condition: str,
+        regest_id: str,
+        attempt_dir: Path,
+        payload: dict[str, Any],
+        source_json: bytes,
+        terminal: bool,
+    ) -> tuple[dict[str, Any], RawDocumentPaths, dict[str, str]]:
+        """Write exact evidence for one attempt and return its index data.
+
+        :param condition: Stable scientific condition identifier.
+        :param regest_id: Stable input-unit identifier.
+        :param attempt_dir: Outcome-labelled attempt directory.
+        :param payload: Complete result payload.
+        :param source_json: Exact serialized payload retained losslessly.
+        :param terminal: Whether this attempt terminates its matrix cell.
+        :return: Nested artifact references, compatibility paths, and prompt
+            paths.
+        """
+        artifacts: dict[str, Any] = {}
+        raw_paths: RawDocumentPaths = {
+            "stage1_metadata": (attempt_dir / "metadata.json")
+            .relative_to(self.path_root)
+            .as_posix(),
+            "yaml": None,
+        }
+
+        upstream_path = attempt_dir / "upstream-result.json.gz"
+        _write_bytes_atomic(upstream_path, gzip.compress(source_json, mtime=0))
+        artifacts["upstream_result"] = ArtifactReference.from_path(
+            upstream_path,
+            run_root=self.path_root,
+            media_type="application/json",
+            content_encoding="gzip",
+            uncompressed=source_json,
+        ).as_dict()
+
+        annotation_path = (
+            self.layout.annotation_unit(regest_id) / "annotation.json"
+        )
+        if annotation_path.is_file():
+            artifacts["shared_annotation"] = ArtifactReference.from_path(
+                annotation_path,
+                run_root=self.path_root,
+                media_type="application/json",
+            ).as_dict()
+
+        prompt_references, prompt_paths = self._write_attempt_prompts(
+            condition=condition,
+            regest_id=regest_id,
+            attempt_dir=attempt_dir,
+            prompts=payload.get("prompts"),
+        )
+        if prompt_references:
+            artifacts["prompts"] = prompt_references
+
+        response_dir = attempt_dir / "responses"
+        stage1_capture = _stage1_response_capture(payload)
+        if stage1_capture["output"] is None:
+            legacy_stage1 = self._legacy_stage1_response(
+                condition=condition,
+                regest_id=regest_id,
+            )
+            if legacy_stage1 is not None:
+                stage1_capture = {
+                    "status": "captured",
+                    "source": "legacy_stage1_sidecar",
+                    "output": legacy_stage1,
+                    "reason": None,
+                }
+        raw_paths["stage1_capture_status"] = stage1_capture["status"]
+        stage1_output = stage1_capture["output"]
+        if stage1_output is not None:
+            stage1_path = response_dir / "stage-1.md"
+            _write_text_atomic(stage1_path, stage1_output)
+            stage1_reference = ArtifactReference.from_path(
+                stage1_path,
+                run_root=self.path_root,
+                media_type="text/markdown",
+            ).as_dict()
+            stage1_reference["source"] = stage1_capture["source"]
+            artifacts["stage1_response"] = stage1_reference
+            raw_paths["stage1"] = stage1_reference["path"]
+        else:
+            artifacts["stage1_response"] = {
+                "status": "unavailable",
+                "source": stage1_capture["source"],
+                "reason": stage1_capture["reason"],
+            }
+
+        turtle_text = _raw_turtle_text(payload)
+        if not turtle_text:
+            legacy_turtle = (
+                self.result_dirs[condition] / f"{portable_name(regest_id)}.ttl"
+            )
+            if legacy_turtle.is_file():
+                turtle_text = legacy_turtle.read_text(encoding="utf-8")
+        if turtle_text:
+            stage2_path = response_dir / "stage-2.raw.txt"
+            _write_text_atomic(stage2_path, turtle_text)
+            stage2_reference = ArtifactReference.from_path(
+                stage2_path,
+                run_root=self.path_root,
+                media_type="text/plain",
+            ).as_dict()
+            artifacts["stage2_response"] = stage2_reference
+            raw_paths["ttl"] = stage2_reference["path"]
+            raw_paths["attempt_ttl"] = {
+                f"attempt_{_positive_attempt_number(payload)}": (
+                    stage2_reference["path"]
+                )
+            }
+            if terminal:
+                ontology_path = self.layout.ontology(condition, regest_id)
+                ontology_path.parent.mkdir(parents=True, exist_ok=True)
+                _replace_hardlink(stage2_path, ontology_path)
+                artifacts["ontology"] = ArtifactReference.from_path(
+                    ontology_path,
+                    run_root=self.path_root,
+                    media_type="text/turtle",
+                ).as_dict()
+        else:
+            artifacts["stage2_response"] = {
+                "status": "unavailable",
+                "reason": "No exact raw Stage-2 response was retained.",
+            }
+            raw_paths["attempt_ttl"] = {}
+            if terminal:
+                ontology_path = self.layout.ontology(condition, regest_id)
+                if ontology_path.exists():
+                    ontology_path.unlink()
+
+        retrieval_artifacts, retrieval_paths = self._write_attempt_retrieval(
+            condition=condition,
+            regest_id=regest_id,
+            attempt_dir=attempt_dir,
+            payload=payload,
+        )
+        if retrieval_artifacts:
+            artifacts["retrieval"] = retrieval_artifacts
+        raw_paths.update(retrieval_paths)
+        return artifacts, raw_paths, prompt_paths
+
+    def _write_attempt_prompts(
+        self,
+        *,
+        condition: str,
+        regest_id: str,
+        attempt_dir: Path,
         prompts: Any,
-    ) -> dict[str, str]:
+    ) -> tuple[dict[str, Any], dict[str, str]]:
+        """Write one clearly named file per model prompt.
+
+        :param condition: Stable scientific condition identifier.
+        :param regest_id: Stable input-unit identifier.
+        :param attempt_dir: Attempt that owns the prompts.
+        :param prompts: Stage/role mapping supplied by a condition adapter.
+        :return: Artifact references and legacy-compatible path mapping.
+        """
         if not isinstance(prompts, dict):
-            return {}
-        written: dict[str, str] = {}
+            prompts = {}
+        prompt_dir = attempt_dir / "prompts"
+        references: dict[str, Any] = {}
+        paths: dict[str, str] = {}
         for stage, bundle in prompts.items():
             if not isinstance(bundle, dict):
                 continue
-            stage_label = _safe_name(str(stage))
+            stage_label = _readable_stage_label(str(stage))
+            legacy_stage_label = portable_name(str(stage))
             for role in ("system", "user"):
-                text = str(bundle.get(role) or "")
-                if not text:
+                content = bundle.get(role)
+                if not isinstance(content, str) or not content:
                     continue
-                path = (
-                    condition_prompt_dir / f"{safe_id}_{stage_label}_{role}.md"
-                )
-                _write_text_atomic(path, text)
-                written[f"{stage_label}_{role}"] = path.relative_to(
-                    self.path_root
-                ).as_posix()
-        return written
-
-    def _existing_prompt_paths(
-        self, *, condition: str, safe_id: str
-    ) -> dict[str, str]:
-        condition_prompt_dir = self.intermediate_dirs[condition]
-        prefix = f"{safe_id}_"
-        written: dict[str, str] = {}
-        for path in sorted(condition_prompt_dir.glob(f"{safe_id}_*.md")):
-            label = path.stem.removeprefix(prefix)
-            written[label] = path.relative_to(self.path_root).as_posix()
-        return written
-
-    def _write_raw_documents(
-        self,
-        *,
-        condition: str,
-        safe_id: str,
-        payload: dict[str, Any],
-    ) -> RawDocumentPaths:
-        condition_result_dir = self.result_dirs[condition]
-        condition_intermediate_dir = self.intermediate_dirs[condition]
-
-        written: RawDocumentPaths = {}
-        yaml_path = condition_result_dir / f"{safe_id}.yaml"
-        _write_yaml_atomic(yaml_path, payload)
-        written["yaml"] = yaml_path.relative_to(self.path_root).as_posix()
-
-        turtle_text = _raw_turtle_text(payload)
-        ttl_path = condition_result_dir / f"{safe_id}.ttl"
-        if turtle_text:
-            _write_text_atomic(ttl_path, turtle_text)
-            written["ttl"] = ttl_path.relative_to(self.path_root).as_posix()
-        elif ttl_path.exists():
-            ttl_path.unlink()
-        written["attempt_ttl"] = self._write_attempt_turtle_documents(
-            condition_ttl_dir=condition_result_dir,
-            safe_id=safe_id,
-            payload=payload,
-        )
-        written.update(
-            self._write_stage1_documents(
-                condition_stage1_dir=condition_intermediate_dir,
-                safe_id=safe_id,
-                payload=payload,
-            )
-        )
-        written.update(
-            self._write_retrieval_documents(
-                condition=condition,
-                safe_id=safe_id,
-                payload=payload,
-            )
-        )
-        return written
-
-    def _write_stage1_documents(
-        self,
-        *,
-        condition_stage1_dir: Path,
-        safe_id: str,
-        payload: dict[str, Any],
-    ) -> RawDocumentPaths:
-        """Materialize exact or transparently unavailable Stage-1 evidence.
-
-        The Stage-1 model reply is the conceptual plan supplied to Turtle
-        generation. Older workflow artifacts stored it under ``explanation``
-        without an explicit capture label, while some failed upstream calls
-        preserved no reply at all. This sidecar keeps the reconstructed source
-        explicit and never fabricates unavailable model text.
-
-        :param condition_stage1_dir: Condition-specific Stage-1 output directory.
-        :param safe_id: Portable regest identifier.
-        :param payload: Authoritative raw observation.
-        :return: Relative paths and availability metadata for the Stage-1 reply.
-        """
-        capture = _stage1_response_capture(payload)
-        metadata_path = condition_stage1_dir / f"{safe_id}.json"
-        metadata: dict[str, Any] = {
-            "schema_version": 1,
-            "capture_status": capture["status"],
-            "source": capture["source"],
-            "raw_artifact_path": (
-                f"raw-{self.execution_name}/result-"
-                f"{_safe_name(str(payload.get('condition') or ''))}/"
-                f"{safe_id}.json"
-            ),
-        }
-        written: RawDocumentPaths = {
-            "stage1_metadata": metadata_path.relative_to(
-                self.path_root
-            ).as_posix(),
-            "stage1_capture_status": capture["status"],
-        }
-        output = capture["output"]
-        if output is None:
-            metadata["unavailable_reason"] = capture["reason"]
+                artifact_path = prompt_dir / f"{stage_label}-{role}.md"
+                _write_text_atomic(artifact_path, content)
+                reference = ArtifactReference.from_path(
+                    artifact_path,
+                    run_root=self.path_root,
+                    media_type="text/markdown",
+                ).as_dict()
+                references[f"{stage_label}-{role}"] = reference
+                paths[f"{legacy_stage_label}_{role}"] = reference["path"]
+        legacy_prefix = f"{portable_name(regest_id)}_"
+        for source in sorted(
+            self.intermediate_dirs[condition].glob(f"{legacy_prefix}*.md")
+        ):
+            legacy_label = source.stem.removeprefix(legacy_prefix)
+            stage, separator, role = legacy_label.rpartition("_")
+            if not separator or role not in {"system", "user"}:
+                continue
+            stage_label = _readable_stage_label(stage)
+            artifact_label = f"{stage_label}-{role}"
+            if artifact_label in references:
+                continue
+            artifact_path = prompt_dir / f"{artifact_label}.md"
             _write_text_atomic(
-                metadata_path,
-                json.dumps(metadata, indent=2, ensure_ascii=False),
+                artifact_path,
+                source.read_text(encoding="utf-8"),
             )
-            return written
+            reference = ArtifactReference.from_path(
+                artifact_path,
+                run_root=self.path_root,
+                media_type="text/markdown",
+            ).as_dict()
+            reference["source"] = "legacy_prompt_sidecar"
+            references[artifact_label] = reference
+            paths[legacy_label] = reference["path"]
+        return references, paths
 
-        digest = hashlib.sha256(output.encode("utf-8")).hexdigest()
-        output_path = condition_stage1_dir / f"{safe_id}.{digest[:12]}.md"
-        metadata.update(
-            {
-                "content_sha256": digest,
-                "characters": len(output),
-                "output_artifact_path": output_path.relative_to(
-                    self.path_root
-                ).as_posix(),
-            }
-        )
-        _write_text_atomic(output_path, output)
-        _write_text_atomic(
-            metadata_path,
-            json.dumps(metadata, indent=2, ensure_ascii=False),
-        )
-        written["stage1"] = metadata["output_artifact_path"]
-        return written
-
-    def _write_attempt_turtle_documents(
-        self,
-        *,
-        condition_ttl_dir: Path,
-        safe_id: str,
-        payload: dict[str, Any],
-    ) -> dict[str, str]:
-        """Persist raw Stage-2 text from retained upstream retry attempts.
-
-        :param condition_ttl_dir: Condition-specific output directory.
-        :param safe_id: Portable regest identifier.
-        :param payload: Authoritative normalized observation.
-        :return: Attempt labels mapped to relative Turtle artifact paths.
-        """
-        attempts = payload.get("generation_attempts")
-        if not isinstance(attempts, list):
-            return {}
-        written: dict[str, str] = {}
-        for index, attempt in enumerate(attempts, start=1):
-            if not isinstance(attempt, dict):
-                continue
-            diagnostics = attempt.get("diagnostics")
-            if not isinstance(diagnostics, dict):
-                continue
-            turtle_text = diagnostics.get("rawTtlOutput")
-            if not isinstance(turtle_text, str) or not turtle_text:
-                continue
-            attempt_number = attempt.get("attempt")
-            label = (
-                str(attempt_number)
-                if isinstance(attempt_number, int) and attempt_number > 0
-                else str(index)
-            )
-            path = condition_ttl_dir / f"{safe_id}.attempt-{label}.ttl"
-            _write_text_atomic(path, turtle_text)
-            written[f"attempt_{label}"] = path.relative_to(
-                self.path_root
-            ).as_posix()
-        return written
-
-    def _write_retrieval_documents(
+    def _write_attempt_retrieval(
         self,
         *,
         condition: str,
-        safe_id: str,
+        regest_id: str,
+        attempt_dir: Path,
         payload: dict[str, Any],
-    ) -> RawDocumentPaths:
-        if condition not in RETRIEVAL_CONDITIONS:
-            return {}
+    ) -> tuple[dict[str, Any], RawDocumentPaths]:
+        """Write native retrieval evidence below the attempt that used it.
 
+        :param condition: Stable scientific condition identifier.
+        :param regest_id: Stable input-unit identifier.
+        :param attempt_dir: Attempt that owns the retrieval.
+        :param payload: Complete result payload.
+        :return: Artifact references and legacy-compatible path mapping.
+        """
+        if condition not in RETRIEVAL_CONDITIONS:
+            return {}, {}
         retrieval = _retrieval_artifact_payload(payload)
         if retrieval is None:
-            # > A failed retrieval must remain observable as a terminal raw
-            # result. The analysis exporter rejects the missing sidecars for a
-            # publication run, rather than losing the failure at write time.
-            return {"retrieval_sidecars_complete": False}
+            retrieval = self._legacy_retrieval_artifact(
+                condition=condition,
+                regest_id=regest_id,
+            )
+        if retrieval is None:
+            return {
+                "status": "unavailable",
+            }, {"retrieval_sidecars_complete": False}
         turtle_text, snapshot, fidelity = retrieval
-        # Keep retrieval exports condition-scoped.  This prevents a direct
-        # and workflow observation for the same regest from overwriting one
-        # another and makes the provider path explicit in raw artifacts.
-        retrieval_dir = self.intermediate_dirs[condition]
-        ttl_path = retrieval_dir / f"{safe_id}.retrieved.ttl"
-        yaml_path = retrieval_dir / f"{safe_id}.retrieved.yaml"
+        retrieval_dir = attempt_dir / "retrieval"
+        ttl_path = retrieval_dir / "context.ttl"
+        metadata_path = retrieval_dir / "metadata.json"
         ttl_relative = ttl_path.relative_to(self.path_root).as_posix()
-        yaml_relative = yaml_path.relative_to(self.path_root).as_posix()
-        snapshot = _portable_retrieval_snapshot(
+        metadata_relative = metadata_path.relative_to(self.path_root).as_posix()
+        portable_snapshot = _portable_retrieval_snapshot_v3(
             snapshot,
             payload=payload,
             turtle_text=turtle_text,
             fidelity=fidelity,
             ttl_relative=ttl_relative,
-            yaml_relative=yaml_relative,
+            metadata_relative=metadata_relative,
         )
         _write_text_atomic(ttl_path, turtle_text)
-        _write_yaml_atomic(yaml_path, snapshot)
-        return {
+        _write_json_atomic(metadata_path, portable_snapshot)
+        references = {
+            "context": ArtifactReference.from_path(
+                ttl_path,
+                run_root=self.path_root,
+                media_type="text/turtle",
+            ).as_dict(),
+            "metadata": ArtifactReference.from_path(
+                metadata_path,
+                run_root=self.path_root,
+                media_type="application/json",
+            ).as_dict(),
+            "snapshot_fidelity": fidelity,
+        }
+        return references, {
             "retrieved_ttl": ttl_relative,
-            "retrieved_yaml": yaml_relative,
+            "retrieved_yaml": metadata_relative,
             "retrieval_snapshot_fidelity": fidelity,
             "retrieval_sidecars_complete": True,
         }
 
-    def _attempt_state_path(self, *, condition: str, regest_id: str) -> Path:
-        return self.intermediate_dirs[condition] / (
-            f"{_safe_name(regest_id)}.attempt.json"
+    def _legacy_stage1_response(
+        self, *, condition: str, regest_id: str
+    ) -> str | None:
+        """Read an exact pre-v3 Stage-1 sidecar when one survives.
+
+        :param condition: Stable scientific condition identifier.
+        :param regest_id: Stable input-unit identifier.
+        :return: Exact response text or ``None``.
+        """
+        safe_id = portable_name(regest_id)
+        candidates = sorted(
+            self.intermediate_dirs[condition].glob(f"{safe_id}.*.md")
         )
+        return (
+            candidates[-1].read_text(encoding="utf-8") if candidates else None
+        )
+
+    def _legacy_retrieval_artifact(
+        self, *, condition: str, regest_id: str
+    ) -> tuple[str, dict[str, Any], str] | None:
+        """Read an exact native retrieval pair from pre-v3 sidecars.
+
+        :param condition: Stable retrieval condition identifier.
+        :param regest_id: Stable input-unit identifier.
+        :return: Turtle, metadata, and fidelity when both files survive.
+        """
+        safe_id = portable_name(regest_id)
+        root = self.intermediate_dirs[condition]
+        turtle_path = root / f"{safe_id}.retrieved.ttl"
+        metadata_path = root / f"{safe_id}.retrieved.yaml"
+        if not turtle_path.is_file() or not metadata_path.is_file():
+            return None
+        metadata = haiu_utils.load_yaml(metadata_path)
+        if not isinstance(metadata, dict):
+            raise ValueError(
+                f"Legacy retrieval metadata is malformed: {metadata_path.name}"
+            )
+        fidelity = str(metadata.get("snapshot_fidelity") or "legacy_sidecar")
+        return turtle_path.read_text(encoding="utf-8"), metadata, fidelity
+
+    def _write_legacy_raw_documents(
+        self,
+        *,
+        condition: str,
+        safe_id: str,
+        payload: dict[str, Any],
+    ) -> RawDocumentPaths:
+        """Locate existing pre-v3 sidecars without modifying their evidence.
+
+        :param condition: Stable scientific condition identifier.
+        :param safe_id: Portable input-unit identifier.
+        :param payload: Complete legacy result payload.
+        :return: Available legacy paths for resume compatibility.
+        """
+        result_dir = self.result_dirs[condition]
+        intermediate_dir = self.intermediate_dirs[condition]
+        written: RawDocumentPaths = {
+            "stage1_capture_status": _stage1_response_capture(payload)[
+                "status"
+            ],
+            "attempt_ttl": {},
+        }
+        candidates = {
+            "yaml": result_dir / f"{safe_id}.yaml",
+            "ttl": result_dir / f"{safe_id}.ttl",
+            "stage1_metadata": intermediate_dir / f"{safe_id}.json",
+            "retrieved_ttl": intermediate_dir / f"{safe_id}.retrieved.ttl",
+            "retrieved_yaml": intermediate_dir / f"{safe_id}.retrieved.yaml",
+        }
+        for label, candidate in candidates.items():
+            if candidate.is_file():
+                written[label] = candidate.relative_to(
+                    self.path_root
+                ).as_posix()
+        stage1_candidates = sorted(intermediate_dir.glob(f"{safe_id}.*.md"))
+        if stage1_candidates:
+            written["stage1"] = (
+                stage1_candidates[-1].relative_to(self.path_root).as_posix()
+            )
+        attempt_paths = sorted(result_dir.glob(f"{safe_id}.attempt-*.ttl"))
+        written["attempt_ttl"] = {
+            path.stem.removeprefix(f"{safe_id}.").replace("-", "_"): (
+                path.relative_to(self.path_root).as_posix()
+            )
+            for path in attempt_paths
+        }
+        written["retrieval_sidecars_complete"] = all(
+            label in written for label in ("retrieved_ttl", "retrieved_yaml")
+        )
+        return written
+
+    def _existing_prompt_paths(
+        self, *, condition: str, safe_id: str
+    ) -> dict[str, str]:
+        """Locate prompt sidecars belonging to one pre-v3 result.
+
+        :param condition: Stable scientific condition identifier.
+        :param safe_id: Portable input-unit identifier.
+        :return: Legacy prompt labels and run-relative paths.
+        """
+        condition_prompt_dir = self.intermediate_dirs[condition]
+        prefix = f"{safe_id}_"
+        written: dict[str, str] = {}
+        for prompt_path in sorted(condition_prompt_dir.glob(f"{safe_id}_*.md")):
+            label = prompt_path.stem.removeprefix(prefix)
+            written[label] = prompt_path.relative_to(self.path_root).as_posix()
+        return written
+
+    def _attempt_state_path(self, *, condition: str, regest_id: str) -> Path:
+        return self.layout.checkpoint(condition, regest_id)
 
 
 def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
@@ -1207,10 +1558,119 @@ def _csv_value(value: Any) -> Any:
     return value
 
 
-def _safe_name(value: str) -> str:
-    return "".join(
-        char if char.isalnum() or char in {"-", "_"} else "_" for char in value
+def _positive_attempt_number(payload: dict[str, Any]) -> int:
+    """Read a valid one-based attempt number, defaulting legacy rows to one.
+
+    :param payload: Complete result payload.
+    :return: Positive attempt number.
+    """
+    value = payload.get("attempt")
+    if isinstance(value, int) and not isinstance(value, bool) and value > 0:
+        return value
+    return 1
+
+
+def _readable_stage_label(value: str) -> str:
+    """Normalize provider-specific stage keys for obvious filenames.
+
+    :param value: Source stage key such as ``workflow_stage1``.
+    :return: Stable label such as ``stage-1``.
+    """
+    normalized = value.removeprefix("workflow_").replace("_", "-")
+    if normalized in {"stage1", "stage-1"}:
+        return "stage-1"
+    if normalized in {"stage2", "stage-2"}:
+        return "stage-2"
+    return portable_name(normalized).replace("_", "-")
+
+
+def _paths_from_v3_record(
+    record: dict[str, Any],
+) -> tuple[RawDocumentPaths, dict[str, str]]:
+    """Recover compatibility paths from one nested terminal record.
+
+    :param record: Parsed schema-v3 terminal record.
+    :return: Raw-document and prompt path mappings.
+    """
+    artifacts = record.get("artifacts")
+    if not isinstance(artifacts, dict):
+        raise ValueError("Schema-v3 record has no artifact index.")
+    upstream = artifacts.get("upstream_result")
+    upstream_path = _artifact_path(upstream)
+    metadata_path = (
+        str(Path(upstream_path).with_name("metadata.json"))
+        if upstream_path is not None
+        else None
     )
+    stage1 = artifacts.get("stage1_response")
+    stage2 = artifacts.get("stage2_response")
+    stage1_path = _artifact_path(stage1)
+    stage2_path = _artifact_path(stage2)
+    stage1_status = (
+        str(stage1.get("status") or "unavailable")
+        if isinstance(stage1, dict)
+        else "unavailable"
+    )
+    if stage1_path is not None:
+        stage1_status = "captured"
+    attempts = record.get("attempts")
+    attempt_number = (
+        attempts.get("attempt") if isinstance(attempts, dict) else None
+    )
+    attempt_label = (
+        str(attempt_number)
+        if isinstance(attempt_number, int) and attempt_number > 0
+        else "1"
+    )
+    raw_paths: RawDocumentPaths = {
+        "yaml": None,
+        "stage1": stage1_path,
+        "stage1_metadata": metadata_path,
+        "stage1_capture_status": stage1_status,
+        "ttl": stage2_path,
+        "attempt_ttl": (
+            {f"attempt_{attempt_label}": stage2_path}
+            if stage2_path is not None
+            else {}
+        ),
+    }
+    retrieval = artifacts.get("retrieval")
+    if isinstance(retrieval, dict):
+        raw_paths.update(
+            {
+                "retrieved_ttl": _artifact_path(retrieval.get("context")),
+                "retrieved_yaml": _artifact_path(retrieval.get("metadata")),
+                "retrieval_snapshot_fidelity": retrieval.get(
+                    "snapshot_fidelity"
+                ),
+                "retrieval_sidecars_complete": bool(
+                    _artifact_path(retrieval.get("context"))
+                    and _artifact_path(retrieval.get("metadata"))
+                ),
+            }
+        )
+    prompts = artifacts.get("prompts")
+    prompt_paths: dict[str, str] = {}
+    if isinstance(prompts, dict):
+        for label, reference in prompts.items():
+            artifact_path = _artifact_path(reference)
+            if artifact_path is not None:
+                prompt_paths[compatibility_prompt_key(str(label))] = (
+                    artifact_path
+                )
+    return raw_paths, prompt_paths
+
+
+def _artifact_path(value: Any) -> str | None:
+    """Read a portable path from an optional artifact reference.
+
+    :param value: Candidate artifact-reference mapping.
+    :return: Non-empty path or ``None``.
+    """
+    if not isinstance(value, dict):
+        return None
+    path = value.get("path")
+    return path if isinstance(path, str) and path else None
 
 
 def _frozen_regest_payload(regest: RegestText) -> dict[str, Any]:
@@ -1416,24 +1876,24 @@ def _retrieval_artifact_payload(
     return retrieved_turtle, deepcopy(retrieval_snapshot), "native_full_graph"
 
 
-def _portable_retrieval_snapshot(
+def _portable_retrieval_snapshot_v3(
     snapshot: dict[str, Any],
     *,
     payload: dict[str, Any],
     turtle_text: str,
     fidelity: str,
     ttl_relative: str,
-    yaml_relative: str,
+    metadata_relative: str,
 ) -> dict[str, Any]:
-    """Attach portable artifact provenance to one retrieval YAML payload.
+    """Attach portable artifact provenance to retrieval metadata.
 
     :param snapshot: Native or reconstructed retrieval payload.
     :param payload: Authoritative workflow result.
     :param turtle_text: Exact context sent to the model.
     :param fidelity: Declared snapshot fidelity.
     :param ttl_relative: Run-relative Turtle path.
-    :param yaml_relative: Run-relative YAML path.
-    :return: Portable YAML payload without private host paths.
+    :param metadata_relative: Run-relative JSON metadata path.
+    :return: Portable JSON payload without private host paths.
     """
     portable = deepcopy(snapshot)
     portable.pop("workdir", None)
@@ -1451,7 +1911,7 @@ def _portable_retrieval_snapshot(
             "condition": str(payload.get("condition") or ""),
             "regest_id": str(payload.get("regest_id") or ""),
             "export_base": ttl_relative.removesuffix(".ttl"),
-            "export_yaml_path": yaml_relative,
+            "metadata_path": metadata_relative,
             "turtle_export_path": ttl_relative,
             "retrieved_turtle_chars": len(turtle_text),
             "retrieved_turtle_sha256": hashlib.sha256(
@@ -1468,6 +1928,7 @@ def _write_text_atomic(path: Path, content: str) -> None:
     :param path: Final artifact path.
     :param content: Complete UTF-8 text.
     """
+    path.parent.mkdir(parents=True, exist_ok=True)
     temp_path = path.with_name(f".{path.name}.{os.getpid()}.tmp")
     temp_path.write_text(content, encoding="utf-8")
     temp_path.replace(path)
@@ -1480,17 +1941,48 @@ def _write_bytes_atomic(path: Path, content: bytes) -> None:
     :param content: Complete binary content.
     :return: None.
     """
+    path.parent.mkdir(parents=True, exist_ok=True)
     temp_path = path.with_name(f".{path.name}.{os.getpid()}.tmp")
     temp_path.write_bytes(content)
     temp_path.replace(path)
 
 
-def _write_yaml_atomic(path: Path, payload: dict[str, Any]) -> None:
-    """Replace a YAML artifact only after serialization completes.
+def _write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
+    """Replace a JSON artifact only after serialization completes.
 
     :param path: Final artifact path.
     :param payload: JSON-compatible result payload.
+    :return: ``None``.
     """
-    temp_path = path.with_name(f".{path.name}.{os.getpid()}.tmp")
-    ut.export_yaml(payload, temp_path)
-    temp_path.replace(path)
+    _write_text_atomic(
+        path,
+        json.dumps(payload, indent=2, ensure_ascii=False, default=str),
+    )
+
+
+def _load_json_object(path: Path) -> dict[str, Any]:
+    """Load one JSON object with an artifact-specific error.
+
+    :param path: JSON artifact to parse.
+    :return: Parsed object.
+    :raises ValueError: If the JSON root is not an object.
+    """
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"JSON artifact is not an object: {path}")
+    return payload
+
+
+def _replace_hardlink(source: Path, target: Path) -> None:
+    """Atomically point a second user-facing path at existing evidence.
+
+    :param source: Complete source artifact in the same filesystem.
+    :param target: Final alias path.
+    :return: ``None``.
+    """
+    target.parent.mkdir(parents=True, exist_ok=True)
+    temporary = target.with_name(f".{target.name}.{os.getpid()}.tmp")
+    if temporary.exists():
+        temporary.unlink()
+    os.link(source, temporary)
+    temporary.replace(target)

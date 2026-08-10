@@ -12,6 +12,9 @@ from pathlib import Path
 from dmw_experiments.shared.config.runtime_environment import (
     validate_run_environment_contract,
 )
+from dmw_experiments.studies.haiu_comparison.model.artifact_layout import (
+    ExecutionArtifactLayout,
+)
 from dmw_experiments.studies.haiu_comparison.model.run_contract import (
     load_run_contract,
 )
@@ -55,14 +58,20 @@ def prepare_promotion(
     expected = (
         expected_units * len(spec.conditions) * len(spec.enabled_executions)
     )
-    terminal = sum(
-        1
-        for execution in spec.enabled_executions
-        for condition in spec.conditions
-        for _ in (
-            root / execution.output_directory_name / f"result-{condition}"
-        ).glob("*.json")
-    )
+    terminal = 0
+    for execution in spec.enabled_executions:
+        layout = ExecutionArtifactLayout(root / execution.output_directory_name)
+        keys = {
+            (condition, path.parent.name)
+            for condition, path in layout.iter_result_records()
+            if condition in spec.conditions
+        }
+        keys.update(
+            (condition, path.stem)
+            for condition, path in layout.iter_legacy_result_records()
+            if condition in spec.conditions
+        )
+        terminal += len(keys)
     if not allow_partial and terminal != expected:
         raise ValueError(
             f"Run has {terminal}/{expected} terminal cells; strict promotion "

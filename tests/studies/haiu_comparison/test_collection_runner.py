@@ -43,6 +43,7 @@ from dmw_experiments.studies.haiu_comparison.preparation.dmw_storage import (
     write_manifest,
 )
 from dmw_experiments.studies.haiu_comparison.data_collection.runner import (
+    _artifact_layout_migration_allows_harness,
     _annotation_preparation_failure_result,
     _condition_order_for_index,
     _experiment_result_from_row,
@@ -337,6 +338,51 @@ def test_pair_environment_lock_binds_harness_and_prepared_inputs(
         haiu_distribution={"commit_id": "a" * 40},
         input_catalog=catalog,
         dmw_input_manifest=import_manifest,
+    )
+
+
+def test_completed_artifact_migration_allows_exact_harness_transition(
+    tmp_path: Path,
+) -> None:
+    """Accept only the clean commit recorded by a completed v3 migration."""
+    output = tmp_path / "run" / "raw-academiccloud"
+    environment = output.parent / "environment"
+    output.mkdir(parents=True)
+    environment.mkdir()
+    frozen = {"commit": "a" * 40, "worktree_clean": True}
+    live = {"commit": "b" * 40, "worktree_clean": True}
+    (environment / "academiccloud-artifact-layout-migration.json").write_text(
+        json.dumps(
+            {
+                "status": "completed",
+                "execution": "academiccloud",
+                "source_schema_version": 2,
+                "target_schema_version": 3,
+                "source_harness": frozen,
+                "target_harness": live,
+            }
+        ),
+        encoding="utf-8",
+    )
+    (output / "manifest.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 3,
+                "record_type": "haiu_comparison_execution_manifest",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert _artifact_layout_migration_allows_harness(
+        args=argparse.Namespace(output_dir=str(output)),
+        frozen_harness=frozen,
+        live_harness=live,
+    )
+    assert not _artifact_layout_migration_allows_harness(
+        args=argparse.Namespace(output_dir=str(output)),
+        frozen_harness=frozen,
+        live_harness={"commit": "c" * 40, "worktree_clean": True},
     )
 
 

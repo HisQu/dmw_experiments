@@ -21,6 +21,9 @@ from dmw_experiments.shared.config.runtime_environment import (
     validate_run_environment_contract,
 )
 from dmw_experiments.shared.supervision import ServiceUnits, UserServiceManager
+from dmw_experiments.studies.haiu_comparison.model.artifact_layout import (
+    ExecutionArtifactLayout,
+)
 from dmw_experiments.studies.haiu_comparison.model.inputs import (
     load_dmw_pair_import_manifest,
     load_header_sublemma_catalog,
@@ -32,6 +35,10 @@ from dmw_experiments.studies.haiu_comparison.model.run_contract import (
     ProviderExecutionSpec,
     RunContract,
     load_run_contract,
+)
+from dmw_experiments.studies.haiu_comparison.operations.artifact_migration import (
+    ArtifactLayoutMigrator,
+    ArtifactMigrationReport,
 )
 from dmw_experiments.studies.haiu_comparison.operations.repository_paths import (
     REPOSITORY_ROOT,
@@ -236,6 +243,70 @@ class ExperimentLifecycle:
             executions=statuses,
         )
 
+    def migrate_artifacts(
+        self,
+        run_root: Path,
+        *,
+        execution_names: tuple[str, ...] = (),
+    ) -> tuple[ArtifactMigrationReport, ...]:
+        """Convert stopped legacy provider outputs into schema-v3 bundles.
+
+        :param run_root: Existing copied run directory.
+        :param execution_names: Optional enabled provider filter.
+        :return: One verified migration report per selected execution.
+        :raises RuntimeError: If any selected service can still write evidence.
+        """
+        spec = load_run_contract(run_root)
+        reports: list[ArtifactMigrationReport] = []
+        for execution in self._selected_executions(spec, execution_names):
+            units = ServiceUnits.for_run(spec.run_id, execution.name)
+            active = [
+                unit
+                for unit in asdict(units).values()
+                if self.services.is_active(unit)
+            ]
+            if active:
+                raise RuntimeError(
+                    "Pause the execution before artifact migration: "
+                    + ", ".join(active)
+                )
+            workspace = RunWorkspace.open(run_root, execution.name)
+            report = ArtifactLayoutMigrator(
+                run_root=run_root,
+                execution=execution.name,
+            ).migrate()
+            workspace.append_event(
+                event="artifact_layout_migrated",
+                detail=(
+                    "Converted verified provider evidence from schema v2 to "
+                    "schema v3."
+                ),
+                source_schema_version=report.source_schema_version,
+                target_schema_version=report.target_schema_version,
+                terminal_cells=report.terminal_cells,
+                backup=report.backup,
+            )
+            workspace.append_babysit(
+                heading="Artifact layout migrated",
+                bullets=(
+                    "Paused services before changing artifact paths.",
+                    (
+                        f"Converted and verified {report.terminal_cells} "
+                        "terminal cells without changing their source payloads."
+                    ),
+                    (
+                        f"Retained the hash-inventoried schema-v2 snapshot at "
+                        f"`{report.backup}`."
+                    ),
+                    (
+                        "Resume uses the same scientific contract through the "
+                        "recorded harness-only artifact migration."
+                    ),
+                ),
+            )
+            reports.append(report)
+        return tuple(reports)
+
     def _start_or_resume(
         self,
         run_root: Path,
@@ -356,9 +427,14 @@ class ExperimentLifecycle:
         lock = workspace.environment / (
             f"{workspace.execution}-environment-lock.json"
         )
-        runner_manifest = workspace.environment / (
+        runner_manifest = (
+            workspace.root / f"raw-{workspace.execution}" / "manifest.json"
+        )
+        legacy_runner_manifest = workspace.environment / (
             f"{workspace.execution}-run-manifest.json"
         )
+        if not runner_manifest.is_file() and legacy_runner_manifest.is_file():
+            runner_manifest = legacy_runner_manifest
         for required in (manifest, lock, runner_manifest):
             if not required.is_file():
                 raise ValueError(
@@ -399,25 +475,46 @@ class ExperimentLifecycle:
         run_root: Path,
     ) -> ExecutionStatus:
         output = run_root / execution.output_directory_name
-        result_paths = tuple(
-            path
-            for condition in spec.conditions
-            for path in (output / f"result-{condition}").glob("*.json")
-        )
+        artifact_layout = ExecutionArtifactLayout(output)
+        results_by_key: dict[tuple[str, str], Path] = {}
+        for condition, result_path in artifact_layout.iter_result_records():
+            if condition in spec.conditions:
+                results_by_key[(condition, result_path.parent.name)] = (
+                    result_path
+                )
+        for (
+            condition,
+            result_path,
+        ) in artifact_layout.iter_legacy_result_records():
+            if condition in spec.conditions:
+                results_by_key.setdefault(
+                    (condition, result_path.stem),
+                    result_path,
+                )
+        result_paths = tuple(results_by_key.values())
         successes = 0
         failures = 0
         for path in result_paths:
             payload = json.loads(path.read_text(encoding="utf-8"))
-            if isinstance(payload, dict) and bool(payload.get("success")):
+            outcome = (
+                payload.get("outcome") if isinstance(payload, dict) else None
+            )
+            success = (
+                outcome.get("success")
+                if isinstance(outcome, dict)
+                else payload.get("success")
+                if isinstance(payload, dict)
+                else False
+            )
+            if bool(success):
                 successes += 1
             else:
                 failures += 1
         attempts = tuple(
             path
             for condition in spec.conditions
-            for path in (output / f"intermediates-{condition}").glob(
-                "*.attempt.json"
-            )
+            for pattern in ("*/checkpoint.json", "*.attempt.json")
+            for path in (output / f"intermediates-{condition}").glob(pattern)
         )
         retry_pending = sum(
             1 for path in attempts if _attempt_status(path) == "retry_pending"

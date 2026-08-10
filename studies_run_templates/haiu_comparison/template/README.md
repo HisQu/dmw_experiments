@@ -44,6 +44,7 @@ Never assign real credentials or absolute machine paths in this directory.
 ./run.sh start
 ./run.sh status
 ./run.sh pause
+./run.sh migrate-artifacts  # Only for a stopped pre-v3 run.
 ./run.sh resume
 ./run.sh analyze
 ./run.sh prepare-promotion

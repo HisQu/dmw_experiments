@@ -65,21 +65,41 @@ That package follows the experiment lifecycle: `model`, `preparation`,
 `HaiuComparisonStudy` in `study.py` is the supported Python orchestration
 interface.
 
-A copied run has flat provider areas:
+A copied run has flat provider and condition areas, then groups evidence by
+input unit and attempt:
 
 ```text
 raw-academiccloud/
-├── intermediates-workflow_full_ontology/
-├── intermediates-workflow_rag/
-├── intermediates-haiu_rag_ontologizer/
-├── result-workflow_full_ontology/
-├── result-workflow_rag/
-└── result-haiu_rag_ontologizer/
+├── manifest.json
+├── provenance/
+├── intermediates-shared_annotations/<unit-id>/
+│   ├── annotation.json
+│   └── attempts.json
+├── intermediates-workflow_full_ontology/<unit-id>/
+│   ├── checkpoint.json
+│   └── attempts/
+│       ├── 001-failed/
+│       └── 002/
+├── intermediates-workflow_rag/<unit-id>/
+├── intermediates-haiu_rag_ontologizer/<unit-id>/
+├── result-workflow_full_ontology/<unit-id>/
+│   ├── result.json
+│   └── ontology.ttl
+├── result-workflow_rag/<unit-id>/
+└── result-haiu_rag_ontologizer/<unit-id>/
 ```
 
 `raw-lmstudio/` has the same shape. Executions are not nested and do not wait
 for one another. `logs/BABYSIT-*.md`, `environment/`, `analysis/`, and `plots/`
 remain beside the raw areas in the same run.
+
+Every failed attempt is named `<NNN>-failed`; successful attempts use `<NNN>`.
+An attempt owns `metadata.json`, its `prompts/`, its `responses/`, optional
+`retrieval/`, and the exact upstream result in `upstream-result.json.gz`.
+`result.json` is a small terminal index with content hashes and grouped scalar
+measurements. It does not repeat large prompts or responses. Shared NER output
+is stored once under `intermediates-shared_annotations/` because both DMW
+conditions use the same frozen annotation.
 
 Full runs belong under `studies_runs/haiu_comparison/`; smoke runs belong
 under `studies_runs_smoketests/haiu_comparison/`. Both are wholly ignored.
@@ -103,12 +123,22 @@ collections, annotation collections, ontology collections, and Haiu storage.
 
 ## Evidence and analysis
 
-Result JSON, YAML, Turtle, provider attempts, prompts, Stage-1 replies,
+Exact upstream JSON, Turtle, provider attempts, prompts, Stage-1 replies,
 retrieval sidecars, environment locks, and run manifests remain in the copied
-run. Terminal context, length, and other model failures are observations.
+run. The active layout does not keep a second YAML rendering of the full
+result. Terminal context, length, and other model failures are observations.
 Infrastructure interruption resumes only the same frozen contract.
 The run manifest records the stable shared-workspace identity; process logs
 record whether a launch had to synchronize it.
+
+A stopped schema-v2 run can use `./run.sh migrate-artifacts` before resuming.
+The migration first retains every source byte in a hash-inventoried recovery
+snapshot, verifies all schema-v3 bundles and exact decoded payloads, then
+removes only verified duplicates from the active view. The original frozen
+environment lock remains unchanged; a separate migration record proves the
+old and new clean experiment-harness commits. A schema-v2 `retry_pending`
+checkpoint must reach a terminal result before migration so its provisional
+failure cannot be mistaken for an observation.
 
 Strict analysis requires every scheduled cell of every enabled execution to be
 terminal. Provider workbooks and plots follow the enabled execution set. The

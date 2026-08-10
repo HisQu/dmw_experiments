@@ -34,6 +34,13 @@ def _inactive_runner(
     return subprocess.CompletedProcess(command, 0, "loaded\ninactive\n", "")
 
 
+def _active_runner(
+    command: list[str], **_: Any
+) -> subprocess.CompletedProcess[str]:
+    """Return a loaded and active systemd state for safety checks."""
+    return subprocess.CompletedProcess(command, 0, "loaded\nactive\n", "")
+
+
 def _smoke_run(tmp_path: Path) -> Path:
     root = tmp_path / "template"
     shutil.copytree(RUN_TEMPLATE_ROOT, root)
@@ -80,6 +87,72 @@ def test_status_distinguishes_provider_success_failure_and_retry(
     assert provider.failed_cells == 1
     assert provider.retry_pending_cells == 1
     assert provider.strict_analysis_ready is False
+
+
+def test_status_reads_nested_schema_v3_results_and_checkpoints(
+    tmp_path: Path,
+) -> None:
+    """Count per-unit result bundles without relying on flat legacy files."""
+    root = _smoke_run(tmp_path)
+    result = (
+        root
+        / "raw-academiccloud"
+        / "result-workflow_full_ontology"
+        / "unit"
+        / "result.json"
+    )
+    result.parent.mkdir(parents=True)
+    result.write_text(
+        json.dumps(
+            {
+                "schema_version": 3,
+                "record_type": "haiu_comparison_terminal_cell",
+                "outcome": {"success": True},
+            }
+        ),
+        encoding="utf-8",
+    )
+    checkpoint = (
+        root
+        / "raw-academiccloud"
+        / "intermediates-workflow_rag"
+        / "unit"
+        / "checkpoint.json"
+    )
+    checkpoint.parent.mkdir(parents=True)
+    checkpoint.write_text(
+        json.dumps({"status": "retry_pending"}),
+        encoding="utf-8",
+    )
+    lifecycle = ExperimentLifecycle(
+        config=AppRuntimeConfig(),
+        services=UserServiceManager(runner=_inactive_runner),
+    )
+
+    status = lifecycle.status(root, execution_names=("academiccloud",))
+
+    provider = status.executions["academiccloud"]
+    assert provider.terminal_cells == 1
+    assert provider.successful_cells == 1
+    assert provider.failed_cells == 0
+    assert provider.retry_pending_cells == 1
+
+
+def test_artifact_migration_refuses_active_provider_services(
+    tmp_path: Path,
+) -> None:
+    """Require an explicit durable pause before changing artifact paths."""
+    root = _smoke_run(tmp_path)
+    lifecycle = ExperimentLifecycle(
+        config=AppRuntimeConfig(),
+        services=UserServiceManager(runner=_active_runner),
+    )
+
+    with pytest.raises(RuntimeError, match="Pause the execution"):
+        lifecycle.migrate_artifacts(
+            root,
+            execution_names=("academiccloud",),
+        )
 
 
 def test_default_python_keeps_active_interpreter_path() -> None:
