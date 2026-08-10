@@ -47,6 +47,31 @@ def test_loads_both_isolated_provider_executions(tmp_path: Path) -> None:
     assert spec.ontology_example_limit == 0
 
 
+def test_existing_run_keeps_its_frozen_release_stack(tmp_path: Path) -> None:
+    """A runtime patch must not require rewriting an existing run contract."""
+    root = _run(tmp_path)
+    _replace(
+        root / "run.toml",
+        'release_stack = "published-dmw-1.1.4"',
+        'release_stack = "published-dmw-1.1.3"',
+    )
+
+    assert load_run_contract(root).release_stack == "published-dmw-1.1.3"
+
+
+def test_rejects_unrecognized_release_stack(tmp_path: Path) -> None:
+    """Only stack identities with an explicit transition path are readable."""
+    root = _run(tmp_path)
+    _replace(
+        root / "run.toml",
+        'release_stack = "published-dmw-1.1.4"',
+        'release_stack = "published-dmw-9.9.9"',
+    )
+
+    with pytest.raises(ValueError, match="release_stack must be one of"):
+        load_run_contract(root)
+
+
 def test_run_directory_owns_cell_paths(tmp_path: Path) -> None:
     """Every lifecycle phase resolves artifacts through one run boundary."""
     root = _run(tmp_path)

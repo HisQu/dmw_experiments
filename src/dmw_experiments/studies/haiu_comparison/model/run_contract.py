@@ -22,6 +22,7 @@ EXECUTION_NAME = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
 STUDY_ID = "haiu_comparison"
 RELEASE_STACK = "published-dmw-1.1.4"
+SUPPORTED_RELEASE_STACKS = frozenset({"published-dmw-1.1.3", RELEASE_STACK})
 RUN_CONTRACT_FILENAME = "run.toml"
 CONDITIONS = CONDITION_IDS
 PROVIDER_PROFILES = frozenset({"academiccloud-qwen36", "lmstudio-qwen36-q6"})
@@ -196,8 +197,9 @@ class RunContract:
             raise ValueError(f"study must be {STUDY_ID!r}.")
         if self.mode not in RUN_MODES:
             raise ValueError("mode must be 'smoke' or 'full'.")
-        if self.release_stack != RELEASE_STACK:
-            raise ValueError(f"release_stack must be {RELEASE_STACK!r}.")
+        if self.release_stack not in SUPPORTED_RELEASE_STACKS:
+            allowed = ", ".join(sorted(SUPPORTED_RELEASE_STACKS))
+            raise ValueError(f"release_stack must be one of: {allowed}.")
         if not RUN_NAME.fullmatch(self.run_id):
             raise ValueError(
                 "run_id must use lowercase letters, digits, and hyphens."
