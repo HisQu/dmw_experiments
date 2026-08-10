@@ -187,15 +187,17 @@ def test_default_python_keeps_active_interpreter_path() -> None:
     assert runtime.publication_python.name.startswith("python")
 
 
-def test_condition_timeout_outlives_worker_and_two_provider_calls() -> None:
-    """The outer guard leaves enough time to retain inner failure details."""
+def test_condition_timeout_outlives_all_provider_attempts() -> None:
+    """The outer guard lets every inner attempt return failure details."""
     timeout_seconds = _condition_wall_clock_timeout_seconds(
         ontology_worker_timeout_seconds=7_200,
         provider_timeout_seconds=3_600,
+        provider_max_attempts=3,
         haiu_timeout_seconds=3_600,
+        haiu_max_attempts=3,
     )
 
-    assert timeout_seconds == 7_500
+    assert timeout_seconds == 21_900
 
 
 def test_haiu_storage_is_created_for_new_run_and_required_for_resume(

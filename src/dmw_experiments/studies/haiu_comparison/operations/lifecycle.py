@@ -969,7 +969,9 @@ class ExperimentLifecycle:
                 resolved.config.ontology_worker.ontology_timeout_seconds
             ),
             provider_timeout_seconds=resolved.config.provider.timeout_seconds,
+            provider_max_attempts=resolved.config.provider.max_retries,
             haiu_timeout_seconds=resolved.config.haiu.timeout_llm,
+            haiu_max_attempts=resolved.config.haiu.max_retries,
         )
         command = _execution_wrapper_command(
             runtime=runtime,
@@ -1059,7 +1061,9 @@ def _condition_wall_clock_timeout_seconds(
     *,
     ontology_worker_timeout_seconds: int,
     provider_timeout_seconds: int,
+    provider_max_attempts: int,
     haiu_timeout_seconds: int,
+    haiu_max_attempts: int,
 ) -> int:
     """Keep the harness guard outside every governed worker boundary.
 
@@ -1069,13 +1073,15 @@ def _condition_wall_clock_timeout_seconds(
 
     :param ontology_worker_timeout_seconds: DMW ontology worker limit.
     :param provider_timeout_seconds: GTA provider-call limit.
+    :param provider_max_attempts: GTA attempts allowed for one call.
     :param haiu_timeout_seconds: Haiu provider-call limit.
+    :param haiu_max_attempts: Haiu attempts allowed for one call.
     :return: Outer wall-clock limit including a short response-handling grace.
     """
     governed_timeout = max(
         ontology_worker_timeout_seconds,
-        2 * provider_timeout_seconds,
-        2 * haiu_timeout_seconds,
+        2 * provider_timeout_seconds * max(1, provider_max_attempts),
+        2 * haiu_timeout_seconds * max(1, haiu_max_attempts),
     )
     return governed_timeout + CONDITION_TIMEOUT_GRACE_SECONDS
 
