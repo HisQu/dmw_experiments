@@ -43,6 +43,10 @@ and derives collection and Haiu storage values from `run.toml`.
 
 ## Directory contract
 
+The normative cross-study rules are the
+[artifact output and evidence contract](../../docs/References.md#artifact-output-and-evidence-contract).
+This section applies that contract to the Haiu comparison.
+
 Keep provider and condition outputs flat. Organize evidence below each
 condition by input unit and attempt:
 

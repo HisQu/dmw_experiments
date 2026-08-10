@@ -7,7 +7,8 @@
 3. [Why the run is the unit of organization](#why-the-run-is-the-unit-of-organization)
 4. [Configuration model](#configuration-model)
 5. [Execution and failure model](#execution-and-failure-model)
-6. [Promotion model](#promotion-model)
+6. [Why evidence has separate lifecycles](#why-evidence-has-separate-lifecycles)
+7. [Promotion model](#promotion-model)
 
 ## Ownership model
 
@@ -86,6 +87,31 @@ The watchdog observes both `result-*` and `intermediates-*`. After
 infrastructure interruption, resume uses the exact frozen contract. Context or
 length exhaustion is a terminal model outcome and is not retried as
 infrastructure.
+
+## Why evidence has separate lifecycles
+
+A checkpoint answers where execution can resume. It may change while one cell
+is active. An attempt records what actually happened in one provider call and
+must not change after it ends. A terminal result is a small index that declares
+the cell complete and links its measurements to the preserved attempt. An
+analysis export is derived from terminal results and can be regenerated.
+
+Mixing these lifecycles caused the former flat layout to overwrite capture
+metadata, repeat large provider payloads, and hide failed retries behind the
+last result. The per-unit layout makes the mutable boundary explicit and keeps
+every attempt independently auditable. A visible `-failed` suffix helps a
+person inspect the tree, while structured metadata remains authoritative for
+software.
+
+Exact upstream responses are stored once because later extractors may improve
+or require fields that were not important during collection. Human-readable
+prompts, responses, and Turtle files make ordinary inspection easy; hashes
+tie those projections to the preserved evidence. Analysis therefore reads the
+artifact model instead of reconstructing meaning from filename globs.
+
+See the normative
+[artifact output and evidence contract](References.md#artifact-output-and-evidence-contract)
+for the rules enforced by writers, readers, migration, and promotion.
 
 ## Promotion model
 

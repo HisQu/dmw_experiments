@@ -128,6 +128,9 @@ dmw_experiments --storage "$PWD" --skip-dotenv-layers \
 
 Raw evidence is never overwritten. Analysis owns only its derived files.
 Human-evaluated workbooks remain explicit inputs paired with a reveal key.
+The exporter verifies schema-v3 artifact references and hashes while reading.
+Do not repair a failed export by editing raw evidence; inspect the reported
+artifact or restore it from the recorded migration snapshot.
 
 ## Promote a selected run
 

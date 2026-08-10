@@ -39,6 +39,10 @@ Never assign real credentials or absolute machine paths in this directory.
 
 ## Operation
 
+The repository's
+[artifact output and evidence contract](../../../docs/References.md#artifact-output-and-evidence-contract)
+defines which run files are mutable, immutable, derived, and publishable.
+
 ```bash
 ./run.sh validate
 ./run.sh start

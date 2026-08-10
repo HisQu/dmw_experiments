@@ -81,6 +81,8 @@ All notable changes to `dmw_experiments` will be documented in this file.
 - Disabled DMW's redundant server-side debug-file copy because the returned
   debug payload is preserved exactly in the attempt's compressed upstream
   result.
+- Centralized cross-study artifact ownership, evidence lifecycle, integrity,
+  migration, and promotion rules in the documentation reference.
 
 <br>
 

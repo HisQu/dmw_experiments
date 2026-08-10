@@ -129,6 +129,11 @@ pause with `./run.sh migrate-artifacts`. The command retains a hash-inventoried
 schema-v2 recovery snapshot, verifies the new bundles, and records the clean
 harness transition before the same run resumes.
 
+The normative
+[artifact output and evidence contract](docs/References.md#artifact-output-and-evidence-contract)
+defines evidence ownership, immutability, integrity, schema evolution, and
+promotion across studies.
+
 ## Analyze and promote
 
 ```bash

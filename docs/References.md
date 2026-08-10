@@ -7,8 +7,9 @@
 3. [Python interface](#python-interface)
 4. [Commands](#commands)
 5. [Run files](#run-files)
-6. [Configuration layers](#configuration-layers)
-7. [Release commands](#release-commands)
+6. [Artifact output and evidence contract](#artifact-output-and-evidence-contract)
+7. [Configuration layers](#configuration-layers)
+8. [Release commands](#release-commands)
 
 ## Project paths
 
@@ -86,6 +87,31 @@ Omitting the filter selects every enabled execution.
 | `logs/` | Provider logs and BABYSIT journals. |
 | `analysis/` | Intermediates, diagnostics, and workbooks. |
 | `plots/` | Figures, captions, and plot manifests. |
+
+## Artifact output and evidence contract
+
+The following rules apply to every study that writes provider or pipeline
+evidence. A study may add artifact roles, but it must not weaken these rules.
+
+| Rule | Required behavior |
+| --- | --- |
+| Experimental identity | Organize collection evidence by execution, condition, input unit, and attempt. A path must not depend on a Python implementation detail. |
+| Single authority | Store each fact once. Shared artifacts belong to the narrowest shared scope. Records refer to external artifacts by a named role, run-relative path, and SHA-256 digest. |
+| Evidence lifecycles | Keep mutable checkpoints, immutable attempts, immutable terminal results, and reproducible analysis outputs separate. |
+| Attempts | Append retries instead of overwriting earlier evidence. Name every unsuccessful attempt `<NNN>-failed`; use `<NNN>` for a successful attempt. `metadata.json` remains the machine-readable state authority. |
+| Exact capture | Preserve the exact upstream response before extracting convenient files or scalar measurements. Prompts, raw responses, retrieval inputs, and upstream payloads must support later audit and reconstruction. |
+| Terminal results | Keep `result.json` small. It indexes measurements and artifacts; it does not copy the complete upstream response. Store terminal Stage-2 text separately as `ontology.ttl` when available. |
+| Portability | Store run-relative references. Do not record credentials, private host details, or absolute machine paths in publishable artifacts. |
+| Integrity | Readers must reject unsupported schemas, missing references, changed hashes, and an upstream payload whose decoded digest differs from the recorded digest. Partial analysis requires an explicit opt-in and must identify itself as partial. |
+| Schema evolution | Record the artifact schema version in the execution manifest. Current writers emit one schema. Transitional readers and migrations may accept an earlier schema; writers must not dual-write both layouts. |
+| Promotion | Keep a live run ignored until the user selects it. Validate and promote its evidence, inputs, locks, and harness distribution together. |
+
+An artifact migration is a transaction across the complete execution. Stop
+all selected writers, inventory and hash the source, retain an exact recovery
+snapshot, write the new view, verify every artifact reference and decoded
+payload, record the source and target harness commits, and only then resume.
+Do not delete verified source files before the recovery snapshot and target
+verification both succeed.
 
 ## Configuration layers
 
