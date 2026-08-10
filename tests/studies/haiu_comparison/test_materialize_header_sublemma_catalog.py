@@ -57,6 +57,47 @@ def test_materialize_catalogue_rejects_changed_source_record(
         materialize_catalogue(source_run_dir)
 
 
+def test_materialize_catalogue_removes_only_legacy_layout_controls(
+    tmp_path: Path,
+) -> None:
+    source_run_dir = _write_source_run(
+        tmp_path,
+        {
+            "100": {
+                "header": "  First &w&w   &y header  ",
+                "subentries": ["  Sublemma   spacing  ", "Second"],
+            },
+            "200": {
+                "header": "  Unchanged   header  ",
+                "subentries": ["Untouched"],
+            },
+        },
+    )
+
+    catalogue = materialize_catalogue(source_run_dir)
+
+    records = catalogue["records"]
+    assert records[0]["header"] == "First header"
+    assert records[0]["sublemma"] == "  Sublemma   spacing  "
+    assert records[1]["header"] == "First header"
+    assert records[2]["header"] == "  Unchanged   header  "
+    assert catalogue["normalization"] == {
+        "schema_version": 1,
+        "name": "remove_legacy_regest_formatting_controls",
+        "removed_tokens": ["&w&w", "&w&", "&w", "&y"],
+        "rule": (
+            "Remove obsolete TUSTEP layout controls and collapse whitespace "
+            "only in fields containing a control; preserve all other fields "
+            "byte-for-byte."
+        ),
+        "normalized_input_unit_count": 2,
+        "normalized_source_regest_count": 1,
+        "normalized_source_regest_ids": ["100"],
+        "normalized_header_count": 1,
+        "normalized_sublemma_count": 0,
+    }
+
+
 def test_write_catalogue_requires_explicit_replacement(tmp_path: Path) -> None:
     output_path = tmp_path / "catalogue.json"
     catalogue = {"schema_version": 1}

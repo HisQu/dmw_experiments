@@ -8,12 +8,12 @@ from typing import Any
 
 import httpx
 
+from dmw_experiments.studies.haiu_comparison.model.inputs import (
+    contains_legacy_regest_formatting,
+)
 from dmw_experiments.studies.haiu_comparison.model.traces import (
     RegestText,
 )
-
-
-_LEGACY_REGEST_FORMATTING_TOKENS = ("&w&w", "&w&", "&w", "&y")
 
 
 class RegestNotFoundError(RuntimeError):
@@ -519,9 +519,8 @@ def regest_text_from_payload(
     if not header_text.strip() and not any(item.strip() for item in subentries):
         raise ValueError(f"Regest payload for {regest_id} contains no text.")
     if any(
-        token in text
+        contains_legacy_regest_formatting(text)
         for text in (header_text, *subentries)
-        for token in _LEGACY_REGEST_FORMATTING_TOKENS
     ):
         raise ValueError(
             f"Regest payload for {regest_id} contains a legacy formatting "

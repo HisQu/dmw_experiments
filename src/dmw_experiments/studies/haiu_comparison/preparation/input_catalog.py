@@ -16,6 +16,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from dmw_experiments.studies.haiu_comparison.model.inputs import (
+    LEGACY_REGEST_FORMATTING_TOKENS,
+    normalize_legacy_regest_formatting,
+)
 from dmw_experiments.studies.haiu_comparison.operations.repository_paths import (
     REPOSITORY_ROOT,
     RUN_TEMPLATE_ROOT,
@@ -33,8 +37,8 @@ class HeaderSublemmaUnit:
 
     :param source_regest_id: Identifier of the complete frozen RG record.
     :param source_subentry_index: Zero-based position in that record.
-    :param header: Exact frozen header text.
-    :param sublemma: Exact frozen sublemma text.
+    :param header: Frozen header text after documented input normalization.
+    :param sublemma: Frozen sublemma text after documented input normalization.
     :param source_regest_content_sha256: Digest of the complete source record.
     """
 
@@ -117,6 +121,10 @@ def materialize_catalogue(source_run_dir: Path) -> dict[str, Any]:
     units: list[HeaderSublemmaUnit] = []
     header_only_regest_ids: list[str] = []
     seen_unit_ids: set[str] = set()
+    normalized_source_regest_ids: set[str] = set()
+    normalized_header_count = 0
+    normalized_sublemma_count = 0
+    normalized_input_unit_count = 0
     for source_regest_id, manifest_record in records.items():
         if not isinstance(source_regest_id, str) or not source_regest_id:
             raise ValueError("Frozen raw-regest snapshot has an invalid ID.")
@@ -131,12 +139,22 @@ def materialize_catalogue(source_run_dir: Path) -> dict[str, Any]:
         if not subentries:
             header_only_regest_ids.append(source_regest_id)
             continue
+        normalized_header = normalize_legacy_regest_formatting(header)
+        if normalized_header != header:
+            normalized_header_count += 1
+            normalized_source_regest_ids.add(source_regest_id)
         for subentry_index, sublemma in enumerate(subentries):
+            normalized_sublemma = normalize_legacy_regest_formatting(sublemma)
+            if normalized_sublemma != sublemma:
+                normalized_sublemma_count += 1
+                normalized_source_regest_ids.add(source_regest_id)
+            if normalized_header != header or normalized_sublemma != sublemma:
+                normalized_input_unit_count += 1
             unit = HeaderSublemmaUnit(
                 source_regest_id=source_regest_id,
                 source_subentry_index=subentry_index,
-                header=header,
-                sublemma=sublemma,
+                header=normalized_header,
+                sublemma=normalized_sublemma,
                 source_regest_content_sha256=source_digest,
             )
             if unit.input_unit_id in seen_unit_ids:
@@ -151,8 +169,9 @@ def materialize_catalogue(source_run_dir: Path) -> dict[str, Any]:
         "schema_version": CATALOG_SCHEMA_VERSION,
         "unit_kind": "header_sublemma_pair",
         "description": (
-            "One input unit contains the exact frozen header and one ordered "
-            "sublemma from a complete RG regest."
+            "One input unit contains one frozen header and ordered sublemma "
+            "from a complete RG regest after documented removal of obsolete "
+            "layout controls."
         ),
         "source": {
             "source_run_id": source_run_dir.name,
@@ -165,6 +184,23 @@ def materialize_catalogue(source_run_dir: Path) -> dict[str, Any]:
             "input_unit_count": len(units),
             "excluded_header_only_regest_count": len(header_only_regest_ids),
             "excluded_header_only_regest_ids": header_only_regest_ids,
+        },
+        "normalization": {
+            "schema_version": 1,
+            "name": "remove_legacy_regest_formatting_controls",
+            "removed_tokens": list(LEGACY_REGEST_FORMATTING_TOKENS),
+            "rule": (
+                "Remove obsolete TUSTEP layout controls and collapse "
+                "whitespace only in fields containing a control; preserve "
+                "all other fields byte-for-byte."
+            ),
+            "normalized_input_unit_count": normalized_input_unit_count,
+            "normalized_source_regest_count": len(normalized_source_regest_ids),
+            "normalized_source_regest_ids": sorted(
+                normalized_source_regest_ids
+            ),
+            "normalized_header_count": normalized_header_count,
+            "normalized_sublemma_count": normalized_sublemma_count,
         },
         "records": [unit.as_dict() for unit in units],
     }

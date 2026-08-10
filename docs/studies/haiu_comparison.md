@@ -22,6 +22,14 @@ The frozen population contains 480 header--sublemma units. Each unit contains
 one header, one ordered sublemma, and source-regest lineage. It is not the
 whole multi-sublemma regest as one generation target.
 
+The catalogue removes obsolete TUSTEP layout controls (`&w&w`, `&w&`, `&w`,
+and `&y`) before freezing the experimental text. Whitespace is collapsed only
+in a field that contains one of these controls; every other field remains
+byte-for-byte identical to the verified source snapshot. The catalogue records
+the rule, affected counts, affected source IDs, and both source and normalized
+content hashes. The current population changes 44 input units from nine source
+regesta, all in headers; no sublemma is changed.
+
 | Internal condition | Display condition | Measured path |
 | --- | --- | --- |
 | `workflow_full_ontology` | DMW + Full Ontology | DMW receives the complete reference ontology. |

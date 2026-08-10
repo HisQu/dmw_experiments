@@ -38,6 +38,45 @@ def test_catalogue_loader_preserves_pair_text_and_lineage(
     assert first.lineage()["source_sublemma_number"] == 1
 
 
+def test_template_catalogue_records_targeted_input_normalization() -> None:
+    repository_root = Path(__file__).parents[3]
+    catalog_path = (
+        repository_root
+        / "studies_run_templates/haiu_comparison/template/INPUTS"
+        / "header_sublemma_input_catalog.json"
+    )
+
+    catalog = load_header_sublemma_catalog(catalog_path)
+    payload = json.loads(catalog_path.read_text(encoding="utf-8"))
+
+    assert len(catalog.records) == 480
+    assert payload["normalization"] == {
+        "schema_version": 1,
+        "name": "remove_legacy_regest_formatting_controls",
+        "removed_tokens": ["&w&w", "&w&", "&w", "&y"],
+        "rule": (
+            "Remove obsolete TUSTEP layout controls and collapse whitespace "
+            "only in fields containing a control; preserve all other fields "
+            "byte-for-byte."
+        ),
+        "normalized_input_unit_count": 44,
+        "normalized_source_regest_count": 9,
+        "normalized_source_regest_ids": [
+            "11002033",
+            "11002971",
+            "11007321",
+            "11007477",
+            "11007478",
+            "11007990",
+            "11009069",
+            "11009463",
+            "11009587",
+        ],
+        "normalized_header_count": 9,
+        "normalized_sublemma_count": 0,
+    }
+
+
 def test_catalogue_loader_rejects_modified_record(tmp_path: Path) -> None:
     catalog_path = _write_catalog(tmp_path)
     payload = json.loads(catalog_path.read_text(encoding="utf-8"))
@@ -45,6 +84,23 @@ def test_catalogue_loader_rejects_modified_record(tmp_path: Path) -> None:
     catalog_path.write_text(json.dumps(payload), encoding="utf-8")
 
     with pytest.raises(ValueError, match="catalogue content hash"):
+        load_header_sublemma_catalog(catalog_path)
+
+
+def test_catalogue_loader_rejects_legacy_layout_controls(
+    tmp_path: Path,
+) -> None:
+    catalog_path = _write_catalog(tmp_path)
+    payload = json.loads(catalog_path.read_text(encoding="utf-8"))
+    record = payload["records"][0]
+    record["header"] = "Frozen &w&w header &y"
+    record.pop("content_sha256")
+    record["content_sha256"] = canonical_json_sha256(record)
+    payload.pop("catalogue_content_sha256")
+    payload["catalogue_content_sha256"] = canonical_json_sha256(payload)
+    catalog_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="legacy formatting token"):
         load_header_sublemma_catalog(catalog_path)
 
 

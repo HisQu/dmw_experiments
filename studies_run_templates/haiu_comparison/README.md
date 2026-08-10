@@ -75,3 +75,6 @@ captions stay below `plots/`; service logs and BABYSIT journals stay below
 - Keep `ontology_example_limit = 0` for header--sublemma runs. The published
   whole-regest FAISS index has no query identity for synthetic pair IDs, so a
   nonzero value cannot provide the declared example.
+- Remove obsolete TUSTEP layout controls while materializing the catalogue.
+  Normalize only fields that contain a control, preserve all other input text
+  byte-for-byte, and keep the normalization evidence in the catalogue.

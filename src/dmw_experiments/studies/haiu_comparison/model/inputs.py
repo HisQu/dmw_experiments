@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -14,6 +15,35 @@ from dmw_experiments.studies.haiu_comparison.model.traces import (
 
 HEADER_SUBLEMMA_CATALOG_SCHEMA_VERSION = 1
 HEADER_SUBLEMMA_UNIT_KIND = "header_sublemma_pair"
+LEGACY_REGEST_FORMATTING_TOKENS = ("&w&w", "&w&", "&w", "&y")
+_LEGACY_REGEST_FORMATTING_PATTERN = re.compile(
+    "|".join(re.escape(token) for token in LEGACY_REGEST_FORMATTING_TOKENS)
+)
+
+
+def contains_legacy_regest_formatting(value: str) -> bool:
+    """Check whether historical layout controls remain in regest text.
+
+    :param value: Header or sublemma text.
+    :return: Whether the text contains at least one obsolete control.
+    """
+    return _LEGACY_REGEST_FORMATTING_PATTERN.search(value) is not None
+
+
+def normalize_legacy_regest_formatting(value: str) -> str:
+    """Remove obsolete TUSTEP layout controls from one text field.
+
+    Text without a control is returned byte-for-byte. If a control occurs, the
+    controls are removed and the resulting whitespace is collapsed. This is
+    the established RG_data import cleanup and prevents presentation metadata
+    from reaching any experimental condition.
+
+    :param value: Header or sublemma text from a verified source snapshot.
+    :return: Clean text with unchanged semantic content.
+    """
+    if not contains_legacy_regest_formatting(value):
+        return value
+    return " ".join(_LEGACY_REGEST_FORMATTING_PATTERN.sub("", value).split())
 
 
 @dataclass(frozen=True, slots=True)
@@ -23,8 +53,8 @@ class HeaderSublemmaInput:
     :param input_unit_id: Synthetic identifier used throughout DMW and Haiu.
     :param source_regest_id: Identifier of the original complete RG record.
     :param source_subentry_index: Zero-based sublemma position in that record.
-    :param header: Exact frozen header text.
-    :param sublemma: Exact frozen sublemma text.
+    :param header: Frozen header text after documented input normalization.
+    :param sublemma: Frozen sublemma text after documented input normalization.
     :param source_regest_content_sha256: Digest of the complete source record.
     :param content_sha256: Digest of this catalogue record.
     """
@@ -487,6 +517,13 @@ def _parse_record(raw_record: Any, *, position: int) -> HeaderSublemmaInput:
         raise ValueError(
             "Header--sublemma catalogue record content hash does not match: "
             f"{input_unit_id}."
+        )
+    if contains_legacy_regest_formatting(
+        header
+    ) or contains_legacy_regest_formatting(sublemma):
+        raise ValueError(
+            "Header--sublemma catalogue record contains a legacy formatting "
+            f"token: {input_unit_id}."
         )
     assert isinstance(source_digest, str)
     assert isinstance(content_digest, str)

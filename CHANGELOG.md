@@ -70,6 +70,11 @@ All notable changes to `dmw_experiments` will be documented in this file.
 
 ### 🔨 Fixed
 
+- Removed obsolete TUSTEP layout controls from the 44 affected
+  header--sublemma input units while preserving every unaffected text field
+  byte-for-byte. The catalogue records the normalization evidence and rejects
+  stale control-bearing inputs before external storage or provider work.
+
 <br>
 
 ### 🔒 Security

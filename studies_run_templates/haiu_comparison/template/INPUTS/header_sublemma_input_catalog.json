@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "unit_kind": "header_sublemma_pair",
-  "description": "One input unit contains the exact frozen header and one ordered sublemma from a complete RG regest.",
+  "description": "One input unit contains one frozen header and ordered sublemma from a complete RG regest after documented removal of obsolete layout controls.",
   "source": {
     "source_run_id": "publication-academiccloud-v113-20260728",
     "raw_regest_snapshot_manifest": "RESULTS/publication-academiccloud-v113-20260728/provenance/raw_regests_manifest.json",
@@ -224,100 +224,100 @@
       "source_regest_id": "11002033",
       "source_subentry_index": 0,
       "source_sublemma_number": 1,
-      "header": "Erfordia Erfordia &w&w &y Colleg. eccl. b. Marie et colleg. eccl. s. Severi confess. op. Erfoden. Magunt. dioc. que unac. 3. parte d. op. hoc an. igne concremate fuerunt: supplic. aep. Magunt. et principe electore , d. op. proconsules et consules op. Erforden. Magunt. dioc. : de indulg. ad instar illorum qui lim. appl. in Urbe anno iubilei proxime venturo visitabunt, Conc. 25 an. et plen. indulg. ad 7 an. 21. ian. 73 S 686 40 v",
+      "header": "Erfordia Erfordia Colleg. eccl. b. Marie et colleg. eccl. s. Severi confess. op. Erfoden. Magunt. dioc. que unac. 3. parte d. op. hoc an. igne concremate fuerunt: supplic. aep. Magunt. et principe electore , d. op. proconsules et consules op. Erforden. Magunt. dioc. : de indulg. ad instar illorum qui lim. appl. in Urbe anno iubilei proxime venturo visitabunt, Conc. 25 an. et plen. indulg. ad 7 an. 21. ian. 73 S 686 40 v",
       "sublemma": "dec. et capit. eccl. b. Marie in Erfordia Magunt. dioc. et rect. cure animarum parochianorum ipsius eccl.: de facult. elig. confess. 8. mai. 75 S 719 176 v",
       "source_regest_content_sha256": "d4030a824ac7b902695b004b2d1bb12f1ad7a6398854b8ef1c02ff15e947c258",
-      "content_sha256": "a0284e9dfe673a8f91f3a974fe1859b92e6506511941b8217eba972dbb23eefd"
+      "content_sha256": "8ce9f86e3c2446e22308cf7db901ac29d3bed94dc2b0642778d381c7cc56b36e"
     },
     {
       "input_unit_id": "hsp-11002033-s02",
       "source_regest_id": "11002033",
       "source_subentry_index": 1,
       "source_sublemma_number": 2,
-      "header": "Erfordia Erfordia &w&w &y Colleg. eccl. b. Marie et colleg. eccl. s. Severi confess. op. Erfoden. Magunt. dioc. que unac. 3. parte d. op. hoc an. igne concremate fuerunt: supplic. aep. Magunt. et principe electore , d. op. proconsules et consules op. Erforden. Magunt. dioc. : de indulg. ad instar illorum qui lim. appl. in Urbe anno iubilei proxime venturo visitabunt, Conc. 25 an. et plen. indulg. ad 7 an. 21. ian. 73 S 686 40 v",
+      "header": "Erfordia Erfordia Colleg. eccl. b. Marie et colleg. eccl. s. Severi confess. op. Erfoden. Magunt. dioc. que unac. 3. parte d. op. hoc an. igne concremate fuerunt: supplic. aep. Magunt. et principe electore , d. op. proconsules et consules op. Erforden. Magunt. dioc. : de indulg. ad instar illorum qui lim. appl. in Urbe anno iubilei proxime venturo visitabunt, Conc. 25 an. et plen. indulg. ad 7 an. 21. ian. 73 S 686 40 v",
       "sublemma": "dec. et capit. colleg. eccl. b. Marie et colleg. eccl. s. Severi op. Erforden. Magunt. dioc. quib. ut supra indulg. 25 an. conc. fuit: de facult. elig. confess. 14. mart. 79 S 785 156 v , L 796 234 rs",
       "source_regest_content_sha256": "d4030a824ac7b902695b004b2d1bb12f1ad7a6398854b8ef1c02ff15e947c258",
-      "content_sha256": "ce659eb18abe832a9e79e0b173bf1e2bc3b7b7ecaac6c1a068326e605c6b8192"
+      "content_sha256": "d522e2ffb33580162e9a0e751480faa216d5a374a8665205927b3dc1c7d767aa"
     },
     {
       "input_unit_id": "hsp-11002033-s03",
       "source_regest_id": "11002033",
       "source_subentry_index": 2,
       "source_sublemma_number": 3,
-      "header": "Erfordia Erfordia &w&w &y Colleg. eccl. b. Marie et colleg. eccl. s. Severi confess. op. Erfoden. Magunt. dioc. que unac. 3. parte d. op. hoc an. igne concremate fuerunt: supplic. aep. Magunt. et principe electore , d. op. proconsules et consules op. Erforden. Magunt. dioc. : de indulg. ad instar illorum qui lim. appl. in Urbe anno iubilei proxime venturo visitabunt, Conc. 25 an. et plen. indulg. ad 7 an. 21. ian. 73 S 686 40 v",
+      "header": "Erfordia Erfordia Colleg. eccl. b. Marie et colleg. eccl. s. Severi confess. op. Erfoden. Magunt. dioc. que unac. 3. parte d. op. hoc an. igne concremate fuerunt: supplic. aep. Magunt. et principe electore , d. op. proconsules et consules op. Erforden. Magunt. dioc. : de indulg. ad instar illorum qui lim. appl. in Urbe anno iubilei proxime venturo visitabunt, Conc. 25 an. et plen. indulg. ad 7 an. 21. ian. 73 S 686 40 v",
       "sublemma": "prep. et capit. eccl. b. Marie Erforden. Magunt. dioc. : de conf. statuta d. eccl. inter al. quod dec. d. eccl. in decan. d. eccl. (4 m. arg.) resideat ac iurisd. exerceat et de iur. elig. personam idoneam in d. decan. p. capit. d. eccl. 27. apr. 82 S 810 100 vs . Priorissa et conv. mon. Albarum dominarum o. s. Aug. Erforden. Magunt. dioc. quib. conserv. conc. fuit: de ref. 24. mai. 76 S 739 191 v . Priorissa et conv. mon. monial. s. Marie Magdalene o. Cist. Erforden. Magunt. dioc. : de conf. privil. Alexandri IV. qui d. mon. p. priorissam gubernari solitum sub b. Petri protectionem suscepit et omnes libertates ac immunitates confirmavit 12. iul. 83 S 825 312 vs . Priorissa et conv. mon. monial. Novioperis op. Erforden. o. s. Aug. Magunt. dioc. inter al. referentes quod Pius II. abbati mon. s. Jacobi Scotorum op. Erforden. mandavit ut par. eccl. ville Monsterhofen Magunt. dioc. d. monasterio uniretur c. reserv. congrue portionis pro vic. d. eccl.: de conc. dd. litt. perinde val. acsi in eisdem n. abba. sed priorissa nominata fuisset et ville Elxleben (que olim filialis d. unite eccl. fuerat) mentio facta fuisset et de incorp. d. monasterio perp. vicar. ad alt. ss. Ciriaci et Barbare in eccl. d. mon. que ad coll. priorisse et prep. d. mon. pertinet (4 m. arg.) 20. mai. 77 S 751 188 vs",
       "source_regest_content_sha256": "d4030a824ac7b902695b004b2d1bb12f1ad7a6398854b8ef1c02ff15e947c258",
-      "content_sha256": "f26c46ea0d8263fe65174560eb558ddfd9e5a203f3b70f1b37a0cfe5d4d58b2b"
+      "content_sha256": "8eb78dba795b1cd93ec104245d4d54ac9cf28af06a6d76510db592d2e649b974"
     },
     {
       "input_unit_id": "hsp-11002033-s04",
       "source_regest_id": "11002033",
       "source_subentry_index": 3,
       "source_sublemma_number": 4,
-      "header": "Erfordia Erfordia &w&w &y Colleg. eccl. b. Marie et colleg. eccl. s. Severi confess. op. Erfoden. Magunt. dioc. que unac. 3. parte d. op. hoc an. igne concremate fuerunt: supplic. aep. Magunt. et principe electore , d. op. proconsules et consules op. Erforden. Magunt. dioc. : de indulg. ad instar illorum qui lim. appl. in Urbe anno iubilei proxime venturo visitabunt, Conc. 25 an. et plen. indulg. ad 7 an. 21. ian. 73 S 686 40 v",
+      "header": "Erfordia Erfordia Colleg. eccl. b. Marie et colleg. eccl. s. Severi confess. op. Erfoden. Magunt. dioc. que unac. 3. parte d. op. hoc an. igne concremate fuerunt: supplic. aep. Magunt. et principe electore , d. op. proconsules et consules op. Erforden. Magunt. dioc. : de indulg. ad instar illorum qui lim. appl. in Urbe anno iubilei proxime venturo visitabunt, Conc. 25 an. et plen. indulg. ad 7 an. 21. ian. 73 S 686 40 v",
       "sublemma": "incorp. d. monasterio par. eccl. in Monsterhofen Magunt. dioc. et perp. s. c. vicar. clericis sec. assignari solitam ad alt. ss. Ciriaci et Barbare in eccl. d. mon. (insimul 4 m. arg.) 29. mai. 77 L 774 278 vss",
       "source_regest_content_sha256": "d4030a824ac7b902695b004b2d1bb12f1ad7a6398854b8ef1c02ff15e947c258",
-      "content_sha256": "c1a11a9f710ed7966fd8b5033c0d9fe5e5b99be4b822fd2172a7bc1c38db869f"
+      "content_sha256": "aefcbdf566acc2d28ca93771cd0f09d810aa1fa012f7e485ce21726675db6e3b"
     },
     {
       "input_unit_id": "hsp-11002033-s05",
       "source_regest_id": "11002033",
       "source_subentry_index": 4,
       "source_sublemma_number": 5,
-      "header": "Erfordia Erfordia &w&w &y Colleg. eccl. b. Marie et colleg. eccl. s. Severi confess. op. Erfoden. Magunt. dioc. que unac. 3. parte d. op. hoc an. igne concremate fuerunt: supplic. aep. Magunt. et principe electore , d. op. proconsules et consules op. Erforden. Magunt. dioc. : de indulg. ad instar illorum qui lim. appl. in Urbe anno iubilei proxime venturo visitabunt, Conc. 25 an. et plen. indulg. ad 7 an. 21. ian. 73 S 686 40 v",
+      "header": "Erfordia Erfordia Colleg. eccl. b. Marie et colleg. eccl. s. Severi confess. op. Erfoden. Magunt. dioc. que unac. 3. parte d. op. hoc an. igne concremate fuerunt: supplic. aep. Magunt. et principe electore , d. op. proconsules et consules op. Erforden. Magunt. dioc. : de indulg. ad instar illorum qui lim. appl. in Urbe anno iubilei proxime venturo visitabunt, Conc. 25 an. et plen. indulg. ad 7 an. 21. ian. 73 S 686 40 v",
       "sublemma": "referentes quod par. eccl. in Monsterhofen (4 m. arg.) que unienda est et filia facta fuit et parocho caret destructa est et in eadem raro misse celebrantur et dotata est ex fruct. mon.: de ref. 29. mai. 77 S 752 14 v",
       "source_regest_content_sha256": "d4030a824ac7b902695b004b2d1bb12f1ad7a6398854b8ef1c02ff15e947c258",
-      "content_sha256": "45d8853836100ef7c29295101ad5e1f31350b0854f56041cda48f3c36c4a4af9"
+      "content_sha256": "47e071cece7d19abc9cefb7f876b940c41545f0ff6fa2531be158037e31c3386"
     },
     {
       "input_unit_id": "hsp-11002033-s06",
       "source_regest_id": "11002033",
       "source_subentry_index": 5,
       "source_sublemma_number": 6,
-      "header": "Erfordia Erfordia &w&w &y Colleg. eccl. b. Marie et colleg. eccl. s. Severi confess. op. Erfoden. Magunt. dioc. que unac. 3. parte d. op. hoc an. igne concremate fuerunt: supplic. aep. Magunt. et principe electore , d. op. proconsules et consules op. Erforden. Magunt. dioc. : de indulg. ad instar illorum qui lim. appl. in Urbe anno iubilei proxime venturo visitabunt, Conc. 25 an. et plen. indulg. ad 7 an. 21. ian. 73 S 686 40 v",
+      "header": "Erfordia Erfordia Colleg. eccl. b. Marie et colleg. eccl. s. Severi confess. op. Erfoden. Magunt. dioc. que unac. 3. parte d. op. hoc an. igne concremate fuerunt: supplic. aep. Magunt. et principe electore , d. op. proconsules et consules op. Erforden. Magunt. dioc. : de indulg. ad instar illorum qui lim. appl. in Urbe anno iubilei proxime venturo visitabunt, Conc. 25 an. et plen. indulg. ad 7 an. 21. ian. 73 S 686 40 v",
       "sublemma": "quitt. quindenniorum Arm. XXXIII , 2 410 r",
       "source_regest_content_sha256": "d4030a824ac7b902695b004b2d1bb12f1ad7a6398854b8ef1c02ff15e947c258",
-      "content_sha256": "66806309ace76bcdb07ec5e02975512bace484bdeeb4c9c646124683ed0b70f5"
+      "content_sha256": "10283f70a7e6610cbe3a9d5980ad6ad91cee6b4442a493c0304f2c317055758f"
     },
     {
       "input_unit_id": "hsp-11002033-s07",
       "source_regest_id": "11002033",
       "source_subentry_index": 6,
       "source_sublemma_number": 7,
-      "header": "Erfordia Erfordia &w&w &y Colleg. eccl. b. Marie et colleg. eccl. s. Severi confess. op. Erfoden. Magunt. dioc. que unac. 3. parte d. op. hoc an. igne concremate fuerunt: supplic. aep. Magunt. et principe electore , d. op. proconsules et consules op. Erforden. Magunt. dioc. : de indulg. ad instar illorum qui lim. appl. in Urbe anno iubilei proxime venturo visitabunt, Conc. 25 an. et plen. indulg. ad 7 an. 21. ian. 73 S 686 40 v",
+      "header": "Erfordia Erfordia Colleg. eccl. b. Marie et colleg. eccl. s. Severi confess. op. Erfoden. Magunt. dioc. que unac. 3. parte d. op. hoc an. igne concremate fuerunt: supplic. aep. Magunt. et principe electore , d. op. proconsules et consules op. Erforden. Magunt. dioc. : de indulg. ad instar illorum qui lim. appl. in Urbe anno iubilei proxime venturo visitabunt, Conc. 25 an. et plen. indulg. ad 7 an. 21. ian. 73 S 686 40 v",
       "sublemma": "oblig. p. Gunterum Gerstenberg vic. eccl. b. Marie Erforden. Magunt. dioc. sup. annat. incorp. ut supra 9. iun. 77 A 26 5 r",
       "source_regest_content_sha256": "d4030a824ac7b902695b004b2d1bb12f1ad7a6398854b8ef1c02ff15e947c258",
-      "content_sha256": "252db97bf2d89ae870cd0f5532957af0c52a0b22b46e300fdb2129f204042fdc"
+      "content_sha256": "412cd5a2d5014a93a77b3fb1f31f51ec506b6545eb72b8bc34da1048c173c2f8"
     },
     {
       "input_unit_id": "hsp-11002033-s08",
       "source_regest_id": "11002033",
       "source_subentry_index": 7,
       "source_sublemma_number": 8,
-      "header": "Erfordia Erfordia &w&w &y Colleg. eccl. b. Marie et colleg. eccl. s. Severi confess. op. Erfoden. Magunt. dioc. que unac. 3. parte d. op. hoc an. igne concremate fuerunt: supplic. aep. Magunt. et principe electore , d. op. proconsules et consules op. Erforden. Magunt. dioc. : de indulg. ad instar illorum qui lim. appl. in Urbe anno iubilei proxime venturo visitabunt, Conc. 25 an. et plen. indulg. ad 7 an. 21. ian. 73 S 686 40 v",
+      "header": "Erfordia Erfordia Colleg. eccl. b. Marie et colleg. eccl. s. Severi confess. op. Erfoden. Magunt. dioc. que unac. 3. parte d. op. hoc an. igne concremate fuerunt: supplic. aep. Magunt. et principe electore , d. op. proconsules et consules op. Erforden. Magunt. dioc. : de indulg. ad instar illorum qui lim. appl. in Urbe anno iubilei proxime venturo visitabunt, Conc. 25 an. et plen. indulg. ad 7 an. 21. ian. 73 S 686 40 v",
       "sublemma": "referentes quod propter ignis incendium quo d. op. pro magna parte concrematum fuit fruct. d. mon. diminuti erant et eapropter d. monasterio par. eccl. in Monstergehofe Magunt. dioc. et perp. vicar. ad alt. ss. Ciriaci et Barbare in eccl. d. mon. incorp. fuerunt et quod deinde Johannes Ungelder in art. mag. ac perp. vic. ad d. alt. resign. in manibus pape ut incorp. celeriorem effectum habeat: de adm. resign. d. Johannis et de prov. d. priorisse de eadem et de assign. d. Johanni pens. ann. 3 m. arg. sup. fruct. d. mon. p. d. priorissam et conv. persolv. 25. nov. 78 S 775 133 r , m. ( dec. eccl. s. Severi Erforden. Magunt. dioc. ) L 789 242 vss , quitt. quindenniorum Arm. XXXIII , 2 421 v",
       "source_regest_content_sha256": "d4030a824ac7b902695b004b2d1bb12f1ad7a6398854b8ef1c02ff15e947c258",
-      "content_sha256": "f63d275bb59390beb630f3ba5c0000aa5c1d8ce67f981b3c49e516959e1c978b"
+      "content_sha256": "f036869b10606dd28ff8829938fd7c9c52b194d43aa715db5c8ffb0ae557424c"
     },
     {
       "input_unit_id": "hsp-11002033-s09",
       "source_regest_id": "11002033",
       "source_subentry_index": 8,
       "source_sublemma_number": 9,
-      "header": "Erfordia Erfordia &w&w &y Colleg. eccl. b. Marie et colleg. eccl. s. Severi confess. op. Erfoden. Magunt. dioc. que unac. 3. parte d. op. hoc an. igne concremate fuerunt: supplic. aep. Magunt. et principe electore , d. op. proconsules et consules op. Erforden. Magunt. dioc. : de indulg. ad instar illorum qui lim. appl. in Urbe anno iubilei proxime venturo visitabunt, Conc. 25 an. et plen. indulg. ad 7 an. 21. ian. 73 S 686 40 v",
+      "header": "Erfordia Erfordia Colleg. eccl. b. Marie et colleg. eccl. s. Severi confess. op. Erfoden. Magunt. dioc. que unac. 3. parte d. op. hoc an. igne concremate fuerunt: supplic. aep. Magunt. et principe electore , d. op. proconsules et consules op. Erforden. Magunt. dioc. : de indulg. ad instar illorum qui lim. appl. in Urbe anno iubilei proxime venturo visitabunt, Conc. 25 an. et plen. indulg. ad 7 an. 21. ian. 73 S 686 40 v",
       "sublemma": "oblig. p. Guntherum Gerstenberg vic. eccl. b. Marie Erforden. Magunt. dioc. sup. annat. perp. vicar. ut supra unita 14. decb. 78 A 27 123 r",
       "source_regest_content_sha256": "d4030a824ac7b902695b004b2d1bb12f1ad7a6398854b8ef1c02ff15e947c258",
-      "content_sha256": "7136c16356cb2d5deb07d5d78c6b269595e55e95a6f38c021b9123b025ec7b2a"
+      "content_sha256": "ef19ac30cdab4b2acda3c69f9453be3ca2f878264bb6640b80735cd441e7d9d6"
     },
     {
       "input_unit_id": "hsp-11002033-s10",
       "source_regest_id": "11002033",
       "source_subentry_index": 9,
       "source_sublemma_number": 10,
-      "header": "Erfordia Erfordia &w&w &y Colleg. eccl. b. Marie et colleg. eccl. s. Severi confess. op. Erfoden. Magunt. dioc. que unac. 3. parte d. op. hoc an. igne concremate fuerunt: supplic. aep. Magunt. et principe electore , d. op. proconsules et consules op. Erforden. Magunt. dioc. : de indulg. ad instar illorum qui lim. appl. in Urbe anno iubilei proxime venturo visitabunt, Conc. 25 an. et plen. indulg. ad 7 an. 21. ian. 73 S 686 40 v",
+      "header": "Erfordia Erfordia Colleg. eccl. b. Marie et colleg. eccl. s. Severi confess. op. Erfoden. Magunt. dioc. que unac. 3. parte d. op. hoc an. igne concremate fuerunt: supplic. aep. Magunt. et principe electore , d. op. proconsules et consules op. Erforden. Magunt. dioc. : de indulg. ad instar illorum qui lim. appl. in Urbe anno iubilei proxime venturo visitabunt, Conc. 25 an. et plen. indulg. ad 7 an. 21. ian. 73 S 686 40 v",
       "sublemma": "solv. 18 fl. adc. pro annat. vicar. ut supra p. manus Gunteri de Gerstenberch 14. decb. 78 FC I 1133 197 v .",
       "source_regest_content_sha256": "d4030a824ac7b902695b004b2d1bb12f1ad7a6398854b8ef1c02ff15e947c258",
-      "content_sha256": "3c4a4ae3891260a050c070500a5973d839d1b8aed64efff7a6a1436a5194d1e3"
+      "content_sha256": "26f077fc4e658548d2daf9efb5bf2beab848674c3eab00e05c4d84ef5afa0504"
     },
     {
       "input_unit_id": "hsp-11002077-s01",
@@ -604,10 +604,10 @@
       "source_regest_id": "11002971",
       "source_subentry_index": 0,
       "source_sublemma_number": 1,
-      "header": "Gorlitz Gorlitz &w&w &y Proconsul consules et civ. op. Gorlitzen. Misnen. dioc. ac incole et terrigene qui sepe extra d. op. ultra 2 dietas legales evocantur a iudicibus eccles. in suorum periculum (quia vicini sunt hereticis Bohemis ): 〈supplic. de indulto quod ultra 1 dietam legalem evocari n. possint et quod in eccles. causis p. ep. Misnen. , in al. causis autem p. iudices sec. d. op. iudicentur 12. oct. 73 S 697 233 vss , 14. mai. 74 S 704 279 vss",
+      "header": "Gorlitz Gorlitz Proconsul consules et civ. op. Gorlitzen. Misnen. dioc. ac incole et terrigene qui sepe extra d. op. ultra 2 dietas legales evocantur a iudicibus eccles. in suorum periculum (quia vicini sunt hereticis Bohemis ): 〈supplic. de indulto quod ultra 1 dietam legalem evocari n. possint et quod in eccles. causis p. ep. Misnen. , in al. causis autem p. iudices sec. d. op. iudicentur 12. oct. 73 S 697 233 vss , 14. mai. 74 S 704 279 vss",
       "sublemma": "consulatus et universitas hominum op. Garligen. [recte: Gorlitz] Misnen. dioc. qui se contra hereticos regni Bohemie viriliter exhibuerunt et par. eccl. ss. Petri et Pauli op. Gorlitzen. Misnen. dioc. d. op. in suis structuris ampliare desiderant: de indulg. 7 an. 15. oct. 76 S 750 101 vs .",
       "source_regest_content_sha256": "2d3a00b67d1fff0fdbfd9c76b76425b999cbfce45c4ec3e9d6110760d7277de0",
-      "content_sha256": "411c644d710a4ef11c9c352e8df89fc539fbb1e9ae586f3a81bedf69501ddfa4"
+      "content_sha256": "df1f96000b2ff6c6e2061fed60fe54cd74ad3944f901413b5e39ea61b03a7de7"
     },
     {
       "input_unit_id": "hsp-11003129-s01",
@@ -774,180 +774,180 @@
       "source_regest_id": "11007321",
       "source_subentry_index": 0,
       "source_sublemma_number": 1,
-      "header": "Lubica Lubica &w&w &y Eccl. et civit. Lubic. : fit mentio [fragm. cass., dat. deest [ decb. 77-ian. 78 ]] S 762 155 r . Eccl. Lubic. : notitia de m. ut par. eccl. in Oldenbourg (Hosbenbroch) Lubic. dioc. (44 libr. T. [fl. adc.]) d. ecclesie incorp. sit 6. mai. 82 Cod. Chigi H II 32 68 v .",
+      "header": "Lubica Lubica Eccl. et civit. Lubic. : fit mentio [fragm. cass., dat. deest [ decb. 77-ian. 78 ]] S 762 155 r . Eccl. Lubic. : notitia de m. ut par. eccl. in Oldenbourg (Hosbenbroch) Lubic. dioc. (44 libr. T. [fl. adc.]) d. ecclesie incorp. sit 6. mai. 82 Cod. Chigi H II 32 68 v .",
       "sublemma": "quitt. quindenniorum sup. incorp. mense episc. Lubic. par. eccl. in Oldenborch ut supra (44 duc. adc.) Arm. XXXIII , 2 446 r . Prep., dec. et capit. eccl. Lubic. referentes quod a 18 an. in decan. d. eccl. vac. p. o. Alberti de Rethem nullus dec. residet: statuta quod can. d. eccl. post cessum vel decessum dec. Alberti Cock abbrev. novum dec. d. eccl. elig. valeant et quod d. el. dec. in d. eccl. resid. debet n. o. reserv., privil. etc. ap. 27. febr. 84 V 639 265 r 266 v",
       "source_regest_content_sha256": "eb9c02713c5147fa88924b5f9710fb6d7c5fd667f1d9d6380a9daf90096e4cf8",
-      "content_sha256": "8ec5aa51a3d98023c6c6ed4e6e6a92659b375c0817e409d8c6a63e60fe3a76df"
+      "content_sha256": "8d1a9ca3efcfcb5ba413ac7ee169dc3cf2eba8143fe37ad45cde954025015ea3"
     },
     {
       "input_unit_id": "hsp-11007321-s02",
       "source_regest_id": "11007321",
       "source_subentry_index": 1,
       "source_sublemma_number": 2,
-      "header": "Lubica Lubica &w&w &y Eccl. et civit. Lubic. : fit mentio [fragm. cass., dat. deest [ decb. 77-ian. 78 ]] S 762 155 r . Eccl. Lubic. : notitia de m. ut par. eccl. in Oldenbourg (Hosbenbroch) Lubic. dioc. (44 libr. T. [fl. adc.]) d. ecclesie incorp. sit 6. mai. 82 Cod. Chigi H II 32 68 v .",
+      "header": "Lubica Lubica Eccl. et civit. Lubic. : fit mentio [fragm. cass., dat. deest [ decb. 77-ian. 78 ]] S 762 155 r . Eccl. Lubic. : notitia de m. ut par. eccl. in Oldenbourg (Hosbenbroch) Lubic. dioc. (44 libr. T. [fl. adc.]) d. ecclesie incorp. sit 6. mai. 82 Cod. Chigi H II 32 68 v .",
       "sublemma": "unus ex can. eccl. Lubic. eligendus p. capit. d. eccl.: oblig. p. Theodericum Arndes can. eccl. Lubic. sup. annat. decan. d. eccl. Lubic. vac. p. dimissionem Alberti Cock s. d. 27. febr. 84 conc. 3. mart. 84 A 32 53 r . Patroni perp. vicar. b. Marie virg. et b. Mathie Apl. ac b. Barbare virg. necnon Omnium ss. in eccl. b. Marie virg. Lubic. referentes quod olim quond. Wilhelmus de Warendorp et eius ux. d. vicar. fundaverunt c. reserv. iur. patron. usque ad 3. generationem et quod finita 3. generatione d. ius ad capit. eccl. Lubic. pertin. ac quod ipsi usque ad 60 fl. adc. in augmentum dotare desiderant: de reserv. iur. patron. ad al. 3. generationem 5. mart. 81 S 800 258 rs . Pleb. ac vic. par. eccl. s. Jacobi Lubic. : de indulg. 7 an. pro omnibus visitantibus alt. s. Gregorii pape et doctoris in d. par. eccl., Conc. 5 an. 7. nov. 75 S 731 151 r . Capel. b. Marie virg. infra metas paroch. par. eccl. s. Petri Lubic. que p. quond. Andream Geverdes proconsulem Lubic. et Petrum Nuenstadt ac Gerardum Leuthem necnon Wilhelmum Cortsack cives Lubic. ante paucos an. fundata fuit: indulg. 5 an. 21. oct. 80 L 808 43 rs . Burgimagistri, proconsules consules et commun. civium et incolarum imperialis civitatis Lubic. referentes quod Fridericus R. I. (cuius imperio immediate subsunt) motu pr. concessit quod ipsi et eorum familiares et subditi necnon sub eorum protectione existentes n. possint trahi ad iudicia vetita sive liberas sedes sive frigravios frigravios Westfalie etiam in iudicia Ritwil [recte: Rottwil] , iudicia Magdeburg. , iudicia Friberc [recte: Freiburgen.] , ducatus Franconie burggraviatus Nurenbergen. iudicia prout in litt. ipsius Friderici imperatoris in vulgari Theotonico scriptis plenius continetur: de conf. dd. litt. imper. 16. nov. 76 S 744 63 vss , m. ( ep. Razeburg. et decanis eccl. Veteris Ecclesie s. Pauli Monast. ac eccl. s. Severi Erforden. Magunt. dioc. ) V 668 124 v 127 r",
       "source_regest_content_sha256": "eb9c02713c5147fa88924b5f9710fb6d7c5fd667f1d9d6380a9daf90096e4cf8",
-      "content_sha256": "b3833688236ca9f00082638084981c304c7bf11d44da4f80b4f8d397b95a1ace"
+      "content_sha256": "d0895382613fac6a97020ef2c69bae9ac9ab3811acae020a83d1ca66c4a40243"
     },
     {
       "input_unit_id": "hsp-11007321-s03",
       "source_regest_id": "11007321",
       "source_subentry_index": 2,
       "source_sublemma_number": 3,
-      "header": "Lubica Lubica &w&w &y Eccl. et civit. Lubic. : fit mentio [fragm. cass., dat. deest [ decb. 77-ian. 78 ]] S 762 155 r . Eccl. Lubic. : notitia de m. ut par. eccl. in Oldenbourg (Hosbenbroch) Lubic. dioc. (44 libr. T. [fl. adc.]) d. ecclesie incorp. sit 6. mai. 82 Cod. Chigi H II 32 68 v .",
+      "header": "Lubica Lubica Eccl. et civit. Lubic. : fit mentio [fragm. cass., dat. deest [ decb. 77-ian. 78 ]] S 762 155 r . Eccl. Lubic. : notitia de m. ut par. eccl. in Oldenbourg (Hosbenbroch) Lubic. dioc. (44 libr. T. [fl. adc.]) d. ecclesie incorp. sit 6. mai. 82 Cod. Chigi H II 32 68 v .",
       "sublemma": "narratio quod papa (sedato Turcorum periculo) mittit ad partes Livonie Stephanum [Grube] aep. Rigen. nunt. et oratorem ap. ut consulat de modo et via resistendi Ruthenis invasoribus Livonie , hortatio ut d. aep. adiuvetur (simile ad consules et commun. Gdanen. ) 29. mart. 82 Florenz II. III. 256 197 rs",
       "source_regest_content_sha256": "eb9c02713c5147fa88924b5f9710fb6d7c5fd667f1d9d6380a9daf90096e4cf8",
-      "content_sha256": "ef13cf633e27e4f2b374338aa16ddb35bc8325ab2b6b60ba1558ef4d02ba673c"
+      "content_sha256": "75637a94e209bf2042d59d447e002314ad1fb2f57d70700589e60dfc6952faeb"
     },
     {
       "input_unit_id": "hsp-11007321-s04",
       "source_regest_id": "11007321",
       "source_subentry_index": 3,
       "source_sublemma_number": 4,
-      "header": "Lubica Lubica &w&w &y Eccl. et civit. Lubic. : fit mentio [fragm. cass., dat. deest [ decb. 77-ian. 78 ]] S 762 155 r . Eccl. Lubic. : notitia de m. ut par. eccl. in Oldenbourg (Hosbenbroch) Lubic. dioc. (44 libr. T. [fl. adc.]) d. ecclesie incorp. sit 6. mai. 82 Cod. Chigi H II 32 68 v .",
+      "header": "Lubica Lubica Eccl. et civit. Lubic. : fit mentio [fragm. cass., dat. deest [ decb. 77-ian. 78 ]] S 762 155 r . Eccl. Lubic. : notitia de m. ut par. eccl. in Oldenbourg (Hosbenbroch) Lubic. dioc. (44 libr. T. [fl. adc.]) d. ecclesie incorp. sit 6. mai. 82 Cod. Chigi H II 32 68 v .",
       "sublemma": "narratio quod papa superioribus mensibus pro instruenda classe ad recuperationem Hydruntin. civit. 133.000 duc. exposuit et paulo ante multa pec. Rhodianos iuvavit qua de re cruciatam indixit ut ex indulgentiarum oblationibus aliqua subventio eidem classi fieret quod itaque Emericus de Kemel profes. o. fr. min. de observ. commissarius pape qui indulgentias predicaret ad partes istas missus fuit quod autem nunc classis Turcorum revocata et classis pape retracta fuerunt et ideo d. Emerico scriptum fuit ut a predicatione cruciate absistat, hortatio ut d. Emerico adsistant et pec. ex d. cruciata collectas ad cur. transmittant ut in necessitatem sed. ap. convertantur (simile ad consules et commun. op. Lucemburgen. et consules et commun. op. Hamburgen. ) 23. mai. 82 Florenz II. III. 256 256 rs .",
       "source_regest_content_sha256": "eb9c02713c5147fa88924b5f9710fb6d7c5fd667f1d9d6380a9daf90096e4cf8",
-      "content_sha256": "aa9bee66fd2282c78527f2c9cffea2c1800c92f011993718de98c42821149db5"
+      "content_sha256": "d965b48d0f32d1479e380c46a704eb665bc16ec42dbf9a5a5d745ab81e9daae0"
     },
     {
       "input_unit_id": "hsp-11007477-s01",
       "source_regest_id": "11007477",
       "source_subentry_index": 0,
       "source_sublemma_number": 1,
-      "header": "Maguntia Maguntia &w&w &y Aep. Magunt. : hortatur eum ut offic. pape de serv. min. et al. iuribus satisfaciat 27. apr. 72 Arm. XXXIX , 14 235 rs",
+      "header": "Maguntia Maguntia Aep. Magunt. : hortatur eum ut offic. pape de serv. min. et al. iuribus satisfaciat 27. apr. 72 Arm. XXXIX , 14 235 rs",
       "sublemma": "et capit. eccl. s. Victoris e. m. Magunt. : hortatio ut Henricum Henrici de Beirstadt cler. Trever. dioc. pape fam. ad pacificam possessionem can. et preb. eccl. s. Victoris e. m. Magunt. vac. p. o. in cur. Conradi Swenheym admittant 23. decb. 76 Acquisti 26/1 170 rs",
       "source_regest_content_sha256": "383ee7434ef5059e509d796a54c27b7df16c77d11e8a3a3745f083342fc19f42",
-      "content_sha256": "1ee7ec6a5bb6a6e6dde7ab5a927dd5541bd762ed8527bb2dbba88497928d37c6"
+      "content_sha256": "79fcf36107612b9347a53d032cb9122d6b913c345efa99ff0675abcb69b0edbd"
     },
     {
       "input_unit_id": "hsp-11007477-s02",
       "source_regest_id": "11007477",
       "source_subentry_index": 1,
       "source_sublemma_number": 2,
-      "header": "Maguntia Maguntia &w&w &y Aep. Magunt. : hortatur eum ut offic. pape de serv. min. et al. iuribus satisfaciat 27. apr. 72 Arm. XXXIX , 14 235 rs",
+      "header": "Maguntia Maguntia Aep. Magunt. : hortatur eum ut offic. pape de serv. min. et al. iuribus satisfaciat 27. apr. 72 Arm. XXXIX , 14 235 rs",
       "sublemma": "narratio quod Fridericus Schertelis ord. fr. servorum b. Marie in theol. prof. in univ. Erforden. Magunt. dioc. p. 10 an. bac. fuit et etiam disputavit ac legit, hortatio ut ipse grad. magisterii suscipiat et in ea assidue legat ac privil. etc. d. univ. in futurum gaudeat 11. ian. 77 Acquisti 26/1 196 r",
       "source_regest_content_sha256": "383ee7434ef5059e509d796a54c27b7df16c77d11e8a3a3745f083342fc19f42",
-      "content_sha256": "686b0de55a560d28a8cf72df7fc3f0560e9dbade14f7b245c89fd4133cd3978e"
+      "content_sha256": "19688d01fd1df3a2e72dc59388eacc29d5108969bebf9458fa8be6af79f4070d"
     },
     {
       "input_unit_id": "hsp-11007477-s03",
       "source_regest_id": "11007477",
       "source_subentry_index": 2,
       "source_sublemma_number": 3,
-      "header": "Maguntia Maguntia &w&w &y Aep. Magunt. : hortatur eum ut offic. pape de serv. min. et al. iuribus satisfaciat 27. apr. 72 Arm. XXXIX , 14 235 rs",
+      "header": "Maguntia Maguntia Aep. Magunt. : hortatur eum ut offic. pape de serv. min. et al. iuribus satisfaciat 27. apr. 72 Arm. XXXIX , 14 235 rs",
       "sublemma": "referens quod cler. qui benef. in civit. et dioc. Magunt. assequuntur in 2 primis an. fruct. aep. persolv. et quod cler. in Turingia et Saxonia et in nonnullis al. regionibus n. persolv.: de indulto committendi iudicibus et de decl. ut dd. cler. ad solv. tenentur 7. febr. 78 S 764 180 r",
       "source_regest_content_sha256": "383ee7434ef5059e509d796a54c27b7df16c77d11e8a3a3745f083342fc19f42",
-      "content_sha256": "2b6a7ab2d45618a87d593e420345b209be8284d1ecff7551e2e152567b424b92"
+      "content_sha256": "7dc8b6613bdabb467a12dad957b8bbfca20365093b9e46800ece9011a74c05ae"
     },
     {
       "input_unit_id": "hsp-11007477-s04",
       "source_regest_id": "11007477",
       "source_subentry_index": 3,
       "source_sublemma_number": 4,
-      "header": "Maguntia Maguntia &w&w &y Aep. Magunt. : hortatur eum ut offic. pape de serv. min. et al. iuribus satisfaciat 27. apr. 72 Arm. XXXIX , 14 235 rs",
+      "header": "Maguntia Maguntia Aep. Magunt. : hortatur eum ut offic. pape de serv. min. et al. iuribus satisfaciat 27. apr. 72 Arm. XXXIX , 14 235 rs",
       "sublemma": "motu pr. facult. confer. decan. et scolastr. ac perp. vicar. (quam Johannes Walstorff obtin.) in d. eccl. etiam in mensibus quib. coll. iuxta concordata c. natione Germanica ad sed. ap. competit 1. aug. 79 V 550 73 rss",
       "source_regest_content_sha256": "383ee7434ef5059e509d796a54c27b7df16c77d11e8a3a3745f083342fc19f42",
-      "content_sha256": "ef607db4ace1572f0edbde0b9f699b0a645fceaab3c27aa064a9c8ef79e0c26b"
+      "content_sha256": "525e1af71aa59af7736d7c74a1899a0e4cb997c894f6273bb952a415d1043943"
     },
     {
       "input_unit_id": "hsp-11007477-s05",
       "source_regest_id": "11007477",
       "source_subentry_index": 4,
       "source_sublemma_number": 5,
-      "header": "Maguntia Maguntia &w&w &y Aep. Magunt. : hortatur eum ut offic. pape de serv. min. et al. iuribus satisfaciat 27. apr. 72 Arm. XXXIX , 14 235 rs",
+      "header": "Maguntia Maguntia Aep. Magunt. : hortatur eum ut offic. pape de serv. min. et al. iuribus satisfaciat 27. apr. 72 Arm. XXXIX , 14 235 rs",
       "sublemma": "narratio quod Ewaldus Fulhaber prothonot. et cant. ac can. eccl. Magunt. pape fecit exponi quod dec. etc. d. eccl. consueverunt facere inter se certam ordinationem de nominando ad can. et preb. ceteraque benef. vacat., m. ut provideat ut d. Ewaldus qui unus de d. capit. est et votum suum sicut ceteri prestare debeat ad d. nominationem suo loco admittatur 2. oct. 80 Arm. XXXIX , 13 95 vs",
       "source_regest_content_sha256": "383ee7434ef5059e509d796a54c27b7df16c77d11e8a3a3745f083342fc19f42",
-      "content_sha256": "b4cb1fd64d291aa85b8b222e5651bbbc7bc230c15fc74b071adb26320c698018"
+      "content_sha256": "2b9b6d04c76599d4b54fa1f5aa03131e908cc845a32bcbad77be9495c520a9cf"
     },
     {
       "input_unit_id": "hsp-11007477-s06",
       "source_regest_id": "11007477",
       "source_subentry_index": 5,
       "source_sublemma_number": 6,
-      "header": "Maguntia Maguntia &w&w &y Aep. Magunt. : hortatur eum ut offic. pape de serv. min. et al. iuribus satisfaciat 27. apr. 72 Arm. XXXIX , 14 235 rs",
+      "header": "Maguntia Maguntia Aep. Magunt. : hortatur eum ut offic. pape de serv. min. et al. iuribus satisfaciat 27. apr. 72 Arm. XXXIX , 14 235 rs",
       "sublemma": "et capit. eccl. Magunt. : narratio quod pro parte Gerardi com. de Seyn supplicatum fuit ut cum d. aep. d. Gerardo tam ratione stipendii sui quam promissionis d. aep. etc. Magunt. sup. teloneo Lansten sibi facte in certa summa pec. oblig. sit eidem aep. scribat, hortatio ut d. Gerardo de d. pec. satisfaciat 2. nov. 80 Arm. XXXIX , 13 159 vs",
       "source_regest_content_sha256": "383ee7434ef5059e509d796a54c27b7df16c77d11e8a3a3745f083342fc19f42",
-      "content_sha256": "84cfbaaf0e19b8d14418edbc0766309a3a6cdccbebb5ad5172d60a4f9f2cad82"
+      "content_sha256": "8ca85797e91f385c0cc586f9e8ae8897039a350f25f6c4704e4ffce16d6a0ca4"
     },
     {
       "input_unit_id": "hsp-11007477-s07",
       "source_regest_id": "11007477",
       "source_subentry_index": 6,
       "source_sublemma_number": 7,
-      "header": "Maguntia Maguntia &w&w &y Aep. Magunt. : hortatur eum ut offic. pape de serv. min. et al. iuribus satisfaciat 27. apr. 72 Arm. XXXIX , 14 235 rs",
+      "header": "Maguntia Maguntia Aep. Magunt. : hortatur eum ut offic. pape de serv. min. et al. iuribus satisfaciat 27. apr. 72 Arm. XXXIX , 14 235 rs",
       "sublemma": "not. recip. pro bulla distributa pro iuram. el. Magunt. 4 grossos nov. 82 DB 2 68 r",
       "source_regest_content_sha256": "383ee7434ef5059e509d796a54c27b7df16c77d11e8a3a3745f083342fc19f42",
-      "content_sha256": "435123ed2196efdbfc447ebdbfb480bbea81de356d5d6dfee44f7a6d995cb8e6"
+      "content_sha256": "986e79f75152fef4ee342fbbbc75b8398c6ee41fdc54180cea5f3b52eca5ed24"
     },
     {
       "input_unit_id": "hsp-11007477-s08",
       "source_regest_id": "11007477",
       "source_subentry_index": 7,
       "source_sublemma_number": 8,
-      "header": "Maguntia Maguntia &w&w &y Aep. Magunt. : hortatur eum ut offic. pape de serv. min. et al. iuribus satisfaciat 27. apr. 72 Arm. XXXIX , 14 235 rs",
+      "header": "Maguntia Maguntia Aep. Magunt. : hortatur eum ut offic. pape de serv. min. et al. iuribus satisfaciat 27. apr. 72 Arm. XXXIX , 14 235 rs",
       "sublemma": "hortatio ut adhibeat fidem ad Johannem de Espach not. ap. qui aep. nomine sed. ap. nonnulla refert 15. mart. 83 Arm. XXXIX , 15 212 rs . Aep. Magunt. et ep. Halberstad. ac abb. mon. in Limsburg Halberstad. dioc. : supplic. Henrico comite de Stalburgh commiss. ut litt. Pauli II. sup. lic. pro fr. o. min. de observ. reg. recipiendi novam dom. intra vel extra op. de Stalbergh [recte: Stolberg] Magunt. dioc. vel de Verngerode Halberstad. dioc. Magunt. et Halberstad. dioc. aut in aliquo al. loco dominii d. duc. (que adhuc ob certa impedimenta present. n. extiterunt) executioni debite demandare curent acsi Paulus II. in humanis ageret 22. ian. 72 Arm. XXXIX , 14 126 rs . Aep. Magunt. et aep. Trever. ac ep. Herbip. , ep. Wormat. et ep. Spiren. necnon Philippus com. palatinus Reni et dux Bavarie R. I. elector referentes quod inter predicatorum, minorum et Carmelitarum ord. professores et nonnullos parochialium eccl. rectores et al. ecclesiarum prelatos in partibus Germanie et presertim in op. Eßlingen Constant. dioc. suscitate sunt dissensiones quodque Guillermo [de Estoutevilla] card. ep. Ostien. et Angelo [de Capranica] card. ep. Prenestin. et Juliano [de Ruvere] tit. s. Petri ad vincula ac Petro [Ferrici] tit. s. Sixti presb. cardinalibus p. papam commissum fuit ut concordiam tractarent videlicet quod ipsi parochiani sacerdotes n. dicant a mendicantibus hereses processisse atque fratres mendicantes n. predicent populos parochianos n. teneri audire missam in eorum parochiis diebus dominicis atque al. de eligendo sepulturam atque audiendo confessiones atque campanas pulsando: motu pr. conf. d. concordie atque extinctio litis inter dec. et capit. eccl. Spiren. et curatum d. op. ac dd. fratres atque impositio ambobus partibus perp. silentii 17. iun. 78 V 669 419 r 421 r . Magunt. eccl. : indulg. 71/72 I 332 173 r , 72/73 I 332 178 v .",
       "source_regest_content_sha256": "383ee7434ef5059e509d796a54c27b7df16c77d11e8a3a3745f083342fc19f42",
-      "content_sha256": "4954f8ce7b96a01b1cd6ffbc4d60664099b1b2cfc4e87daf37921eb3b3ad4550"
+      "content_sha256": "aa5b1b995dd38fda2812b1534b03117ee7b595c57d0758618fb85800ecfeeb03"
     },
     {
       "input_unit_id": "hsp-11007478-s01",
       "source_regest_id": "11007478",
       "source_subentry_index": 0,
       "source_sublemma_number": 1,
-      "header": "Maguntia Maguntia &w&w &y Dec. et capit. eccl. Magunt. qui litig. contra nob. virum Birgestadt existentibus coram eccl. s. Pauli Wormat. , eccl. s. Mauritii Magunt. , eccl. s. Martini Heylgestaden Magunt. dioc. : m. ( dec. eccl. b. Marie ad Gradus Magunt. et dec. eccl. s. Johannis Magunt. ) commiss. in partibus 10. mart. 77 L 773 151 vss",
+      "header": "Maguntia Maguntia Dec. et capit. eccl. Magunt. qui litig. contra nob. virum Birgestadt existentibus coram eccl. s. Pauli Wormat. , eccl. s. Mauritii Magunt. , eccl. s. Martini Heylgestaden Magunt. dioc. : m. ( dec. eccl. b. Marie ad Gradus Magunt. et dec. eccl. s. Johannis Magunt. ) commiss. in partibus 10. mart. 77 L 773 151 vss",
       "sublemma": "de litt. conservatoria pro omnibus bonis ad d. eccl. spectantibus 31. mart. 77 S 749 162 r . Capit. etc. colleg. eccl. s. Albani e. m. Magunt. in qua corpora ss. Albani et Vincentii, Aurei et Justine ac al. ss. recondite sunt: de indulg. 30 an. pro omnibus visitantibus et de lic. deput. 6 confess. 18. mai. 76 S 739 184 vs",
       "source_regest_content_sha256": "5946b919ad88d276df3a0a5dd9b18cf32d21b0635c9c8a001b653c9b7ec180d9",
-      "content_sha256": "78459ad51af3361f7cb78632b62d2ef2b26d9ead4ef18db650032f89ecb509b6"
+      "content_sha256": "fa554ce7287bf4618074c8b8ec8fd2d3411bfd6ca0a6d28b13f9e0fd83bd29c3"
     },
     {
       "input_unit_id": "hsp-11007478-s02",
       "source_regest_id": "11007478",
       "source_subentry_index": 1,
       "source_sublemma_number": 2,
-      "header": "Maguntia Maguntia &w&w &y Dec. et capit. eccl. Magunt. qui litig. contra nob. virum Birgestadt existentibus coram eccl. s. Pauli Wormat. , eccl. s. Mauritii Magunt. , eccl. s. Martini Heylgestaden Magunt. dioc. : m. ( dec. eccl. b. Marie ad Gradus Magunt. et dec. eccl. s. Johannis Magunt. ) commiss. in partibus 10. mart. 77 L 773 151 vss",
+      "header": "Maguntia Maguntia Dec. et capit. eccl. Magunt. qui litig. contra nob. virum Birgestadt existentibus coram eccl. s. Pauli Wormat. , eccl. s. Mauritii Magunt. , eccl. s. Martini Heylgestaden Magunt. dioc. : m. ( dec. eccl. b. Marie ad Gradus Magunt. et dec. eccl. s. Johannis Magunt. ) commiss. in partibus 10. mart. 77 L 773 151 vss",
       "sublemma": "de conserv. perp. 15. iun. 82 S 812 21 rs , m. ( decanis eccl. b. Marie ad Gradus Magunt. et eccl. s. Pauli Wormat. ac eccl. s. Florini in Confluentia Trever. dioc. ) 5. iul. 82 L 807 272 v . Presidentes in capit. provincialibus abb. et priorum o. s. Ben. provincie Magunt. : m. ref. mon. ss. Petri et Pauli Wissemburgen. Spiren. dioc. R. E. immediate subiectum et ad pres. abb. regimine destitutum 28. apr. 73 V 557 315 r 316 v . Conventuales ord. s. Francisci in civit. Magunt. narratio quod ipsi referebant quod ab aep. Magunt. e sedis conv. eiecti sunt et quod vig. litt. Pauli II. quandam capel. a d. aep. in recompensum receperunt et quod deinde Marcus [Barbus] tit. s. Marci presb. card. legatus de latere in istis partibus Germanie papam p. Andreolum de Sancto Vito decr. doct. informavit quod d. aep. dd. conventuales n. eiecerat sed illum conv. et locum ex fr. observ. d. ord. ref., exhortatur d. aep. ut rem componat 26. iul. 72 Arm. XXXIX , 14 339 rs . Dec. et capit. eccl. b. Marie ad Gradus Magunt. : de incorp. mense capit. d. eccl. par. eccl. seu pastoriam in Diepurg [ Magunt. dioc. ] ad coll. aep. Magunt. (20 m. arg.) in eventu resign. vel obitus moderni pastoris Calixti III. cubic. 〈c. consensu Adolphi [de Nassau] aep. Magunt. 〉 14. iun. 74 S 707 38 rss , V 563 262 r 264 r",
       "source_regest_content_sha256": "5946b919ad88d276df3a0a5dd9b18cf32d21b0635c9c8a001b653c9b7ec180d9",
-      "content_sha256": "555a157f4bc447f293a9a6d721181484ef3e4e0bb131ef18dff9614f4fdea2cc"
+      "content_sha256": "6fb454d12d30430c781d90c2add74b28f6979729d0fe069012e05486034c661b"
     },
     {
       "input_unit_id": "hsp-11007478-s03",
       "source_regest_id": "11007478",
       "source_subentry_index": 2,
       "source_sublemma_number": 3,
-      "header": "Maguntia Maguntia &w&w &y Dec. et capit. eccl. Magunt. qui litig. contra nob. virum Birgestadt existentibus coram eccl. s. Pauli Wormat. , eccl. s. Mauritii Magunt. , eccl. s. Martini Heylgestaden Magunt. dioc. : m. ( dec. eccl. b. Marie ad Gradus Magunt. et dec. eccl. s. Johannis Magunt. ) commiss. in partibus 10. mart. 77 L 773 151 vss",
+      "header": "Maguntia Maguntia Dec. et capit. eccl. Magunt. qui litig. contra nob. virum Birgestadt existentibus coram eccl. s. Pauli Wormat. , eccl. s. Mauritii Magunt. , eccl. s. Martini Heylgestaden Magunt. dioc. : m. ( dec. eccl. b. Marie ad Gradus Magunt. et dec. eccl. s. Johannis Magunt. ) commiss. in partibus 10. mart. 77 L 773 151 vss",
       "sublemma": "quitt. quindenniorum sup. incorp. mense d. capit. par. eccl. in Diepurch pastoria nunc. Magunt. dioc. (20 m. arg.) s. d. 14. iun. 74 fact. Arm. XXXIII , 2 386 v",
       "source_regest_content_sha256": "5946b919ad88d276df3a0a5dd9b18cf32d21b0635c9c8a001b653c9b7ec180d9",
-      "content_sha256": "15b7927e6155b9e63e6f4c495440b664ab8799cb6376ecfeab1fe1acf11177b3"
+      "content_sha256": "404815c963cf4a11a9ec14cf6c74994192c81eef4fce7c60d98df424cc0e7fce"
     },
     {
       "input_unit_id": "hsp-11007478-s04",
       "source_regest_id": "11007478",
       "source_subentry_index": 3,
       "source_sublemma_number": 4,
-      "header": "Maguntia Maguntia &w&w &y Dec. et capit. eccl. Magunt. qui litig. contra nob. virum Birgestadt existentibus coram eccl. s. Pauli Wormat. , eccl. s. Mauritii Magunt. , eccl. s. Martini Heylgestaden Magunt. dioc. : m. ( dec. eccl. b. Marie ad Gradus Magunt. et dec. eccl. s. Johannis Magunt. ) commiss. in partibus 10. mart. 77 L 773 151 vss",
+      "header": "Maguntia Maguntia Dec. et capit. eccl. Magunt. qui litig. contra nob. virum Birgestadt existentibus coram eccl. s. Pauli Wormat. , eccl. s. Mauritii Magunt. , eccl. s. Martini Heylgestaden Magunt. dioc. : m. ( dec. eccl. b. Marie ad Gradus Magunt. et dec. eccl. s. Johannis Magunt. ) commiss. in partibus 10. mart. 77 L 773 151 vss",
       "sublemma": "oblig. p. Petrum Antonium de Clapis can. eccl. b. Marie ad Gradus ut supra ducis Bavarie com. palatini Reni in cur. oratorem et p. Fredericum Rorich can. eccl. b. Marie in Flanhem Magunt. dioc. sup. incorp. ut supra et promisit solv. 45 fl. adc. pro residuo annat., restit. bulle (in margine: die 19. iul. 74 solv. 50 fl. p. manus d. Frederici; die 17. ian. 79 prorog. solut. residui ad 4 menses et oblig. p. Theodoricum Arnde can. eccl. Brunswicen. Hildesem. dioc. in cur. causarum procur.; die 26. ian. 79 solv. 45 fl. pro compositione annat. p. manus d. Frederici) 19. iul. 74 A 23 128 r",
       "source_regest_content_sha256": "5946b919ad88d276df3a0a5dd9b18cf32d21b0635c9c8a001b653c9b7ec180d9",
-      "content_sha256": "025d6753c0e4462ca1ba95857bdc51425bb5a071c5466034aa35b83bd0c6d4e3"
+      "content_sha256": "60c0b0f4e6190f9c6efe067b16d29207b38a33805d9a589f69797f046870a9f9"
     },
     {
       "input_unit_id": "hsp-11007478-s05",
       "source_regest_id": "11007478",
       "source_subentry_index": 4,
       "source_sublemma_number": 5,
-      "header": "Maguntia Maguntia &w&w &y Dec. et capit. eccl. Magunt. qui litig. contra nob. virum Birgestadt existentibus coram eccl. s. Pauli Wormat. , eccl. s. Mauritii Magunt. , eccl. s. Martini Heylgestaden Magunt. dioc. : m. ( dec. eccl. b. Marie ad Gradus Magunt. et dec. eccl. s. Johannis Magunt. ) commiss. in partibus 10. mart. 77 L 773 151 vss",
+      "header": "Maguntia Maguntia Dec. et capit. eccl. Magunt. qui litig. contra nob. virum Birgestadt existentibus coram eccl. s. Pauli Wormat. , eccl. s. Mauritii Magunt. , eccl. s. Martini Heylgestaden Magunt. dioc. : m. ( dec. eccl. b. Marie ad Gradus Magunt. et dec. eccl. s. Johannis Magunt. ) commiss. in partibus 10. mart. 77 L 773 151 vss",
       "sublemma": "solv. 50 fl. pro parte solut. annat. par. eccl. in Diepurg ut supra mense d. eccl. b. Marie uniende p. manus Antonii ut supra 19. iul. 74 FC I 1132 3 r",
       "source_regest_content_sha256": "5946b919ad88d276df3a0a5dd9b18cf32d21b0635c9c8a001b653c9b7ec180d9",
-      "content_sha256": "3180aad69a3ba843ccf752781189c57f109b3457b1aa17157d025d0eb24e39a0"
+      "content_sha256": "545710da722c1eced6ba82ebd19d98d16c2bff05da7132fa9a81ade4bf946d11"
     },
     {
       "input_unit_id": "hsp-11007478-s06",
       "source_regest_id": "11007478",
       "source_subentry_index": 5,
       "source_sublemma_number": 6,
-      "header": "Maguntia Maguntia &w&w &y Dec. et capit. eccl. Magunt. qui litig. contra nob. virum Birgestadt existentibus coram eccl. s. Pauli Wormat. , eccl. s. Mauritii Magunt. , eccl. s. Martini Heylgestaden Magunt. dioc. : m. ( dec. eccl. b. Marie ad Gradus Magunt. et dec. eccl. s. Johannis Magunt. ) commiss. in partibus 10. mart. 77 L 773 151 vss",
+      "header": "Maguntia Maguntia Dec. et capit. eccl. Magunt. qui litig. contra nob. virum Birgestadt existentibus coram eccl. s. Pauli Wormat. , eccl. s. Mauritii Magunt. , eccl. s. Martini Heylgestaden Magunt. dioc. : m. ( dec. eccl. b. Marie ad Gradus Magunt. et dec. eccl. s. Johannis Magunt. ) commiss. in partibus 10. mart. 77 L 773 151 vss",
       "sublemma": "solv. 40 fl. adc. pro residuo annat. par. eccl. in Dieburg ut supra p. manus Frederici Rorich 26. ian. 79 FC I 1133 204 v .",
       "source_regest_content_sha256": "5946b919ad88d276df3a0a5dd9b18cf32d21b0635c9c8a001b653c9b7ec180d9",
-      "content_sha256": "0abbd93e2c81b62d987cb7fcc23aaac7677b75019fa68e60a23e62f5257575c3"
+      "content_sha256": "ec3f15bb50921f0b590beefd758f44a0f897e6a6af631886a1ebf7c5bc042dce"
     },
     {
       "input_unit_id": "hsp-11007659-s01",
@@ -964,150 +964,150 @@
       "source_regest_id": "11007990",
       "source_subentry_index": 0,
       "source_sublemma_number": 1,
-      "header": "Misna Misna &w&w &y Ep. et capit. eccl. Misnen. : de conserv. 22. mai. 76 S 739 241 r",
+      "header": "Misna Misna Ep. et capit. eccl. Misnen. : de conserv. 22. mai. 76 S 739 241 r",
       "sublemma": "R. E. immed. subiecta in qua eccl. 4 alt. exist.: motu pr. supplic. Ernesto R. I. electore et Alberto fr. germano Saxonie ducibus et marchionibus Misnen. indulg. plen. et facult. elig. confess., gratis 20. mai. 80 V 600 145 r 148 r",
       "source_regest_content_sha256": "9d29255ed36b68f1bfceea5826480f8a22e0f6f26ea864926019aa1dc105917f",
-      "content_sha256": "aa102f19ddf1bf3390a4cc0baa9728e16a186a6f116ac094f78468f5af673eef"
+      "content_sha256": "08256c657e92cc7ca1a7c768e5c0bd68d1f5b58baeb270a273843eca54481f4b"
     },
     {
       "input_unit_id": "hsp-11007990-s02",
       "source_regest_id": "11007990",
       "source_subentry_index": 1,
       "source_sublemma_number": 2,
-      "header": "Misna Misna &w&w &y Ep. et capit. eccl. Misnen. : de conserv. 22. mai. 76 S 739 241 r",
+      "header": "Misna Misna Ep. et capit. eccl. Misnen. : de conserv. 22. mai. 76 S 739 241 r",
       "sublemma": "not. recip. pro bulla distributa 5 et 2 grossos pro indulg. iun. 80 DB 1 28 r",
       "source_regest_content_sha256": "9d29255ed36b68f1bfceea5826480f8a22e0f6f26ea864926019aa1dc105917f",
-      "content_sha256": "481cde2ada5736735bd5c9c3b9663a4eda6e09f8a82bda5bc30f6d57c987b79b"
+      "content_sha256": "1330a748520c53e1ea83758769fa4ee7171d00fd4bb85a14950b99e19ed5047b"
     },
     {
       "input_unit_id": "hsp-11007990-s03",
       "source_regest_id": "11007990",
       "source_subentry_index": 2,
       "source_sublemma_number": 3,
-      "header": "Misna Misna &w&w &y Ep. et capit. eccl. Misnen. : de conserv. 22. mai. 76 S 739 241 r",
+      "header": "Misna Misna Ep. et capit. eccl. Misnen. : de conserv. 22. mai. 76 S 739 241 r",
       "sublemma": "solv. 400 fl. adc. p. manus Melchioris de Meckau pape cubic. ac Ernesti R. I. electoris et Alberti Saxonie ducum nuntii pro 3. parte oblationum provenientium ex indulg. plen. p. papam conc. 21. apr. 81 FC I 847 172 r , 28. apr. 81 IE 502 84 v , IE 502 183 r ; IE 503 84 v , IE 503 184 r , 1. mai. 81 FC I 1130 78 r",
       "source_regest_content_sha256": "9d29255ed36b68f1bfceea5826480f8a22e0f6f26ea864926019aa1dc105917f",
-      "content_sha256": "277f140c847b9af3a50c010b5176752904f5fef4942ffe142bee9980dee7e021"
+      "content_sha256": "12c6571ba289789f4d3f6a721aa30d7244a82359791b5b169b0b38e7553e2a70"
     },
     {
       "input_unit_id": "hsp-11007990-s04",
       "source_regest_id": "11007990",
       "source_subentry_index": 3,
       "source_sublemma_number": 4,
-      "header": "Misna Misna &w&w &y Ep. et capit. eccl. Misnen. : de conserv. 22. mai. 76 S 739 241 r",
+      "header": "Misna Misna Ep. et capit. eccl. Misnen. : de conserv. 22. mai. 76 S 739 241 r",
       "sublemma": "not. recip. pro bulla distributa 3 et 2 grossos pro conf. indulg. apr. 81 DB 1 77 r",
       "source_regest_content_sha256": "9d29255ed36b68f1bfceea5826480f8a22e0f6f26ea864926019aa1dc105917f",
-      "content_sha256": "a81d563312a1a0b390c6f0cc3356c8606ed598568b5430b43a61c54228e6712e"
+      "content_sha256": "afbe48166a5ec002d6268770f41fed4b5e41c4e7659d42ee0a74d556b827c4d4"
     },
     {
       "input_unit_id": "hsp-11007990-s05",
       "source_regest_id": "11007990",
       "source_subentry_index": 4,
       "source_sublemma_number": 5,
-      "header": "Misna Misna &w&w &y Ep. et capit. eccl. Misnen. : de conserv. 22. mai. 76 S 739 241 r",
+      "header": "Misna Misna Ep. et capit. eccl. Misnen. : de conserv. 22. mai. 76 S 739 241 r",
       "sublemma": "ep. Misnen. qui ad [Franciscum Todeschini-Piccolomini] card. Senen. sup. fide catholicorum et fidelium p. hereticos Prag. perpetrata scripsit: m. ut perseveret in d. causa c. missione exemplum litt. quas ad omnes vicinos principes de ea causa mandantur 9. decb. 83 Arm. XXXIX , 16 93 r , Arm. XXXIX , 16B 213 rs . Mensa episc. Misnen. : quitt. quindenniorum sup. incorp. eidem mense fruct. prepos. eccl. b. Marie virg. in Worgan Misnen. dioc. (8 m. arg.) s. d. 23. iun. 80 Arm. XXXIII , 2 432 v . Prep. et capit. eccl. Misnen. : oblig. perp. s. d. 9. iun. 76 p. Melchiorem Mekau litt. ap. script. sup. annat. prepos. decan. archidiac. al. dignitatum et offic. eccl. Misnen. de iur. patron. ducum Saxonie dominorum civit. Misnen. 9. iul. 76 A 25 14 v . Mensa capit. eccl. Misnen. : quitt. quindenniorum sup. incorp. prepos., decan., archidiac. et al. dign. ac al. benef. dioc. Misnen. dum vacat. seu reserv. s. d. 9. iun. 76 fact. Arm. XXXIII , 2 402 r",
       "source_regest_content_sha256": "9d29255ed36b68f1bfceea5826480f8a22e0f6f26ea864926019aa1dc105917f",
-      "content_sha256": "01296424da4632b5dbd7ccedf6dfe04d93c2288d14e41334aa855509c2f83196"
+      "content_sha256": "4b51894d1eab9c7025646a2a3c05b5648a14f439a9cb916f17a504f5f4fb9464"
     },
     {
       "input_unit_id": "hsp-11007990-s06",
       "source_regest_id": "11007990",
       "source_subentry_index": 5,
       "source_sublemma_number": 6,
-      "header": "Misna Misna &w&w &y Ep. et capit. eccl. Misnen. : de conserv. 22. mai. 76 S 739 241 r",
+      "header": "Misna Misna Ep. et capit. eccl. Misnen. : de conserv. 22. mai. 76 S 739 241 r",
       "sublemma": "commiss. 80/81 I 334 149 v .",
       "source_regest_content_sha256": "9d29255ed36b68f1bfceea5826480f8a22e0f6f26ea864926019aa1dc105917f",
-      "content_sha256": "b6b0fb4e75a8b298e75b8e52adaec86ec5065bf2fbe2f00219fafd0d0bbe806f"
+      "content_sha256": "c1da34a9905a27fe5774220995713f6b1ac6c19a5404a8cba73fc3775ce2aeaf"
     },
     {
       "input_unit_id": "hsp-11009069-s01",
       "source_regest_id": "11009069",
       "source_subentry_index": 0,
       "source_sublemma_number": 1,
-      "header": "Regalis Lutter Regalis Lutter &w&w &y Abb. et conv. mon. ss. Petri et Pauli appl. in Regali Lutter [= Königslutter] o. s. Ben. Halberstad. dioc. quos de conf. omnes privil. et de indulg. 7 an. 16. nov. 71 S 673 13 r",
+      "header": "Regalis Lutter Regalis Lutter Abb. et conv. mon. ss. Petri et Pauli appl. in Regali Lutter [= Königslutter] o. s. Ben. Halberstad. dioc. quos de conf. omnes privil. et de indulg. 7 an. 16. nov. 71 S 673 13 r",
       "sublemma": "de indulg. 10 an., Conc. 7 an. 21. nov. 71 S 674 73 rs .",
       "source_regest_content_sha256": "33d5156d1ab3d46f317ba3eef608cfb90a236296be4acd189b5b70cc1d9b05d2",
-      "content_sha256": "961e190f628b25fb639ac7e02aeb8bda765cd1939dc0acc0a90e9d0b9eb7cd78"
+      "content_sha256": "afbbfc7dbc5333ca087ff596917a528cb108ccf49caa105b98bde6250968d385"
     },
     {
       "input_unit_id": "hsp-11009463-s01",
       "source_regest_id": "11009463",
       "source_subentry_index": 0,
       "source_sublemma_number": 1,
-      "header": "Stafforde Stafforde &w&w &y Rect. et paroch. par. eccl. s. Johannis Bapt. op. Stafforde [= Staßfurt] Halberstad. dioc. : de indulg. 10 an., Conc. 7 an. 28. ian. 79 S 777 40 rs , 17. febr. 80 S 790 21 r , 4. mart. 80 S 790 184 rs",
+      "header": "Stafforde Stafforde Rect. et paroch. par. eccl. s. Johannis Bapt. op. Stafforde [= Staßfurt] Halberstad. dioc. : de indulg. 10 an., Conc. 7 an. 28. ian. 79 S 777 40 rs , 17. febr. 80 S 790 21 r , 4. mart. 80 S 790 184 rs",
       "sublemma": "supplic. Henrico Swerderi rect. d. par. eccl. indulg. 7 an. 15. mart. 80 V 676 238 vss .",
       "source_regest_content_sha256": "9b41826c70ea8c0a42512a5f0b4303e013040b82a80e8f410cfe05782fd98dca",
-      "content_sha256": "727de4c924b316f5ad8426785afda0485acdcfadc1923e5a27e98333d6e49f43"
+      "content_sha256": "a0dcaec07614c0927d6bcdfc6f8cdaaa2438441d19cf49c8b1aa69f8b8554214"
     },
     {
       "input_unit_id": "hsp-11009587-s01",
       "source_regest_id": "11009587",
       "source_subentry_index": 0,
       "source_sublemma_number": 1,
-      "header": "Stendal Stendal &w&w &y Prep. et capit. eccl. s. Nicolai Stendalien. Halberstad. dioc. : solv. 112 fl. adc. 36 bon. = 150 fl. renen. p. manus can. d. eccl. pro censu 25 an. ratione exemptionis 15. iul. 75 IE 492 16 v , Arm. XXXIII , 35 59 vs",
+      "header": "Stendal Stendal Prep. et capit. eccl. s. Nicolai Stendalien. Halberstad. dioc. : solv. 112 fl. adc. 36 bon. = 150 fl. renen. p. manus can. d. eccl. pro censu 25 an. ratione exemptionis 15. iul. 75 IE 492 16 v , Arm. XXXIII , 35 59 vs",
       "sublemma": "solv. 6 fl. adc. = 8 fl. renen. pro censu eius exempt. pro uno an. finito de mense febr. 80 p. manus Ottonis Sepeck 15. mart. 80 IE 498 121 v , IE 499 127 v , 15. apr. 80 Arm. XXXIII , 35 96 r",
       "source_regest_content_sha256": "28123fae15b328a5165614a1b8201acfcadc69186b0385f28efa9f7f5bb47955",
-      "content_sha256": "addb47d838c2cc8b13e10c665fc8d63331f20c16db77f03849695709f8898929"
+      "content_sha256": "005f0b4aa09e743ff0bf45f5f36f83d149e07751a6d524bdfae18716f9de691d"
     },
     {
       "input_unit_id": "hsp-11009587-s02",
       "source_regest_id": "11009587",
       "source_subentry_index": 1,
       "source_sublemma_number": 2,
-      "header": "Stendal Stendal &w&w &y Prep. et capit. eccl. s. Nicolai Stendalien. Halberstad. dioc. : solv. 112 fl. adc. 36 bon. = 150 fl. renen. p. manus can. d. eccl. pro censu 25 an. ratione exemptionis 15. iul. 75 IE 492 16 v , Arm. XXXIII , 35 59 vs",
+      "header": "Stendal Stendal Prep. et capit. eccl. s. Nicolai Stendalien. Halberstad. dioc. : solv. 112 fl. adc. 36 bon. = 150 fl. renen. p. manus can. d. eccl. pro censu 25 an. ratione exemptionis 15. iul. 75 IE 492 16 v , Arm. XXXIII , 35 59 vs",
       "sublemma": "solv. p. manus Johannis Rosze (Roze) vic. d. eccl. 8 fl. renen. pro ratione 1 anni exempt. eis p. sedem ap. conc. 26. apr. 81 Arm. XXXIII , 35 107 v",
       "source_regest_content_sha256": "28123fae15b328a5165614a1b8201acfcadc69186b0385f28efa9f7f5bb47955",
-      "content_sha256": "7804255ac121a76f9e8535f61ff9ac93089e4774d55685523775adb80ba612ab"
+      "content_sha256": "ae1c5d81d79a577ddff9784c6197ed4e329f8e4917e8a5126b55ff56583b5f7a"
     },
     {
       "input_unit_id": "hsp-11009587-s03",
       "source_regest_id": "11009587",
       "source_subentry_index": 2,
       "source_sublemma_number": 3,
-      "header": "Stendal Stendal &w&w &y Prep. et capit. eccl. s. Nicolai Stendalien. Halberstad. dioc. : solv. 112 fl. adc. 36 bon. = 150 fl. renen. p. manus can. d. eccl. pro censu 25 an. ratione exemptionis 15. iul. 75 IE 492 16 v , Arm. XXXIII , 35 59 vs",
+      "header": "Stendal Stendal Prep. et capit. eccl. s. Nicolai Stendalien. Halberstad. dioc. : solv. 112 fl. adc. 36 bon. = 150 fl. renen. p. manus can. d. eccl. pro censu 25 an. ratione exemptionis 15. iul. 75 IE 492 16 v , Arm. XXXIII , 35 59 vs",
       "sublemma": "solv. 6 fl. adc. = 8 fl. auri renen. pro censu presentis an. ratione eorum exempt. p. manus Turini de Gerona cler. Barchinonen. 27. apr. 81 IE 502 82 r , IE 503 82 r",
       "source_regest_content_sha256": "28123fae15b328a5165614a1b8201acfcadc69186b0385f28efa9f7f5bb47955",
-      "content_sha256": "cfef92b5d988de19b78a112e87f4366912bb99ff9b3ab552cf1333c2b89bd0f5"
+      "content_sha256": "38279c534ab44db45602af0c5271f595d3e46d4964da2d7e580146a341c46514"
     },
     {
       "input_unit_id": "hsp-11009587-s04",
       "source_regest_id": "11009587",
       "source_subentry_index": 3,
       "source_sublemma_number": 4,
-      "header": "Stendal Stendal &w&w &y Prep. et capit. eccl. s. Nicolai Stendalien. Halberstad. dioc. : solv. 112 fl. adc. 36 bon. = 150 fl. renen. p. manus can. d. eccl. pro censu 25 an. ratione exemptionis 15. iul. 75 IE 492 16 v , Arm. XXXIII , 35 59 vs",
+      "header": "Stendal Stendal Prep. et capit. eccl. s. Nicolai Stendalien. Halberstad. dioc. : solv. 112 fl. adc. 36 bon. = 150 fl. renen. p. manus can. d. eccl. pro censu 25 an. ratione exemptionis 15. iul. 75 IE 492 16 v , Arm. XXXIII , 35 59 vs",
       "sublemma": "solv. p. manus Johannis ut supra 8 fl. renen. pro ratione 1 anni exempt. eis p. sed. ap. conc. 22. mart. 82 Arm. XXXIII , 35 118 r Turini de Gerona cler. Barchinonen. 27. apr. 81 IE 502 82 r , IE 503 82 r",
       "source_regest_content_sha256": "28123fae15b328a5165614a1b8201acfcadc69186b0385f28efa9f7f5bb47955",
-      "content_sha256": "652f013bb741d365ef9a01353dfe66b7ac842b672b84c0fb5a792be1d3434a18"
+      "content_sha256": "0a91e9255e4807c14a329b10c654464d2aa403158205c943cb699c6b04f47b51"
     },
     {
       "input_unit_id": "hsp-11009587-s05",
       "source_regest_id": "11009587",
       "source_subentry_index": 4,
       "source_sublemma_number": 5,
-      "header": "Stendal Stendal &w&w &y Prep. et capit. eccl. s. Nicolai Stendalien. Halberstad. dioc. : solv. 112 fl. adc. 36 bon. = 150 fl. renen. p. manus can. d. eccl. pro censu 25 an. ratione exemptionis 15. iul. 75 IE 492 16 v , Arm. XXXIII , 35 59 vs",
+      "header": "Stendal Stendal Prep. et capit. eccl. s. Nicolai Stendalien. Halberstad. dioc. : solv. 112 fl. adc. 36 bon. = 150 fl. renen. p. manus can. d. eccl. pro censu 25 an. ratione exemptionis 15. iul. 75 IE 492 16 v , Arm. XXXIII , 35 59 vs",
       "sublemma": "solv. 6 fl. adc. pro censu presentis an. ratione exemptionis eis conc. p. manus Johannis Rochefel 23. mart. 82 IE 505 91 r",
       "source_regest_content_sha256": "28123fae15b328a5165614a1b8201acfcadc69186b0385f28efa9f7f5bb47955",
-      "content_sha256": "bfa0a2971f048d311ed7b2624418402c160ed80fa89e35d95606b964c45b26ba"
+      "content_sha256": "665a79913b084105143033229e2869fa1fc48500f7e35d17df46b3c8fb707d21"
     },
     {
       "input_unit_id": "hsp-11009587-s06",
       "source_regest_id": "11009587",
       "source_subentry_index": 5,
       "source_sublemma_number": 6,
-      "header": "Stendal Stendal &w&w &y Prep. et capit. eccl. s. Nicolai Stendalien. Halberstad. dioc. : solv. 112 fl. adc. 36 bon. = 150 fl. renen. p. manus can. d. eccl. pro censu 25 an. ratione exemptionis 15. iul. 75 IE 492 16 v , Arm. XXXIII , 35 59 vs",
+      "header": "Stendal Stendal Prep. et capit. eccl. s. Nicolai Stendalien. Halberstad. dioc. : solv. 112 fl. adc. 36 bon. = 150 fl. renen. p. manus can. d. eccl. pro censu 25 an. ratione exemptionis 15. iul. 75 IE 492 16 v , Arm. XXXIII , 35 59 vs",
       "sublemma": "solv. 6 fl. adc. pro censu quarundam exemptionum pro presenti an. p. manus Henrici Scurreti Rote not. 23. apr. 83 IE 508 11 v , IE 509 10 v",
       "source_regest_content_sha256": "28123fae15b328a5165614a1b8201acfcadc69186b0385f28efa9f7f5bb47955",
-      "content_sha256": "572b19a04bd42e8f10b41ce6df4a11f4c38a8ebf2f6d80d261736c6b8f3d914a"
+      "content_sha256": "ded81c3efab694d64387ecf14707dfe53dfcc05a32924fbaf62486cf91aa2c8c"
     },
     {
       "input_unit_id": "hsp-11009587-s07",
       "source_regest_id": "11009587",
       "source_subentry_index": 6,
       "source_sublemma_number": 7,
-      "header": "Stendal Stendal &w&w &y Prep. et capit. eccl. s. Nicolai Stendalien. Halberstad. dioc. : solv. 112 fl. adc. 36 bon. = 150 fl. renen. p. manus can. d. eccl. pro censu 25 an. ratione exemptionis 15. iul. 75 IE 492 16 v , Arm. XXXIII , 35 59 vs",
+      "header": "Stendal Stendal Prep. et capit. eccl. s. Nicolai Stendalien. Halberstad. dioc. : solv. 112 fl. adc. 36 bon. = 150 fl. renen. p. manus can. d. eccl. pro censu 25 an. ratione exemptionis 15. iul. 75 IE 492 16 v , Arm. XXXIII , 35 59 vs",
       "sublemma": "solv. p. manus Henrici Studek nunt. d. eccl. 8 fl. renen. pro ratione 1 anni exempt. eis p. sed. ap. conc. 23. apr. 83 Arm. XXXIII , 35 125 r . Priorissa et conv. mon. monial. s. Catherine op. Stendal o. s. Aug. Halberstad. dioc. : de indulg. 7 an. 17. mart. 73 S 688 222 r . Incole et habitatores op. Stendal Halberstad. dioc. inter al. referentes quod secundum consuetudinem habitatores ann. census sup. bonis domibus terris agris vendentes 12, 13 sive 14 sol. pro singula marca in pec. numerata recip. soliti sunt (prout ementes et vendentes in contractibus inter se firmarunt): de decl. quod contracta licita et iuri conformia sunt 10. aug. 76 S 740 192 r .",
       "source_regest_content_sha256": "28123fae15b328a5165614a1b8201acfcadc69186b0385f28efa9f7f5bb47955",
-      "content_sha256": "f5df0a3e55e779b9a0922a42ed0b2c4b3193133da5661613f32b34148cc4f7f8"
+      "content_sha256": "f63fd5a861873353f9b19f20d60179b07f2b5652d4cd52f6b6d07bc1550e528c"
     },
     {
       "input_unit_id": "hsp-10201462-s01",
@@ -4830,5 +4830,31 @@
       "content_sha256": "ffa5f123934049a54ba14fe8df4573edde02b81f7ba30959398f34bc7490cdab"
     }
   ],
-  "catalogue_content_sha256": "f55f577183a23e8ce9bed223f82df461f5f5cef7a7a2b9e5b0409681c0a6dc82"
+  "normalization": {
+    "schema_version": 1,
+    "name": "remove_legacy_regest_formatting_controls",
+    "removed_tokens": [
+      "&w&w",
+      "&w&",
+      "&w",
+      "&y"
+    ],
+    "rule": "Remove obsolete TUSTEP layout controls and collapse whitespace only in fields containing a control; preserve all other fields byte-for-byte.",
+    "normalized_input_unit_count": 44,
+    "normalized_source_regest_count": 9,
+    "normalized_source_regest_ids": [
+      "11002033",
+      "11002971",
+      "11007321",
+      "11007477",
+      "11007478",
+      "11007990",
+      "11009069",
+      "11009463",
+      "11009587"
+    ],
+    "normalized_header_count": 9,
+    "normalized_sublemma_count": 0
+  },
+  "catalogue_content_sha256": "b972b0b2c67ca38d33fdafcd91886c9418a891f4d1b4011142131d7142ceadf9"
 }
