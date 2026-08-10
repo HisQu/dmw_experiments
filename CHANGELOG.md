@@ -31,11 +31,12 @@ All notable changes to `dmw_experiments` will be documented in this file.
 1. [Changelog](#changelog)
    1. [Table Of Contents](#table-of-contents)
 2. [\[Unreleased\]](#unreleased)
-3. [0.4.1 - 2026-08-10](#041---2026-08-10)
-4. [0.4.0 - 2026-08-07](#040---2026-08-07)
-5. [0.3.0 - 2026-08-06](#030---2026-08-06)
-6. [0.2.0 - 2026-08-06](#020---2026-08-06)
-7. [0.1.0 - 2026-08-06](#010---2026-08-06)
+3. [0.5.0 - 2026-08-10](#050---2026-08-10)
+4. [0.4.1 - 2026-08-10](#041---2026-08-10)
+5. [0.4.0 - 2026-08-07](#040---2026-08-07)
+6. [0.3.0 - 2026-08-06](#030---2026-08-06)
+7. [0.2.0 - 2026-08-06](#020---2026-08-06)
+8. [0.1.0 - 2026-08-06](#010---2026-08-06)
 
 <br>
 
@@ -46,6 +47,44 @@ All notable changes to `dmw_experiments` will be documented in this file.
 <!-- ======================================================== -->
 
 # [Unreleased]
+
+<br>
+
+### 💥 Breaking changes
+
+<br>
+
+### ➕ Added
+
+<br>
+
+### 💔 Changed
+
+<br>
+
+### ⚠️ Deprecated
+
+<br>
+
+### 🗑️ Removed
+
+<br>
+
+### 🔨 Fixed
+
+<br>
+
+### 🔒 Security
+
+<br>
+
+---
+
+<br>
+
+<!-- ======================================================== -->
+
+# 0.5.0 - 2026-08-10
 
 <br>
 
@@ -73,7 +112,8 @@ All notable changes to `dmw_experiments` will be documented in this file.
   reject missing or changed schema-v3 evidence.
 - Added stopped-run artifact refresh and explicit runtime-transition commands.
   They preserve the immutable environment lock while recording the exact
-  clean harness and Haiu patch identities adopted during a long run.
+  clean harness and governed DMW-stack package identities adopted during a
+  long run.
 
 <br>
 
@@ -86,17 +126,12 @@ All notable changes to `dmw_experiments` will be documented in this file.
   result.
 - Updated the experiment runtime to Haiu 1.8.1. Non-streaming calls now retain
   complete provider assistant messages for terminal failure analysis.
+- Updated the experiment runtime to DMW 1.1.4 and OPA 2.1.3. Failed workflows
+  now retain the exact successful Stage-1 assistant reply when a later stage
+  fails, without changing model calls or retry decisions.
 - Treat one complete outer Markdown `ttl` or `turtle` fence as a serialization
   wrapper. Exact provider text stays in `stage-2.raw.txt`; `ontology.ttl`,
   syntax validation, and downstream analysis use the unwrapped Turtle body.
-
-<br>
-
-### ⚠️ Deprecated
-
-<br>
-
-### 🗑️ Removed
 
 <br>
 
@@ -109,10 +144,6 @@ All notable changes to `dmw_experiments` will be documented in this file.
 - Fixed failed standalone calls discarding provider-native output when
   `message.content` is empty, and fixed fence-wrapped valid Turtle being
   counted as a parser failure.
-
-<br>
-
-### 🔒 Security
 
 <br>
 

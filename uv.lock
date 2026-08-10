@@ -639,8 +639,8 @@ wheels = [
 
 [[package]]
 name = "datamodel-workflow"
-version = "1.1.3"
-source = { git = "https://github.com/HisQu/datamodel-workflow.git?rev=v1.1.3#ee5487964186c99a5140203c5ade42f6fcab4b7a" }
+version = "1.1.4"
+source = { git = "https://github.com/HisQu/datamodel-workflow.git?rev=v1.1.4#34bb95739e31128e99a56d4820ce7e472f553616" }
 dependencies = [
     { name = "argon2-cffi" },
     { name = "fastapi" },
@@ -706,7 +706,7 @@ wheels = [
 
 [[package]]
 name = "dmw-experiments"
-version = "0.4.1"
+version = "0.5.0"
 source = { editable = "." }
 dependencies = [
     { name = "apprc", extra = ["tui"] },
@@ -740,13 +740,13 @@ dev = [
 requires-dist = [
     { name = "apprc", extras = ["tui"], specifier = ">=0.19.0,<0.20" },
     { name = "build", specifier = ">=1.2,<2" },
-    { name = "datamodel-workflow", git = "https://github.com/HisQu/datamodel-workflow.git?rev=v1.1.3" },
+    { name = "datamodel-workflow", git = "https://github.com/HisQu/datamodel-workflow.git?rev=v1.1.4" },
     { name = "gta", git = "https://github.com/HisQu/GTA.git?rev=v0.2.4" },
     { name = "haiu", extras = ["rag", "bench"], git = "https://github.com/HisQu/haiu.git?rev=v1.8.1" },
     { name = "matplotlib" },
     { name = "mongodbapi", git = "https://github.com/HisQu/MongoDBAPI.git?rev=v1.0.2" },
     { name = "numpy" },
-    { name = "opa", git = "https://github.com/HisQu/OPA.git?rev=v2.1.2" },
+    { name = "opa", git = "https://github.com/HisQu/OPA.git?rev=v2.1.3" },
     { name = "openpyxl" },
     { name = "pandas" },
     { name = "rdflib", specifier = ">=7.0,<8.0" },
@@ -2150,8 +2150,8 @@ dependencies = [
 
 [[package]]
 name = "opa"
-version = "2.1.2"
-source = { git = "https://github.com/HisQu/OPA.git?rev=v2.1.2#09756446367ca323c5a55ec921d1325e57eb271e" }
+version = "2.1.3"
+source = { git = "https://github.com/HisQu/OPA.git?rev=v2.1.3#7149288fb64b813f4b6821781663b692704833d2" }
 dependencies = [
     { name = "annotated-types" },
     { name = "anyio" },

@@ -21,15 +21,15 @@ APPROVED_HAIU_VCS_URL = "https://github.com/HisQu/haiu.git"
 APPROVED_HAIU_VCS_REVISION = "v1.8.1"
 APPROVED_RUNTIME_DISTRIBUTIONS = {
     "datamodel-workflow": {
-        "version": "1.1.3",
+        "version": "1.1.4",
         "url": "https://github.com/HisQu/datamodel-workflow.git",
-        "revision": "v1.1.3",
+        "revision": "v1.1.4",
         "repository": "datamodel_workflow",
     },
     "opa": {
-        "version": "2.1.2",
+        "version": "2.1.3",
         "url": "https://github.com/HisQu/OPA.git",
-        "revision": "v2.1.2",
+        "revision": "v2.1.3",
         "repository": "opa",
     },
     "gta": {

@@ -470,8 +470,8 @@ wheels = [{ url = "https://files.pythonhosted.org/packages/e7/05/c19819d5e3d9529
 
 [[packages]]
 name = "datamodel-workflow"
-version = "1.1.3"
-vcs = { type = "git", url = "https://github.com/HisQu/datamodel-workflow.git", requested-revision = "v1.1.3", commit-id = "ee5487964186c99a5140203c5ade42f6fcab4b7a" }
+version = "1.1.4"
+vcs = { type = "git", url = "https://github.com/HisQu/datamodel-workflow.git", requested-revision = "v1.1.4", commit-id = "34bb95739e31128e99a56d4820ce7e472f553616" }
 
 [[packages]]
 name = "deprecation"
@@ -1472,8 +1472,8 @@ vcs = { type = "git", url = "https://github.com/HisQu/ontology-merging.git", req
 
 [[packages]]
 name = "opa"
-version = "2.1.2"
-vcs = { type = "git", url = "https://github.com/HisQu/OPA.git", requested-revision = "v2.1.2", commit-id = "09756446367ca323c5a55ec921d1325e57eb271e" }
+version = "2.1.3"
+vcs = { type = "git", url = "https://github.com/HisQu/OPA.git", requested-revision = "v2.1.3", commit-id = "7149288fb64b813f4b6821781663b692704833d2" }
 
 [[packages]]
 name = "openai"

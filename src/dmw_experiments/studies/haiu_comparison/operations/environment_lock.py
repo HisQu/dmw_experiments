@@ -35,15 +35,15 @@ EXPERIMENT_ROOT = RUN_TEMPLATE_ROOT
 
 APPROVED_DISTRIBUTIONS = {
     "datamodel-workflow": {
-        "version": "1.1.3",
+        "version": "1.1.4",
         "url": "https://github.com/HisQu/datamodel-workflow.git",
-        "revision": "v1.1.3",
+        "revision": "v1.1.4",
         "repository": "datamodel_workflow",
     },
     "opa": {
-        "version": "2.1.2",
+        "version": "2.1.3",
         "url": "https://github.com/HisQu/OPA.git",
-        "revision": "v2.1.2",
+        "revision": "v2.1.3",
         "repository": "opa",
     },
     "gta": {

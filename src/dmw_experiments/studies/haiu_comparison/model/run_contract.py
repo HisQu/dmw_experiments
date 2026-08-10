@@ -21,7 +21,7 @@ BRANCH_NAME = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
 EXECUTION_NAME = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
 STUDY_ID = "haiu_comparison"
-RELEASE_STACK = "published-dmw-1.1.3"
+RELEASE_STACK = "published-dmw-1.1.4"
 RUN_CONTRACT_FILENAME = "run.toml"
 CONDITIONS = CONDITION_IDS
 PROVIDER_PROFILES = frozenset({"academiccloud-qwen36", "lmstudio-qwen36-q6"})

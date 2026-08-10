@@ -102,7 +102,7 @@ cuda-toolkit==13.0.3.0 ; sys_platform == 'linux'
     # via torch
 cycler==0.12.1
     # via matplotlib
-datamodel-workflow @ git+https://github.com/HisQu/datamodel-workflow.git@ee5487964186c99a5140203c5ade42f6fcab4b7a
+datamodel-workflow @ git+https://github.com/HisQu/datamodel-workflow.git@34bb95739e31128e99a56d4820ce7e472f553616
     # via dmw-experiments
 deprecation==2.1.0
     # via dkpro-cassis
@@ -395,7 +395,7 @@ nvidia-nvtx==13.0.85 ; (platform_machine == 'aarch64' and sys_platform == 'linux
     # via cuda-toolkit
 ontology-merging @ git+https://github.com/HisQu/ontology-merging.git@d9893887a11f269b5c4b7e323c2e5fad98ba5661
     # via datamodel-workflow
-opa @ git+https://github.com/HisQu/OPA.git@09756446367ca323c5a55ec921d1325e57eb271e
+opa @ git+https://github.com/HisQu/OPA.git@7149288fb64b813f4b6821781663b692704833d2
     # via
     #   datamodel-workflow
     #   dmw-experiments

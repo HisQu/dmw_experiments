@@ -114,7 +114,7 @@ def _apply_provider_split(
 def _load_dmw_app() -> Any:
     """Import the ASGI application from the installed DMW distribution.
 
-    The publication runtime installs DMW v1.1.3 as a non-editable package.
+    The publication runtime installs DMW v1.1.4 as a non-editable package.
     Importing the public package path keeps the launcher independent from a
     neighboring source checkout. The redaction hook must run before importing
     the application because DMW's compatibility module imports MongoDBAPI

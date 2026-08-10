@@ -1,7 +1,7 @@
 schema_version = 3
 study = "haiu_comparison"
 mode = "full"
-release_stack = "published-dmw-1.1.3"
+release_stack = "published-dmw-1.1.4"
 run_id = "template"
 input_catalog = "INPUTS/header_sublemma_input_catalog.json"
 limit = 0
