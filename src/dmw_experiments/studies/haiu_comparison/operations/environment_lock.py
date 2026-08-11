@@ -27,38 +27,16 @@ from dmw_experiments.studies.haiu_comparison.model.inputs import (
     load_dmw_pair_import_manifest,
     load_header_sublemma_catalog,
 )
+from dmw_experiments.studies.haiu_comparison.data_collection.protocol import (
+    APPROVED_RUNTIME_DISTRIBUTIONS,
+)
 from dmw_experiments.studies.haiu_comparison.operations.repository_paths import (
     RUN_TEMPLATE_ROOT,
 )
 
 EXPERIMENT_ROOT = RUN_TEMPLATE_ROOT
 
-APPROVED_DISTRIBUTIONS = {
-    "datamodel-workflow": {
-        "version": "1.1.4",
-        "url": "https://github.com/HisQu/datamodel-workflow.git",
-        "revision": "v1.1.4",
-        "repository": "datamodel_workflow",
-    },
-    "opa": {
-        "version": "2.1.3",
-        "url": "https://github.com/HisQu/OPA.git",
-        "revision": "v2.1.3",
-        "repository": "opa",
-    },
-    "gta": {
-        "version": "0.2.4",
-        "url": "https://github.com/HisQu/GTA.git",
-        "revision": "v0.2.4",
-        "repository": "gta",
-    },
-    "haiu": {
-        "version": "1.8.1",
-        "url": "https://github.com/HisQu/haiu.git",
-        "revision": "v1.8.1",
-        "repository": "haiu",
-    },
-}
+APPROVED_DISTRIBUTIONS = APPROVED_RUNTIME_DISTRIBUTIONS
 REPORTED_DISTRIBUTIONS = tuple(APPROVED_DISTRIBUTIONS)
 
 

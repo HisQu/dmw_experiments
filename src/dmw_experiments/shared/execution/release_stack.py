@@ -37,6 +37,30 @@ class ReleaseSource:
     destination_name: str
 
 
+RELEASE_SOURCES = {
+    "datamodel_workflow": ReleaseSource(
+        url="https://github.com/HisQu/datamodel-workflow.git",
+        revision="v1.1.4",
+        destination_name="datamodel-workflow-v1.1.4",
+    ),
+    "opa": ReleaseSource(
+        url="https://github.com/HisQu/OPA.git",
+        revision="v2.1.3",
+        destination_name="opa-v2.1.3",
+    ),
+    "gta": ReleaseSource(
+        url="https://github.com/HisQu/GTA.git",
+        revision="v0.2.5",
+        destination_name="gta-v0.2.5",
+    ),
+    "haiu": ReleaseSource(
+        url="https://github.com/HisQu/haiu.git",
+        revision="v1.8.1",
+        destination_name="haiu-v1.8.1",
+    ),
+}
+
+
 class ReleaseStackManager:
     """Create ignored release checkouts without requiring sibling repositories."""
 
@@ -50,31 +74,9 @@ class ReleaseStackManager:
         :raises RuntimeError: If a source, tag, checkout, or cleanliness check
             does not match the release contract.
         """
-        sources = {
-            "datamodel_workflow": ReleaseSource(
-                url="https://github.com/HisQu/datamodel-workflow.git",
-                revision="v1.1.4",
-                destination_name="datamodel-workflow-v1.1.4",
-            ),
-            "opa": ReleaseSource(
-                url="https://github.com/HisQu/OPA.git",
-                revision="v2.1.3",
-                destination_name="opa-v2.1.3",
-            ),
-            "gta": ReleaseSource(
-                url="https://github.com/HisQu/GTA.git",
-                revision="v0.2.5",
-                destination_name="gta-v0.2.5",
-            ),
-            "haiu": ReleaseSource(
-                url="https://github.com/HisQu/haiu.git",
-                revision="v1.8.1",
-                destination_name="haiu-v1.8.1",
-            ),
-        }
         paths = {
             name: self._ensure_checkout(source)
-            for name, source in sources.items()
+            for name, source in RELEASE_SOURCES.items()
         }
         return ReleaseRepositories(**paths)
 

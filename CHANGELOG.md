@@ -76,6 +76,10 @@ All notable changes to `dmw_experiments` will be documented in this file.
 
 ### 🔨 Fixed
 
+- Kept collection preflight, environment-lock capture, and published release
+  checkouts on one GTA 0.2.5 contract. Resume no longer rejects the tagged
+  observability runtime before provider work starts.
+
 <br>
 
 ### 🔒 Security

@@ -33,9 +33,9 @@ APPROVED_RUNTIME_DISTRIBUTIONS = {
         "repository": "opa",
     },
     "gta": {
-        "version": "0.2.4",
+        "version": "0.2.5",
         "url": "https://github.com/HisQu/GTA.git",
-        "revision": "v0.2.4",
+        "revision": "v0.2.5",
         "repository": "gta",
     },
     "haiu": {

@@ -8,8 +8,15 @@ from pathlib import Path
 import pytest
 
 from dmw_experiments.shared.execution.release_stack import (
+    RELEASE_SOURCES,
     ReleaseSource,
     ReleaseStackManager,
+)
+from dmw_experiments.studies.haiu_comparison.data_collection.protocol import (
+    APPROVED_RUNTIME_DISTRIBUTIONS,
+)
+from dmw_experiments.studies.haiu_comparison.operations.environment_lock import (
+    APPROVED_DISTRIBUTIONS,
 )
 
 
@@ -78,3 +85,19 @@ def test_release_checkout_rejects_local_changes(tmp_path: Path) -> None:
 
     with pytest.raises(RuntimeError, match="dirty"):
         manager._ensure_checkout(release)
+
+
+def test_published_stack_uses_one_approved_release_contract() -> None:
+    """Collection validation and evidence checkouts cannot drift by version."""
+    assert APPROVED_DISTRIBUTIONS is APPROVED_RUNTIME_DISTRIBUTIONS
+    distribution_names = {
+        "datamodel_workflow": "datamodel-workflow",
+        "opa": "opa",
+        "gta": "gta",
+        "haiu": "haiu",
+    }
+    for repository_name, distribution_name in distribution_names.items():
+        release = RELEASE_SOURCES[repository_name]
+        approved = APPROVED_RUNTIME_DISTRIBUTIONS[distribution_name]
+        assert release.url == approved["url"]
+        assert release.revision == approved["revision"]
