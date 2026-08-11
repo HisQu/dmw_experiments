@@ -31,16 +31,17 @@ All notable changes to `dmw_experiments` will be documented in this file.
 1. [Changelog](#changelog)
    1. [Table Of Contents](#table-of-contents)
 2. [\[Unreleased\]](#unreleased)
-3. [0.5.4 - 2026-08-11](#054---2026-08-11)
-4. [0.5.3 - 2026-08-10](#053---2026-08-10)
-5. [0.5.2 - 2026-08-10](#052---2026-08-10)
-6. [0.5.1 - 2026-08-10](#051---2026-08-10)
-7. [0.5.0 - 2026-08-10](#050---2026-08-10)
-8. [0.4.1 - 2026-08-10](#041---2026-08-10)
-9. [0.4.0 - 2026-08-07](#040---2026-08-07)
-10. [0.3.0 - 2026-08-06](#030---2026-08-06)
-11. [0.2.0 - 2026-08-06](#020---2026-08-06)
-12. [0.1.0 - 2026-08-06](#010---2026-08-06)
+3. [0.5.5 - 2026-08-11](#055---2026-08-11)
+4. [0.5.4 - 2026-08-11](#054---2026-08-11)
+5. [0.5.3 - 2026-08-10](#053---2026-08-10)
+6. [0.5.2 - 2026-08-10](#052---2026-08-10)
+7. [0.5.1 - 2026-08-10](#051---2026-08-10)
+8. [0.5.0 - 2026-08-10](#050---2026-08-10)
+9. [0.4.1 - 2026-08-10](#041---2026-08-10)
+10. [0.4.0 - 2026-08-07](#040---2026-08-07)
+11. [0.3.0 - 2026-08-06](#030---2026-08-06)
+12. [0.2.0 - 2026-08-06](#020---2026-08-06)
+13. [0.1.0 - 2026-08-06](#010---2026-08-06)
 
 <br>
 
@@ -76,13 +77,27 @@ All notable changes to `dmw_experiments` will be documented in this file.
 
 ### 🔨 Fixed
 
-- Kept collection preflight, environment-lock capture, and published release
-  checkouts on one GTA 0.2.5 contract. Resume no longer rejects the tagged
-  observability runtime before provider work starts.
-
 <br>
 
 ### 🔒 Security
+
+<br>
+
+---
+
+<br>
+
+<!-- ======================================================== -->
+
+# 0.5.5 - 2026-08-11
+
+<br>
+
+### 🔨 Fixed
+
+- Kept collection preflight, environment-lock capture, and published release
+  checkouts on one GTA 0.2.5 contract. Resume no longer rejects the tagged
+  observability runtime before provider work starts.
 
 <br>
 
@@ -101,7 +116,7 @@ All notable changes to `dmw_experiments` will be documented in this file.
 - Preserved exact GTA assistant messages as per-stage response sidecars for DMW
   conditions, including provider reasoning fields when length-limited responses
   have empty ordinary content. Compact analytical metadata no longer duplicates
-those potentially large documents.
+  those potentially large documents.
 
 <br>
 
