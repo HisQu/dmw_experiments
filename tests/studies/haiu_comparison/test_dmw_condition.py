@@ -360,18 +360,27 @@ def test_normalize_workflow_payload_uses_dmw_timing_and_frozen_annotation() -> (
         "debug_output": {
             "provider_run_metadata": {
                 "stage1": {
+                    "provider_message": {
+                        "role": "assistant",
+                        "content": "Plan",
+                    },
                     "usage": {
                         "prompt_tokens": 100,
                         "completion_tokens": 20,
                         "total_tokens": 120,
-                    }
+                    },
                 },
                 "stage2": {
+                    "provider_message": {
+                        "role": "assistant",
+                        "content": None,
+                        "reasoning_content": "Incomplete reasoning",
+                    },
                     "usage": {
                         "prompt_tokens": 150,
                         "completion_tokens": 30,
                         "total_tokens": 180,
-                    }
+                    },
                 },
             },
             "tbox": ":A a owl:Class .",
@@ -403,6 +412,17 @@ def test_normalize_workflow_payload_uses_dmw_timing_and_frozen_annotation() -> (
     assert row["ontology_provider_total_tokens"] == 300
     assert row["prompt_tokens"] == 150
     assert row["prompt_tokens_source"] == "provider"
+    assert row["raw_stage1_provider_message"] == {
+        "role": "assistant",
+        "content": "Plan",
+    }
+    assert row["raw_stage2_provider_message"] == {
+        "role": "assistant",
+        "content": None,
+        "reasoning_content": "Incomplete reasoning",
+    }
+    assert "provider_message" not in row["provider_run_metadata"]["stage1"]
+    assert "provider_message" not in row["provider_run_metadata"]["stage2"]
 
 
 def test_constrained_natural_completion_remains_publication_eligible() -> None:

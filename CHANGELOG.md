@@ -75,6 +75,11 @@ All notable changes to `dmw_experiments` will be documented in this file.
 
 ### 🔨 Fixed
 
+- Preserved exact GTA assistant messages as per-stage response sidecars for DMW
+  conditions, including provider reasoning fields when length-limited responses
+  have empty ordinary content. Compact analytical metadata no longer duplicates
+  those potentially large documents.
+
 <br>
 
 ### 🔒 Security

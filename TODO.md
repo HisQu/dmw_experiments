@@ -103,8 +103,9 @@ Treat this as the parking lot for actionable problems discovered while working b
   release environment therefore needs uv overrides or the exported
   `requirements-runtime.lock` installed with `--no-deps`.
 - **Context:** The experiment uses the required DMW 1.1.4 / OPA 2.1.3 /
-  GTA 0.2.4 / Haiu 1.8.1 stack. Local sibling clones are not required. The
-  workaround freezes the intended remote releases but package installers
+  GTA 0.2.5 / Haiu 1.8.1 stack. Local sibling clones are not required. The
+  workaround freezes the intended remote releases, including the GTA
+  observability patch, but package installers
   should eventually resolve them without metadata correction.
 - **Suggested next step:** Publish compatible OPA and NER patch releases, then
   update the experiment stack contract and remove both override paths.

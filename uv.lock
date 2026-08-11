@@ -8,7 +8,7 @@ resolution-markers = [
 
 [manifest]
 overrides = [
-    { name = "gta", git = "https://github.com/HisQu/GTA.git?rev=v0.2.4" },
+    { name = "gta", git = "https://github.com/HisQu/GTA.git?rev=v0.2.5" },
     { name = "haiu", extras = ["rag", "bench"], git = "https://github.com/HisQu/haiu.git?rev=v1.8.1" },
     { name = "mongodbapi", git = "https://github.com/HisQu/MongoDBAPI.git?rev=v1.0.2" },
 ]
@@ -741,7 +741,7 @@ requires-dist = [
     { name = "apprc", extras = ["tui"], specifier = ">=0.19.0,<0.20" },
     { name = "build", specifier = ">=1.2,<2" },
     { name = "datamodel-workflow", git = "https://github.com/HisQu/datamodel-workflow.git?rev=v1.1.4" },
-    { name = "gta", git = "https://github.com/HisQu/GTA.git?rev=v0.2.4" },
+    { name = "gta", git = "https://github.com/HisQu/GTA.git?rev=v0.2.5" },
     { name = "haiu", extras = ["rag", "bench"], git = "https://github.com/HisQu/haiu.git?rev=v1.8.1" },
     { name = "matplotlib" },
     { name = "mongodbapi", git = "https://github.com/HisQu/MongoDBAPI.git?rev=v1.0.2" },
@@ -1167,8 +1167,8 @@ wheels = [
 
 [[package]]
 name = "gta"
-version = "0.2.4"
-source = { git = "https://github.com/HisQu/GTA.git?rev=v0.2.4#59f8667bae3a16e057aa9188253e064133b03b5a" }
+version = "0.2.5"
+source = { git = "https://github.com/HisQu/GTA.git?rev=v0.2.5#4075e6434e9efcbc6e5f0d5cd3124b70a7e8e66a" }
 dependencies = [
     { name = "backoff" },
     { name = "google-genai" },

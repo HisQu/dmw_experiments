@@ -39,7 +39,7 @@ def test_runtime_transition_records_and_verifies_exact_identities(
     versions = {
         "datamodel-workflow": ("1.1.3", "1.1.4"),
         "opa": ("2.1.2", "2.1.3"),
-        "gta": ("0.2.4", "0.2.4"),
+        "gta": ("0.2.4", "0.2.5"),
         "haiu": ("1.8.0", "1.8.1"),
     }
     source_packages = {

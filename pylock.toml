@@ -762,8 +762,8 @@ wheels = [{ url = "https://files.pythonhosted.org/packages/67/58/317b0134129b556
 
 [[packages]]
 name = "gta"
-version = "0.2.4"
-vcs = { type = "git", url = "https://github.com/HisQu/GTA.git", requested-revision = "v0.2.4", commit-id = "59f8667bae3a16e057aa9188253e064133b03b5a" }
+version = "0.2.5"
+vcs = { type = "git", url = "https://github.com/HisQu/GTA.git", requested-revision = "v0.2.5", commit-id = "4075e6434e9efcbc6e5f0d5cd3124b70a7e8e66a" }
 
 [[packages]]
 name = "gunicorn"

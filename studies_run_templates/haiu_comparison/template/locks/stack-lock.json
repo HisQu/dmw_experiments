@@ -4,7 +4,7 @@
   "distributions": {
     "datamodel-workflow": "1.1.4",
     "opa": "2.1.3",
-    "gta": "0.2.4",
+    "gta": "0.2.5",
     "haiu": "1.8.1"
   }
 }

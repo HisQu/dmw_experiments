@@ -124,8 +124,10 @@ collections, annotation collections, ontology collections, and Haiu storage.
 ## Evidence and analysis
 
 Exact upstream JSON, Turtle, provider attempts, prompts, Stage-1 replies,
-retrieval sidecars, environment locks, and run manifests remain in the copied
-run. The active layout does not keep a second YAML rendering of the full
+provider assistant-message sidecars, retrieval sidecars, environment locks,
+and run manifests remain in the copied run. Assistant-message sidecars retain
+provider-specific fields such as reasoning content when ordinary content is
+empty. The active layout does not keep a second YAML rendering of the full
 result. Terminal context, length, and other model failures are observations.
 Infrastructure interruption resumes only the same frozen contract.
 The run manifest records the stable shared-workspace identity; process logs
@@ -158,7 +160,7 @@ are enabled. Derived files are organized as follows:
 | --- | --- |
 | DMW | 1.1.4 |
 | OPA | 2.1.3 |
-| GTA | 0.2.4 |
+| GTA | 0.2.5 |
 | Haiu | 1.8.1 |
 | MongoDBAPI | 1.0.2 |
 

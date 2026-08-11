@@ -13,7 +13,7 @@ class ReleaseRepositories:
 
     :param datamodel_workflow: Clean DMW v1.1.4 checkout.
     :param opa: Clean OPA v2.1.3 checkout.
-    :param gta: Clean GTA v0.2.4 checkout.
+    :param gta: Clean GTA v0.2.5 checkout.
     :param haiu: Clean Haiu v1.8.1 checkout.
     """
 
@@ -63,8 +63,8 @@ class ReleaseStackManager:
             ),
             "gta": ReleaseSource(
                 url="https://github.com/HisQu/GTA.git",
-                revision="v0.2.4",
-                destination_name="gta-v0.2.4",
+                revision="v0.2.5",
+                destination_name="gta-v0.2.5",
             ),
             "haiu": ReleaseSource(
                 url="https://github.com/HisQu/haiu.git",

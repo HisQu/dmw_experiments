@@ -250,6 +250,10 @@ def _normalize_workflow_payload(
         or review_data.get("provider_run_metadata")
         or failure_diagnostics.get("providerRunMetadata")
     )
+    provider_messages = _workflow_provider_messages(provider_run_metadata)
+    provider_run_metadata = _provider_metadata_without_messages(
+        provider_run_metadata
+    )
     generation_budget = _stage_generation_budgets(
         provider_run_metadata=provider_run_metadata,
         config=config,
@@ -430,6 +434,8 @@ def _normalize_workflow_payload(
         "raw_stage1_output": raw_stage1_output,
         "raw_stage1_capture_complete": bool(raw_stage1_output),
         "raw_stage1_output_source": raw_stage1_output_source,
+        "raw_stage1_provider_message": provider_messages.get("stage1"),
+        "raw_stage2_provider_message": provider_messages.get("stage2"),
         "raw_ttl_output": raw_ttl_output,
         "raw_ttl_capture_complete": raw_ttl_capture_complete,
         "prompts": stage_prompts,
@@ -481,6 +487,47 @@ def _dict_payload(value: Any) -> dict[str, Any]:
     if isinstance(value, dict):
         return cast(dict[str, Any], value)
     return {}
+
+
+def _workflow_provider_messages(
+    provider_run_metadata: dict[str, Any],
+) -> dict[str, dict[str, Any]]:
+    """Extract exact assistant messages from stage-specific provider metadata.
+
+    GTA retains the complete provider message because a length-limited response
+    can have empty ordinary content while still carrying reasoning diagnostics.
+    The experiment stores those dynamic documents as dedicated sidecars rather
+    than duplicating them in compact analytical metadata.
+
+    :param provider_run_metadata: OPA metadata keyed by ontology stage.
+    :return: Provider messages keyed by stages that exposed one.
+    """
+    messages: dict[str, dict[str, Any]] = {}
+    for stage in ("stage1", "stage2"):
+        stage_metadata = _dict_payload(provider_run_metadata.get(stage))
+        provider_message = _dict_payload(stage_metadata.get("provider_message"))
+        if provider_message:
+            messages[stage] = dict(provider_message)
+    return messages
+
+
+def _provider_metadata_without_messages(
+    provider_run_metadata: dict[str, Any],
+) -> dict[str, Any]:
+    """Remove externalized provider documents from analytical metadata.
+
+    :param provider_run_metadata: OPA metadata keyed by ontology stage.
+    :return: A copied mapping whose stage records omit provider messages.
+    """
+    compact_metadata = dict(provider_run_metadata)
+    for stage in ("stage1", "stage2"):
+        stage_metadata = _dict_payload(compact_metadata.get(stage))
+        if "provider_message" not in stage_metadata:
+            continue
+        compact_stage = dict(stage_metadata)
+        compact_stage.pop("provider_message")
+        compact_metadata[stage] = compact_stage
+    return compact_metadata
 
 
 def _stage_generation_budgets(

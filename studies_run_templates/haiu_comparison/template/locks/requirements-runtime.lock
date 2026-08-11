@@ -194,7 +194,7 @@ grpcio==1.83.0
     #   grpcio-status
 grpcio-status==1.71.2
     # via google-api-core
-gta @ git+https://github.com/HisQu/GTA.git@59f8667bae3a16e057aa9188253e064133b03b5a
+gta @ git+https://github.com/HisQu/GTA.git@4075e6434e9efcbc6e5f0d5cd3124b70a7e8e66a
     # via
     #   datamodel-workflow
     #   dmw-experiments

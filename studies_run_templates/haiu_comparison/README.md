@@ -67,8 +67,10 @@ raw-<execution>/
 
 Do not introduce a nested `raw/`, `conditions/`, or `executions/` layer.
 Every failed attempt has the explicit suffix `-failed`. Each attempt contains
-its metadata, prompts, responses, optional retrieval evidence, and the exact
-upstream result as compressed JSON. `result.json` is a small terminal index;
+its metadata, prompts, responses, exact provider assistant-message sidecars,
+optional retrieval evidence, and the exact upstream result as compressed JSON.
+Provider-message sidecars retain provider-specific reasoning fields even when
+ordinary content is empty. `result.json` is a small terminal index;
 it does not repeat the complete provider payload. Shared annotations are
 stored once because both DMW conditions consume the same frozen annotation.
 Analysis intermediates and workbooks stay below `analysis/`; final figures and
