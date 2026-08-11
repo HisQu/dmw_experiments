@@ -159,7 +159,7 @@ are enabled. Derived files are organized as follows:
 | Component | Release |
 | --- | --- |
 | DMW | 1.1.4 |
-| OPA | 2.1.3 |
+| OPA | 2.1.4 |
 | GTA | 0.2.5 |
 | Haiu | 1.8.1 |
 | MongoDBAPI | 1.0.2 |

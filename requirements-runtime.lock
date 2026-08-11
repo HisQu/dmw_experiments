@@ -395,7 +395,7 @@ nvidia-nvtx==13.0.85 ; (platform_machine == 'aarch64' and sys_platform == 'linux
     # via cuda-toolkit
 ontology-merging @ git+https://github.com/HisQu/ontology-merging.git@d9893887a11f269b5c4b7e323c2e5fad98ba5661
     # via datamodel-workflow
-opa @ git+https://github.com/HisQu/OPA.git@7149288fb64b813f4b6821781663b692704833d2
+opa @ git+https://github.com/HisQu/OPA.git@49fb5a0b5d3a72dcaa6583d3a86ea2f851e7c826
     # via
     #   datamodel-workflow
     #   dmw-experiments

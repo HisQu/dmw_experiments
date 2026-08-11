@@ -25,7 +25,7 @@ dependencies = [
     "matplotlib",
     "MongoDBAPI @ git+https://github.com/HisQu/MongoDBAPI.git@v1.0.2",
     "numpy",
-    "opa @ git+https://github.com/HisQu/OPA.git@v2.1.3",
+    "opa @ git+https://github.com/HisQu/OPA.git@v2.1.4",
     "openpyxl",
     "pandas",
     "rdflib>=7.0,<8.0",
@@ -35,13 +35,14 @@ dependencies = [
 ]
 
 [tool.uv]
-# > OPA 2.1.3 and NER 0.1.2 name older Haiu, MongoDBAPI, and GTA releases while
+# > OPA 2.1.4 and NER 0.1.2 name older Haiu, MongoDBAPI, and GTA releases while
 # > this harness requires the compatible Haiu 1.8.1 observability patch and DMW
-# > 1.1.4 requires MongoDBAPI 1.0.2 and GTA 0.2.5. These are published-metadata
-# > compatibility corrections, not local-source convenience overrides. All
-# > direct dependencies above remain remote and the resolved commits are frozen
-# > in uv.lock/pylock.toml.
+# > 1.1.4 names OPA 2.1.3. The experiment requires OPA 2.1.4, MongoDBAPI 1.0.2,
+# > and GTA 0.2.5. These are published-metadata compatibility corrections, not
+# > local-source convenience overrides. All direct dependencies above remain
+# > remote and the resolved commits are frozen in uv.lock/pylock.toml.
 override-dependencies = [
+    "opa @ git+https://github.com/HisQu/OPA.git@v2.1.4",
     "haiu[rag,bench] @ git+https://github.com/HisQu/haiu.git@v1.8.1",
     "MongoDBAPI @ git+https://github.com/HisQu/MongoDBAPI.git@v1.0.2",
     "gta @ git+https://github.com/HisQu/GTA.git@v0.2.5",

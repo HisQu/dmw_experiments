@@ -12,7 +12,7 @@ class ReleaseRepositories:
     """Point environment-lock capture at clean tagged source trees.
 
     :param datamodel_workflow: Clean DMW v1.1.4 checkout.
-    :param opa: Clean OPA v2.1.3 checkout.
+    :param opa: Clean OPA v2.1.4 checkout.
     :param gta: Clean GTA v0.2.5 checkout.
     :param haiu: Clean Haiu v1.8.1 checkout.
     """
@@ -45,8 +45,8 @@ RELEASE_SOURCES = {
     ),
     "opa": ReleaseSource(
         url="https://github.com/HisQu/OPA.git",
-        revision="v2.1.3",
-        destination_name="opa-v2.1.3",
+        revision="v2.1.4",
+        destination_name="opa-v2.1.4",
     ),
     "gta": ReleaseSource(
         url="https://github.com/HisQu/GTA.git",

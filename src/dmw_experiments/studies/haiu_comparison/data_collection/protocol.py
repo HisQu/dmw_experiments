@@ -27,9 +27,9 @@ APPROVED_RUNTIME_DISTRIBUTIONS = {
         "repository": "datamodel_workflow",
     },
     "opa": {
-        "version": "2.1.3",
+        "version": "2.1.4",
         "url": "https://github.com/HisQu/OPA.git",
-        "revision": "v2.1.3",
+        "revision": "v2.1.4",
         "repository": "opa",
     },
     "gta": {
