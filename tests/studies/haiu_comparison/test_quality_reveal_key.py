@@ -79,6 +79,42 @@ def test_recover_reveal_key_matches_only_immutable_review_content() -> None:
     }
 
 
+def test_recover_flat_single_provider_reveal_key() -> None:
+    """Recover one-provider review IDs without inventing a provider wrapper."""
+    evaluated = _review_sheet(
+        {
+            "review_id": "R0001",
+            "regest_id": "1001",
+            "grade_1_best_6_worst": 2,
+        }
+    )
+    reference = _review_sheet(
+        {
+            "review_id": "R0042",
+            "regest_id": "1001",
+        }
+    )
+
+    recovery = _recover_reveal_key_from_sheets(
+        evaluated_sheets={"Historian_Review": evaluated},
+        reference_sheets={"Historian_Review": reference},
+        reference_key={
+            "R0042": {
+                "regest_id": "1001",
+                "condition": "workflow_rag",
+            }
+        },
+    )
+
+    assert recovery.recovered_rows == 1
+    assert recovery.reveal_key == {
+        "R0001": {
+            "regest_id": "1001",
+            "condition": "workflow_rag",
+        }
+    }
+
+
 def test_recover_reveal_key_rejects_ambiguous_content_match() -> None:
     """Never assign a condition when two trusted models look identical."""
     evaluated = _review_sheet({"review_id": "R0001", "regest_id": "1001"})

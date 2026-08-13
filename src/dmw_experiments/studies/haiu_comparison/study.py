@@ -167,7 +167,7 @@ class HaiuComparisonStudy:
         :param allow_partial: Permit labelled diagnostics before completion.
         :param audit_csv: Export machine-readable audit tables.
         :param overwrite: Replace exporter-owned derived files.
-        :param timestamp: Optional stable plot timestamp.
+        :param timestamp: Optional stable workbook and plot timestamp.
         :param quality_review_workbook: Optional evaluated blinded workbook.
         :param quality_reveal_key: Reveal key matching the evaluated workbook.
         :return: Workbook, review, and plot paths.

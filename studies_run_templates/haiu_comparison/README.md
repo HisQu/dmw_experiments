@@ -73,9 +73,9 @@ Provider-message sidecars retain provider-specific reasoning fields even when
 ordinary content is empty. `result.json` is a small terminal index;
 it does not repeat the complete provider payload. Shared annotations are
 stored once because both DMW conditions consume the same frozen annotation.
-Analysis intermediates and workbooks stay below `analysis/`; final figures and
-captions stay below `plots/`; service logs and BABYSIT journals stay below
-`logs/`.
+Analysis intermediates and timestamped workbooks stay below `analysis/`; final
+figures and captions stay below `plots/`; service logs and BABYSIT journals
+stay below `logs/`.
 
 For a stopped run written by the former flat layout, use
 `./run.sh migrate-artifacts`. The migration retains a hash-inventoried recovery

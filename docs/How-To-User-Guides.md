@@ -128,6 +128,8 @@ dmw_experiments --storage "$PWD" --skip-dotenv-layers \
 
 Raw evidence is never overwritten. Analysis owns only its derived files.
 Human-evaluated workbooks remain explicit inputs paired with a reveal key.
+Each invocation uses one timestamp in the provider overview, masked review,
+review sidecar, reveal key, quality-analysis workbook, and plot directory.
 
 ## Promote a selected run
 

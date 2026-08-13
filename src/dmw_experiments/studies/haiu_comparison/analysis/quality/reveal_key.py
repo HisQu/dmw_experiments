@@ -19,6 +19,7 @@ from dmw_experiments.studies.haiu_comparison.analysis.workbooks.results import (
     HISTORIAN_REVIEW_HEADERS,
 )
 from dmw_experiments.studies.haiu_comparison.analysis.quality.inputs import (
+    is_flat_historian_reveal_key,
     load_json_object,
 )
 from dmw_experiments.studies.haiu_comparison.analysis.quality.grades import (
@@ -47,12 +48,12 @@ MERGED_REVIEW_COLUMNS = ("regest_id", "regest_text")
 class RevealKeyRecovery:
     """Keep the recovered condition mapping and its validated row count.
 
-    :param reveal_key: Provider-scoped hidden mappings keyed by evaluation
-        review ID.
+    :param reveal_key: Hidden mappings keyed by evaluation review ID, either
+        flat for one provider or nested by provider.
     :param recovered_rows: Number of evaluation rows matched exactly once.
     """
 
-    reveal_key: dict[str, dict[str, dict[str, Any]]]
+    reveal_key: dict[str, Any]
     recovered_rows: int
 
 
@@ -104,46 +105,90 @@ def _recover_reveal_key_from_sheets(
     :return: Recovered key and exact-match row count.
     :raises ValueError: If the source surfaces cannot support a unique match.
     """
-    recovered_key: dict[str, dict[str, dict[str, Any]]] = {}
+    if is_flat_historian_reveal_key(dict(reference_key)):
+        provider = "Historian_Review"
+        provider_key = _recover_provider_reveal_key(
+            evaluated=_review_rows(
+                evaluated_sheets,
+                provider=provider,
+                workbook_role="evaluation",
+            ),
+            reference=_review_rows(
+                reference_sheets,
+                provider=provider,
+                workbook_role="reference",
+            ),
+            entries=reference_key,
+            provider=provider,
+        )
+        return RevealKeyRecovery(
+            reveal_key=provider_key,
+            recovered_rows=len(provider_key),
+        )
+
+    recovered_key: dict[str, Any] = {}
     recovered_rows = 0
     for provider, entries in reference_key.items():
         if not isinstance(entries, dict):
             raise ValueError(
                 "Reference reveal key must map provider names to review IDs."
             )
-        evaluated = _review_rows(
-            evaluated_sheets,
-            provider=provider,
-            workbook_role="evaluation",
-        )
-        reference = _review_rows(
-            reference_sheets,
-            provider=provider,
-            workbook_role="reference",
-        )
-        reference_index = _reference_fingerprint_index(
-            reference,
+        provider_key = _recover_provider_reveal_key(
+            evaluated=_review_rows(
+                evaluated_sheets,
+                provider=provider,
+                workbook_role="evaluation",
+            ),
+            reference=_review_rows(
+                reference_sheets,
+                provider=provider,
+                workbook_role="reference",
+            ),
             entries=entries,
             provider=provider,
         )
-        provider_key: dict[str, dict[str, Any]] = {}
-        for review in evaluated.to_dict(orient="records"):
-            review_id = str(review[REVIEW_ID_COLUMN])
-            fingerprint = _review_fingerprint(review)
-            matches = reference_index.get(fingerprint, ())
-            if len(matches) != 1:
-                issue = "missing" if not matches else "ambiguous"
-                raise ValueError(
-                    "Evaluation review row has a "
-                    f"{issue} reference fingerprint: {provider}/{review_id}."
-                )
-            provider_key[review_id] = matches[0]
-            recovered_rows += 1
         recovered_key[provider] = provider_key
+        recovered_rows += len(provider_key)
     return RevealKeyRecovery(
         reveal_key=recovered_key,
         recovered_rows=recovered_rows,
     )
+
+
+def _recover_provider_reveal_key(
+    *,
+    evaluated: pd.DataFrame,
+    reference: pd.DataFrame,
+    entries: Mapping[str, Any],
+    provider: str,
+) -> dict[str, dict[str, Any]]:
+    """Match every evaluated row to one trusted row for one worksheet.
+
+    :param evaluated: Normalized rows containing the historian's grades.
+    :param reference: Fresh masked rows generated from the same raw run.
+    :param entries: Trusted condition mappings for the reference rows.
+    :param provider: Worksheet name used in integrity diagnostics.
+    :return: Hidden identities keyed by the evaluated workbook's review IDs.
+    :raises ValueError: If any immutable row fingerprint is absent or repeated.
+    """
+    reference_index = _reference_fingerprint_index(
+        reference,
+        entries=entries,
+        provider=provider,
+    )
+    provider_key: dict[str, dict[str, Any]] = {}
+    for review in evaluated.to_dict(orient="records"):
+        review_id = str(review[REVIEW_ID_COLUMN])
+        fingerprint = _review_fingerprint(review)
+        matches = reference_index.get(fingerprint, ())
+        if len(matches) != 1:
+            issue = "missing" if not matches else "ambiguous"
+            raise ValueError(
+                "Evaluation review row has a "
+                f"{issue} reference fingerprint: {provider}/{review_id}."
+            )
+        provider_key[review_id] = matches[0]
+    return provider_key
 
 
 def _review_rows(

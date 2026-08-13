@@ -35,6 +35,7 @@ CONDITIONS = (
 
 def _export_run(run_root: Path, **kwargs: object):
     """Export the AcademicCloud execution from a copied-run fixture."""
+    kwargs.setdefault("timestamp", "20260813T120000CEST")
     return export_run(run_root / "raw-academiccloud", **kwargs)
 
 
@@ -359,33 +360,34 @@ def test_exporter_writes_both_pair_comparisons_and_historian_packets(
     assert analysis["exporter_sha256"]
     assert analysis["audit_csv_enabled"] is False
     assert analysis["metric_definitions"]
-    assert paths.workbook.name == "overview.xlsx"
+    assert paths.workbook.name == "overview-20260813T120000CEST.xlsx"
     assert (
         paths.historian_review_workbook.name
-        == "masked_historian_quality_review.xlsx"
+        == "masked_historian_quality_review-20260813T120000CEST.xlsx"
     )
     assert (
         paths.historian_review_evaluation_sidecar.name
-        == "masked_historian_quality_review_evaluation_sidecar.xlsx"
+        == "masked_historian_quality_review-20260813T120000CEST_evaluation_sidecar.xlsx"
     )
     assert (
         paths.historian_review_reveal_key.name
-        == "historian_quality_review_reveal_key.json"
+        == "historian_quality_review_reveal_key-20260813T120000CEST.json"
     )
     assert paths.manifest.name == "analysis_manifest.json"
     assert paths.readme.name == "README.md"
     assert sorted(path.name for path in paths.workbook.parent.iterdir()) == [
         "README.md",
         "analysis_manifest.json",
-        "historian_quality_review_reveal_key.json",
-        "masked_historian_quality_review.xlsx",
-        "masked_historian_quality_review_evaluation_sidecar.xlsx",
-        "overview.xlsx",
+        "historian_quality_review_reveal_key-20260813T120000CEST.json",
+        "masked_historian_quality_review-20260813T120000CEST.xlsx",
+        "masked_historian_quality_review-20260813T120000CEST_evaluation_sidecar.xlsx",
+        "overview-20260813T120000CEST.xlsx",
     ]
     assert not list(paths.workbook.parent.glob("*.csv"))
     assert not (paths.workbook.parent / "audit_csv").exists()
-    assert "Start with `overview.xlsx`" in paths.readme.read_text(
-        encoding="utf-8"
+    assert (
+        "Start with `overview-20260813T120000CEST.xlsx`"
+        in paths.readme.read_text(encoding="utf-8")
     )
     assert "evaluation_sidecar.xlsx" in paths.readme.read_text(encoding="utf-8")
 

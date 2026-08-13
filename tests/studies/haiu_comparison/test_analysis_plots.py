@@ -153,7 +153,9 @@ def test_plot_workbooks_adds_paired_historian_grades_when_supplied(
         .read_bytes()
         .startswith(b"%PDF")
     )
-    assert (output_dir / "quality-grade-analysis.xlsx").is_file()
+    assert (
+        output_dir / "quality-grade-analysis-20260729T121000CEST.xlsx"
+    ).is_file()
     assert not (output_dir / "quality-grade-boundary-crossings.png").exists()
     assert (output_dir / "quality-grade-provider-interaction.png").is_file()
     captions = (output_dir / "image-captions.md").read_text(encoding="utf-8")
@@ -170,7 +172,8 @@ def test_plot_workbooks_adds_paired_historian_grades_when_supplied(
         "evaluated_quality_review_reveal_key.json"
     )
     assert (
-        quality_manifest["analysis_workbook"] == "quality-grade-analysis.xlsx"
+        quality_manifest["analysis_workbook"]
+        == "quality-grade-analysis-20260729T121000CEST.xlsx"
     )
     assert quality_manifest["graded_observations"] == 6
     assert quality_manifest["complete_triplets"] == 2
@@ -220,7 +223,9 @@ def test_plot_workbooks_adds_false_assignment_error_profile_when_counted(
         .read_bytes()
         .startswith(b"%PDF")
     )
-    audit_workbook = pd.ExcelFile(output_dir / "quality-grade-analysis.xlsx")
+    audit_workbook = pd.ExcelFile(
+        output_dir / "quality-grade-analysis-20260803T140000CEST.xlsx"
+    )
     assert {
         "13_Error_Count_Inputs",
         "14_Error_Count_Coverage",

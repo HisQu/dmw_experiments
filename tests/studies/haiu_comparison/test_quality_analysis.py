@@ -1,8 +1,9 @@
+import json
 from pathlib import Path
 
 import pandas as pd
 import pytest
-from openpyxl import load_workbook
+from openpyxl import Workbook, load_workbook
 
 from dmw_experiments.studies.haiu_comparison.analysis.quality.errors import (
     build_quality_error_analysis,
@@ -10,9 +11,67 @@ from dmw_experiments.studies.haiu_comparison.analysis.quality.errors import (
 from dmw_experiments.studies.haiu_comparison.analysis.quality.grades import (
     build_quality_grade_analysis,
 )
+from dmw_experiments.studies.haiu_comparison.analysis.quality.inputs import (
+    load_historian_quality_error_counts,
+    load_historian_quality_grades,
+)
 from dmw_experiments.studies.haiu_comparison.analysis.workbooks.quality import (
     export_quality_grade_analysis_workbook,
 )
+
+
+def test_quality_loader_accepts_single_provider_review_layout(
+    tmp_path: Path,
+) -> None:
+    """Unmask the flat key emitted by one-provider analysis exports."""
+    workbook_path = tmp_path / "evaluated.xlsx"
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Historian_Review"
+    sheet.append(
+        (
+            "review_id",
+            "regest_id",
+            "grade_1_best_6_worst",
+            "false_interpretations",
+        )
+    )
+    sheet.append(("R0001", "hsp-1-s01", 2, 3))
+    workbook.save(workbook_path)
+    reveal_key_path = tmp_path / "reveal-key.json"
+    reveal_key_path.write_text(
+        json.dumps(
+            {
+                "R0001": {
+                    "regest_id": "hsp-1-s01",
+                    "condition": "workflow_rag",
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    grades = load_historian_quality_grades(
+        workbook_path=workbook_path,
+        reveal_key_path=reveal_key_path,
+        provider_order=["AcademicCloud · Qwen 3.6 27B · FP8"],
+    )
+
+    assert grades.to_dict(orient="records") == [
+        {
+            "review_id": "R0001",
+            "provider_label": "AcademicCloud · Qwen 3.6 27B · FP8",
+            "regest_id": "hsp-1-s01",
+            "condition": "workflow_rag",
+            "grade": 2,
+        }
+    ]
+    errors = load_historian_quality_error_counts(
+        workbook_path=workbook_path,
+        reveal_key_path=reveal_key_path,
+        provider_order=["AcademicCloud · Qwen 3.6 27B · FP8"],
+    )
+    assert errors.loc[0, "false_interpretations"] == "3+"
 
 
 def test_quality_grade_analysis_keeps_matched_wins_and_ties_auditable() -> None:

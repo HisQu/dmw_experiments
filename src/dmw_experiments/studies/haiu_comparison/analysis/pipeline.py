@@ -53,7 +53,7 @@ def run_analysis(
     :param allow_partial: Permit labelled diagnostics before all cells finish.
     :param audit_csv: Emit machine-readable raw-derived audit tables.
     :param overwrite: Replace exporter-owned workbook files.
-    :param timestamp: Stable plot timestamp for tests or repeatable exports.
+    :param timestamp: Stable workbook and plot timestamp for repeatable exports.
     :param quality_review_workbook: Optional separately evaluated review input.
     :param quality_reveal_key: Matching reveal key for the evaluated workbook.
     :return: Paths to provider workbooks, review files, and plots.
@@ -82,6 +82,7 @@ def run_analysis(
             allow_partial=allow_partial,
             audit_csv=audit_csv,
             overwrite=overwrite,
+            timestamp=stamp,
         )
         for name in enabled
     }

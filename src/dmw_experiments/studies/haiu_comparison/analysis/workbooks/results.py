@@ -86,13 +86,14 @@ REFERENCE_ONTOLOGY_RG_EXPRESSION_NAMES = frozenset(
     {"stringInRG", "stringInRGX"}
 )
 HISTORIAN_REVIEW_GENERATED_NAME_PROPERTY = "hat_Namen"
-CORE_OUTPUT_FILENAMES = (
+FIXED_OUTPUT_FILENAMES = (
+    "analysis_manifest.json",
+    "README.md",
+)
+LEGACY_FIXED_OUTPUT_FILENAMES = (
     "overview.xlsx",
     "masked_historian_quality_review.xlsx",
     "masked_historian_quality_review_evaluation_sidecar.xlsx",
-    "historian_quality_review_reveal_key.json",
-    "analysis_manifest.json",
-    "README.md",
 )
 
 
@@ -398,6 +399,7 @@ def main(argv: list[str] | None = None) -> int:
         allow_partial=args.allow_partial,
         audit_csv=args.audit_csv,
         overwrite=args.overwrite,
+        timestamp=args.timestamp,
     )
     return 0
 
@@ -408,6 +410,7 @@ def export_run(
     allow_partial: bool = False,
     audit_csv: bool = False,
     overwrite: bool = False,
+    timestamp: str | None = None,
 ) -> ExportPaths:
     """Build analysis artifacts from authoritative raw experiment JSON.
 
@@ -415,6 +418,7 @@ def export_run(
     :param allow_partial: Permit a clearly labelled diagnostic export.
     :param audit_csv: Write compact machine-readable audit tables.
     :param overwrite: Replace only known derived-export files.
+    :param timestamp: Stable filename timestamp for this export snapshot.
     :return: Paths to the main results.
     :raises ValueError: If required inputs, raw artifacts, or pair matrix cells
         are missing in a normal completed export.
@@ -462,9 +466,28 @@ def export_run(
         pair_system=pair_system,
     )
     analysis_dir = layout.analysis
-    _prepare_output_dir(analysis_dir, overwrite=overwrite)
+    stamp = timestamp or datetime.now().astimezone().strftime("%Y%m%dT%H%M%S%Z")
+    workbook = analysis_dir / f"overview-{stamp}.xlsx"
+    historian_review_workbook = (
+        analysis_dir / f"masked_historian_quality_review-{stamp}.xlsx"
+    )
+    historian_review_evaluation_sidecar = _evaluation_sidecar_path(
+        historian_review_workbook
+    )
+    historian_review_key_path = (
+        analysis_dir / f"historian_quality_review_reveal_key-{stamp}.json"
+    )
+    _prepare_output_dir(
+        analysis_dir,
+        overwrite=overwrite,
+        owned_output_filenames=(
+            workbook.name,
+            historian_review_workbook.name,
+            historian_review_evaluation_sidecar.name,
+            historian_review_key_path.name,
+        ),
+    )
     definitions = _metric_definitions()
-    workbook = analysis_dir / "overview.xlsx"
     _write_main_workbook(
         path=workbook,
         manifest=manifest,
@@ -478,12 +501,6 @@ def export_run(
         token_rows=token_rows,
         declarations=declarations,
         definitions=definitions,
-    )
-    historian_review_workbook = (
-        analysis_dir / "masked_historian_quality_review.xlsx"
-    )
-    historian_review_evaluation_sidecar = _evaluation_sidecar_path(
-        historian_review_workbook
     )
     historian_review_packets, historian_review_key = (
         _write_historian_quality_review_workbook(
@@ -507,9 +524,6 @@ def export_run(
             reference_ontology=reference_ontology,
         ),
     )
-    historian_review_key_path = (
-        analysis_dir / "historian_quality_review_reveal_key.json"
-    )
     _write_json(historian_review_key_path, historian_review_key)
     readme_path = analysis_dir / "README.md"
     _write_analysis_readme(
@@ -521,6 +535,17 @@ def export_run(
             else "Completed clean-run analysis export"
         ),
         audit_csv=audit_csv,
+        main_workbook_name=workbook.name,
+        review_artifacts=(
+            f"`{historian_review_workbook.name}`: condition-masked resource "
+            "and relationship review rows for complete valid triplets and "
+            "valid planned two-condition pairs.",
+            f"`{historian_review_evaluation_sidecar.name}`: `Review_Guide` "
+            "and frozen ontology catalogue sheets for the companion review "
+            "workbook.",
+            f"`{historian_review_key_path.name}`: condition labels for the "
+            "historian review; do not share it with reviewers.",
+        ),
     )
     audit_paths = _write_audit_csv(
         analysis_dir=analysis_dir,
@@ -883,6 +908,10 @@ def _parser() -> argparse.ArgumentParser:
         "--overwrite",
         action="store_true",
         help="Replace only known derived-export files in analysis/.",
+    )
+    parser.add_argument(
+        "--timestamp",
+        help="Use one stable timestamp in every exported workbook filename.",
     )
     return parser
 
@@ -2437,12 +2466,14 @@ def _prepare_output_dir(
     output_dir: Path,
     *,
     overwrite: bool,
+    owned_output_filenames: Iterable[str] = (),
     previous_output_filenames: Iterable[str] = (),
 ) -> None:
     """Create a compact analysis directory without deleting user files.
 
     :param output_dir: Derived-analysis directory.
     :param overwrite: Replace files owned by this exporter.
+    :param owned_output_filenames: Timestamped outputs owned by this invocation.
     :param previous_output_filenames: Additional filenames owned by an older
         compatible export layout.
     :raises ValueError: If an existing non-empty directory lacks approval.
@@ -2456,7 +2487,9 @@ def _prepare_output_dir(
     if not overwrite:
         return
     for filename in (
-        *CORE_OUTPUT_FILENAMES,
+        *FIXED_OUTPUT_FILENAMES,
+        *LEGACY_FIXED_OUTPUT_FILENAMES,
+        *owned_output_filenames,
         *PREVIOUS_OUTPUT_FILENAMES,
         *previous_output_filenames,
     ):
@@ -2520,16 +2553,8 @@ def _write_analysis_readme(
     title: str,
     status: str,
     audit_csv: bool,
-    review_artifacts: tuple[str, ...] = (
-        "`masked_historian_quality_review.xlsx`: condition-masked resource "
-        "and relationship review rows for complete valid triplets and valid "
-        "planned two-condition pairs.",
-        "`masked_historian_quality_review_evaluation_sidecar.xlsx`: "
-        "`Review_Guide` and frozen ontology catalogue sheets for the "
-        "companion review workbook.",
-        "`historian_quality_review_reveal_key.json`: condition labels for "
-        "the historian review; do not share it with reviewers.",
-    ),
+    main_workbook_name: str,
+    review_artifacts: tuple[str, ...],
 ) -> None:
     """Write the reader-oriented entry point for an analysis directory.
 
@@ -2537,6 +2562,7 @@ def _write_analysis_readme(
     :param title: Analysis title.
     :param status: Publication or diagnostic status.
     :param audit_csv: Whether the optional audit tables were emitted.
+    :param main_workbook_name: Filename of this snapshot's overview workbook.
     :param review_artifacts: Descriptions of review files created by this
         export variant.
     """
@@ -2551,7 +2577,7 @@ def _write_analysis_readme(
             (
                 f"# {title}",
                 "",
-                "Start with `overview.xlsx`.",
+                f"Start with `{main_workbook_name}`.",
                 "",
                 f"**Status:** {status}",
                 "",

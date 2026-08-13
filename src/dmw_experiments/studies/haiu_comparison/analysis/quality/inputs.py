@@ -178,27 +178,19 @@ def _load_unmasked_historian_quality_review_rows(
     review_sheets = pd.read_excel(resolved_workbook, sheet_name=None)
     records: list[dict[str, object]] = []
     review_columns: set[str] = set()
-    for review_provider, entries in reveal_key.items():
-        if not isinstance(entries, dict):
-            raise ValueError(
-                "Historian reveal key must map provider names to review IDs."
-            )
-        if review_provider not in review_sheets:
-            raise ValueError(
-                "Historian quality workbook is missing provider sheet: "
-                f"{review_provider}"
-            )
-        sheet = review_sheets[review_provider]
+    review_sources = _quality_review_sources(
+        reveal_key=reveal_key,
+        review_sheets=review_sheets,
+        provider_order=provider_order,
+    )
+    for sheet_name, provider_label, entries in review_sources:
+        sheet = review_sheets[sheet_name]
         required_columns = {"review_id", *required_review_columns}
         _require_columns(
             sheet,
             required_columns,
             workbook_path=resolved_workbook,
-            sheet_name=review_provider,
-        )
-        provider_label = match_review_provider_label(
-            review_provider,
-            provider_order=provider_order,
+            sheet_name=sheet_name,
         )
         review_columns.update(str(column) for column in sheet.columns)
         review_rows = sheet.loc[sheet["review_id"].notna()]
@@ -208,14 +200,14 @@ def _load_unmasked_historian_quality_review_rows(
             if not isinstance(hidden, dict):
                 raise ValueError(
                     "Historian review has no reveal-key entry: "
-                    f"{review_provider}/{review_id}"
+                    f"{sheet_name}/{review_id}"
                 )
             regest_id = str(hidden.get("regest_id") or "")
             condition = str(hidden.get("condition") or "")
             if not regest_id or condition not in CONDITION_ORDER:
                 raise ValueError(
                     "Historian reveal key has invalid condition mapping: "
-                    f"{review_provider}/{review_id}"
+                    f"{sheet_name}/{review_id}"
                 )
             visible_regest_id = review.get("regest_id")
             if pd.notna(visible_regest_id) and (
@@ -223,7 +215,7 @@ def _load_unmasked_historian_quality_review_rows(
             ):
                 raise ValueError(
                     "Historian review regest ID disagrees with reveal key: "
-                    f"{review_provider}/{review_id}"
+                    f"{sheet_name}/{review_id}"
                 )
             records.append(
                 {
@@ -247,6 +239,79 @@ def _load_unmasked_historian_quality_review_rows(
     )
     return ut.frame_from_records(
         records, columns=(*identity_columns, *other_columns)
+    )
+
+
+def _quality_review_sources(
+    *,
+    reveal_key: dict[str, Any],
+    review_sheets: dict[str, pd.DataFrame],
+    provider_order: list[str],
+) -> list[tuple[str, str, dict[str, Any]]]:
+    """Resolve either one-provider or provider-separated review inputs.
+
+    Provider-specific exports use one ``Historian_Review`` worksheet and a
+    flat mapping from review IDs to hidden identities. Cross-provider exports
+    use one worksheet and one nested mapping per provider. Supporting both at
+    this boundary keeps the downstream grade calculations identical.
+
+    :param reveal_key: Parsed masked-ID mapping beside the review workbook.
+    :param review_sheets: Every worksheet parsed from the evaluated workbook.
+    :param provider_order: Fully qualified provider labels present in plots.
+    :return: Worksheet, provider label, and review-ID mapping tuples.
+    :raises ValueError: If the workbook and reveal-key layouts disagree.
+    """
+    if not reveal_key:
+        raise ValueError("Historian reveal key contains no review IDs.")
+    if is_flat_historian_reveal_key(reveal_key):
+        if len(provider_order) != 1:
+            raise ValueError(
+                "A flat historian reveal key requires exactly one plotted "
+                "provider."
+            )
+        sheet_name = "Historian_Review"
+        if sheet_name not in review_sheets:
+            raise ValueError(
+                "Single-provider historian quality workbook is missing "
+                f"worksheet: {sheet_name}"
+            )
+        return [(sheet_name, provider_order[0], reveal_key)]
+
+    sources: list[tuple[str, str, dict[str, Any]]] = []
+    for review_provider, entries in reveal_key.items():
+        if not isinstance(entries, dict):
+            raise ValueError(
+                "Historian reveal key must map provider names to review IDs."
+            )
+        if review_provider not in review_sheets:
+            raise ValueError(
+                "Historian quality workbook is missing provider sheet: "
+                f"{review_provider}"
+            )
+        sources.append(
+            (
+                review_provider,
+                match_review_provider_label(
+                    review_provider,
+                    provider_order=provider_order,
+                ),
+                entries,
+            )
+        )
+    return sources
+
+
+def is_flat_historian_reveal_key(reveal_key: dict[str, Any]) -> bool:
+    """Identify the review-ID mapping emitted by one-provider exports.
+
+    :param reveal_key: Parsed reveal-key JSON object.
+    :return: Whether every top-level entry is one hidden review identity.
+    """
+    return bool(reveal_key) and all(
+        isinstance(entry, dict)
+        and "regest_id" in entry
+        and "condition" in entry
+        for entry in reveal_key.values()
     )
 
 
@@ -424,6 +489,7 @@ def _normalize_false_interpretations(
     The ``3+`` band remains an open-ended category. Downstream plots receive
     its lower bound of three and retain the visible ``3+`` label, rather than
     pretending that every such review contains exactly three misunderstandings.
+    Excel's numeric ``3`` is normalized to that same top-coded band.
 
     :param raw_interpretations: Workbook cell value for
         ``false_interpretations``.
@@ -448,8 +514,9 @@ def _normalize_false_interpretations(
             return int(value), value
     elif isinstance(raw_interpretations, Real):
         value = float(raw_interpretations)
-        if value.is_integer() and int(value) in {0, 1, 2}:
-            return int(value), str(int(value))
+        if value.is_integer() and int(value) in {0, 1, 2, 3}:
+            lower_bound = int(value)
+            return lower_bound, "3+" if lower_bound == 3 else str(lower_bound)
     raise ValueError(
         "false_interpretations must be 0, 1, 2, or 3+: "
         f"{review_id!r} has {raw_interpretations!r}."

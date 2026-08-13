@@ -31,7 +31,7 @@ def test_run_analysis_routes_both_executions_into_one_run(
     calls: list[tuple[object, ...]] = []
 
     def fake_export_run(run_dir: Path, **_: object) -> SimpleNamespace:
-        calls.append(("export", run_dir))
+        calls.append(("export", run_dir, _["timestamp"]))
         return SimpleNamespace(workbook=run_dir / "overview.xlsx")
 
     def fake_review(**kwargs: object) -> SimpleNamespace:
@@ -57,8 +57,8 @@ def test_run_analysis_routes_both_executions_into_one_run(
         timestamp="test",
     )
 
-    assert calls[0] == ("export", root / "raw-academiccloud")
-    assert calls[1] == ("export", root / "raw-lmstudio")
+    assert calls[0] == ("export", root / "raw-academiccloud", "test")
+    assert calls[1] == ("export", root / "raw-lmstudio", "test")
     assert artifacts.plots == root / "plots" / "plots-test"
 
 
@@ -90,7 +90,7 @@ def test_run_analysis_uses_only_enabled_provider_executions(
     calls: list[tuple[object, ...]] = []
 
     def fake_export_run(run_dir: Path, **_: object) -> SimpleNamespace:
-        calls.append(("export", run_dir))
+        calls.append(("export", run_dir, _["timestamp"]))
         return SimpleNamespace(workbook=run_dir / "overview.xlsx")
 
     def reject_review(**_: object) -> SimpleNamespace:
@@ -115,7 +115,7 @@ def test_run_analysis_uses_only_enabled_provider_executions(
     )
 
     assert calls == [
-        ("export", root / "raw-academiccloud"),
+        ("export", root / "raw-academiccloud", "test"),
         ("plots", root / "raw-academiccloud" / "overview.xlsx"),
     ]
     assert set(artifacts.providers) == {"academiccloud"}

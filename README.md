@@ -136,9 +136,10 @@ harness transition before the same run resumes.
 ```
 
 Analysis reads `raw-academiccloud/` and `raw-lmstudio/`, writes intermediates
-below `analysis/`, workbooks below `analysis/workbooks/`, and timestamped
-figures below `plots/`. Use `--allow-partial` only for an explicitly
-diagnostic export.
+below `analysis/`, timestamped workbooks below `analysis/workbooks/`, and
+timestamped figures below `plots/`. One analysis invocation uses the same
+timestamp for all of its derived workbook and plot filenames. Use
+`--allow-partial` only for an explicitly diagnostic export.
 
 Runs remain wholly ignored until the user chooses one for publication. To
 prepare reproducibility artifacts without moving it:

@@ -58,6 +58,13 @@ All notable changes to `dmw_experiments` will be documented in this file.
 
 ### 💥 Breaking changes
 
+- Breaking: Analysis workbooks and matching reveal keys now include the shared
+  invocation timestamp in their filenames.
+  Affected: Scripts that open fixed names such as `overview.xlsx` or
+  `masked_historian_quality_review.xlsx`.
+  Migration: Read the paths returned by `analyze`, or select the required
+  timestamped snapshot below `analysis/workbooks/<execution>/`.
+
 <br>
 
 ### ➕ Added
@@ -77,6 +84,12 @@ All notable changes to `dmw_experiments` will be documented in this file.
 <br>
 
 ### 🔨 Fixed
+
+- Accepted the flat reveal-key and `Historian_Review` worksheet layout emitted
+  by single-provider runs when generating historian-grade analyses or
+  recovering a matching key from immutable review content. Numeric Excel
+  values of `3` are normalized to the documented top-coded `3+` interpretation
+  band.
 
 <br>
 

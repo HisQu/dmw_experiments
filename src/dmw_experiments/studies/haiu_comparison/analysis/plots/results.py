@@ -511,7 +511,8 @@ def plot_workbooks(
         error_analysis = build_quality_error_analysis(error_counts)
         quality_analysis_workbook = export_quality_grade_analysis_workbook(
             analysis=quality_analysis,
-            path=output_dir / "quality-grade-analysis.xlsx",
+            path=output_dir
+            / f"quality-grade-analysis-{directory_timestamp}.xlsx",
             quality_review_workbook=quality_review_workbook,
             quality_reveal_key=quality_reveal_key,
             error_analysis=(

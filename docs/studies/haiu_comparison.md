@@ -151,8 +151,12 @@ are enabled. Derived files are organized as follows:
 | --- | --- |
 | `analysis/intermediate/` | Machine-readable normalized data. |
 | `analysis/diagnostics/` | Validation and exclusion diagnostics. |
-| `analysis/workbooks/` | Provider, pairwise, and review workbooks. |
+| `analysis/workbooks/` | Timestamped provider, pairwise, and review workbooks. |
 | `plots/` | Timestamped figures, manifests, and captions. |
+
+One analysis invocation uses the same timestamp for every derived workbook and
+its plot directory. This keeps partial snapshots distinct while raw artifacts
+continue to accumulate.
 
 ## Published stack
 
