@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -19,6 +20,24 @@ from dmw_experiments.studies.haiu_comparison.model.run_contract import (
 )
 from dmw_experiments.studies.haiu_comparison.analysis.plots.results import (
     plot_workbooks,
+)
+
+
+_PROVIDER_SNAPSHOT_PATTERNS = (
+    re.compile(r"^overview-(?P<stamp>\d{8}T\d{6}[A-Za-z0-9+-]+)\.xlsx$"),
+    re.compile(
+        r"^masked_historian_quality_review-"
+        r"(?P<stamp>\d{8}T\d{6}[A-Za-z0-9+-]+)\.xlsx$"
+    ),
+    re.compile(
+        r"^masked_historian_quality_review-"
+        r"(?P<stamp>\d{8}T\d{6}[A-Za-z0-9+-]+)"
+        r"_evaluation_sidecar\.xlsx$"
+    ),
+    re.compile(
+        r"^historian_quality_review_reveal_key-"
+        r"(?P<stamp>\d{8}T\d{6}[A-Za-z0-9+-]+)\.json$"
+    ),
 )
 
 
@@ -115,11 +134,75 @@ def run_analysis(
         quality_review_workbook=quality_review_workbook,
         quality_reveal_key=quality_reveal_key,
     )
+    _archive_superseded_provider_workbook_snapshots(
+        root=root,
+        execution_names=enabled,
+        current_timestamp=stamp,
+    )
     return AnalysisArtifacts(
         providers=providers,
         provider_review=provider_review,
         plots=plots,
     )
+
+
+def _archive_superseded_provider_workbook_snapshots(
+    *,
+    root: Path,
+    execution_names: tuple[str, ...],
+    current_timestamp: str,
+) -> tuple[Path, ...]:
+    """Move older generated workbook sets out of the active reader surface.
+
+    This housekeeping runs only after plots finish successfully. A failed
+    analysis therefore cannot hide the last complete workbook snapshot.
+    Human-named evaluated workbooks never match the exporter-owned patterns.
+
+    :param root: Copied run directory containing ``analysis``.
+    :param execution_names: Provider execution slugs exported in this run.
+    :param current_timestamp: Successful snapshot that must remain active.
+    :return: Archived paths for operational logging or tests.
+    :raises FileExistsError: If an archive would overwrite an existing file.
+    """
+    archived: list[Path] = []
+    archive_root = (
+        root
+        / "analysis"
+        / "diagnostics"
+        / "workbook-archives"
+        / f"superseded-by-{current_timestamp}"
+    )
+    for execution_name in execution_names:
+        workbook_dir = root / "analysis" / "workbooks" / execution_name
+        if not workbook_dir.is_dir():
+            continue
+        for source in sorted(workbook_dir.iterdir()):
+            source_stamp = _provider_snapshot_timestamp(source.name)
+            if source_stamp is None or source_stamp == current_timestamp:
+                continue
+            destination = (
+                archive_root / execution_name / source_stamp / source.name
+            )
+            if destination.exists():
+                raise FileExistsError(
+                    f"Superseded workbook archive already exists: {destination}"
+                )
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            source.rename(destination)
+            archived.append(destination)
+    return tuple(archived)
+
+
+def _provider_snapshot_timestamp(filename: str) -> str | None:
+    """Read an exporter-owned timestamp without matching historian inputs.
+
+    :param filename: Basename found in one provider workbook directory.
+    :return: Timestamp embedded by the exporter, or ``None`` for other files.
+    """
+    for pattern in _PROVIDER_SNAPSHOT_PATTERNS:
+        if match := pattern.fullmatch(filename):
+            return match.group("stamp")
+    return None
 
 
 def _parser() -> argparse.ArgumentParser:

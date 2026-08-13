@@ -75,7 +75,9 @@ it does not repeat the complete provider payload. Shared annotations are
 stored once because both DMW conditions consume the same frozen annotation.
 Analysis intermediates and timestamped workbooks stay below `analysis/`; final
 figures and captions stay below `plots/`; service logs and BABYSIT journals
-stay below `logs/`.
+stay below `logs/`. After a successful analysis suite, older generated
+workbook snapshots move below `analysis/diagnostics/workbook-archives/` while
+human-evaluated workbooks remain active.
 
 For a stopped run written by the former flat layout, use
 `./run.sh migrate-artifacts`. The migration retains a hash-inventoried recovery

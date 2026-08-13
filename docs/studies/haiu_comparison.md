@@ -156,7 +156,9 @@ are enabled. Derived files are organized as follows:
 
 One analysis invocation uses the same timestamp for every derived workbook and
 its plot directory. This keeps partial snapshots distinct while raw artifacts
-continue to accumulate.
+continue to accumulate. A successful suite archives older generated provider
+workbooks below `analysis/diagnostics/workbook-archives/`; a failed suite leaves
+the last successful active snapshot in place.
 
 ## Published stack
 

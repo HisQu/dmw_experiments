@@ -73,6 +73,41 @@ def test_run_analysis_requires_complete_grade_source_pair(
         )
 
 
+def test_successful_analysis_archives_only_older_generated_workbooks(
+    tmp_path: Path,
+) -> None:
+    """Keep one active snapshot without moving a human evaluation input."""
+    root = tmp_path / "run"
+    workbooks = root / "analysis/workbooks/academiccloud"
+    workbooks.mkdir(parents=True)
+    old_stamp = "20260813T100000CEST"
+    current_stamp = "20260813T110000CEST"
+    old_names = (
+        f"overview-{old_stamp}.xlsx",
+        f"masked_historian_quality_review-{old_stamp}.xlsx",
+        f"masked_historian_quality_review-{old_stamp}_evaluation_sidecar.xlsx",
+        f"historian_quality_review_reveal_key-{old_stamp}.json",
+    )
+    current_names = tuple(
+        name.replace(old_stamp, current_stamp) for name in old_names
+    )
+    for name in (*old_names, *current_names):
+        (workbooks / name).write_text(name, encoding="utf-8")
+    evaluated = workbooks / "masked_historian_quality_review_evaluated.xlsx"
+    evaluated.write_text("human grades", encoding="utf-8")
+
+    archived = run_analysis._archive_superseded_provider_workbook_snapshots(
+        root=root,
+        execution_names=("academiccloud",),
+        current_timestamp=current_stamp,
+    )
+
+    assert {path.name for path in archived} == set(old_names)
+    assert all(not (workbooks / name).exists() for name in old_names)
+    assert all((workbooks / name).is_file() for name in current_names)
+    assert evaluated.is_file()
+
+
 def test_run_analysis_uses_only_enabled_provider_executions(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

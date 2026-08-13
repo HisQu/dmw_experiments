@@ -130,6 +130,9 @@ Raw evidence is never overwritten. Analysis owns only its derived files.
 Human-evaluated workbooks remain explicit inputs paired with a reveal key.
 Each invocation uses one timestamp in the provider overview, masked review,
 review sidecar, reveal key, quality-analysis workbook, and plot directory.
+After the full suite succeeds, only that provider-workbook snapshot remains in
+the active directory. Earlier generated snapshots are retained under
+`analysis/diagnostics/workbook-archives/`; evaluated inputs are never moved.
 
 ## Promote a selected run
 
