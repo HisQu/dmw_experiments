@@ -195,20 +195,64 @@ failure cannot be mistaken for an observation.
 Strict analysis requires every scheduled cell of every enabled execution to be
 terminal. Provider workbooks and plots follow the enabled execution set. The
 cross-provider historian review packet is emitted only when both executions
-are enabled. Derived files are organized as follows:
+are enabled. Analysis also exports one provider-visible NER review workbook:
+
+- `historian_ner_review_academiccloud_<timestamp>.xlsx` for an
+  AcademicCloud-only run.
+- `historian_ner_review_academiccloud_lmstudio_<timestamp>.xlsx` when both
+  providers are enabled.
+
+The NER workbook is separate from the condition-masked ontology-quality
+workbook. NER annotations are provider inputs, not condition outputs, and
+showing them beside ontology grades would disclose information that the masked
+review deliberately hides. The adaptive workbook contains one provider sheet
+per enabled execution, `NER_Entities` for one structured row per predicted
+entity, and `NER_Missing` for false negatives. Hidden sheets retain provenance
+and dropdown values.
+
+Each provider sheet shows the plain header or sublemma, a rich-text copy with
+colored and underlined source spans, and a same-color adjacent key. Numbered
+markers, not colors, identify annotations because the eight dark colors repeat
+within each segment. Several types on the exact same span share one marker.
+Partially overlapping spans keep separate markers and use the same local
+cluster color. A marker prefixed with `≈` denotes a conservatively accepted
+fuzzy match. Ambiguous candidates remain uncolored and orange; unmatched
+annotations remain uncolored and red.
+
+The shared resolver tries exact, Unicode NFKC and whitespace-normalized, and
+case-folded matches before token-boundary fuzzy matching. Fuzzy values shorter
+than five normalized characters are never accepted. Values of five through
+seven characters require a score of 96; longer values require 90. In both
+cases the best candidate must lead the runner-up by at least eight points.
+The five best candidates remain visible for correction. Repeated identical
+records are assigned left-to-right only when record and occurrence counts
+agree. Different entity types may share or overlap source offsets.
+
+Strict NER export requires an annotation for every scheduled input unit.
+`--allow-partial` instead exports the complete scheduled source population and
+labels absent provider annotations as unavailable. This population is not
+restricted to successful ontology cells. The adjacent
+`historian_ner_review_<providers>_<timestamp>_manifest.json` records source and
+annotation hashes, annotation model and version, guideline identity, matcher
+version, thresholds, and resolution counts. Historian corrections stay in the
+workbook and never modify frozen raw evidence.
+
+Derived files are organized as follows:
 
 | Path | Contents |
 | --- | --- |
 | `analysis/intermediate/` | Machine-readable normalized data. |
 | `analysis/diagnostics/` | Validation and exclusion diagnostics. |
-| `analysis/workbooks/` | Timestamped provider, pairwise, and review workbooks. |
+| `analysis/workbooks/` | Timestamped provider, pairwise, ontology-review, and NER-review workbooks. |
 | `plots/` | Timestamped figures, manifests, and captions. |
 
 One analysis invocation uses the same timestamp for every derived workbook and
 its plot directory. This keeps partial snapshots distinct while raw artifacts
 continue to accumulate. A successful suite archives older generated provider
 workbooks below `analysis/diagnostics/workbook-archives/`; a failed suite leaves
-the last successful active snapshot in place.
+the last successful active snapshot in place. An evaluated workbook and the
+exact reveal key used by grade analysis are protected from this archive step so
+the completed plot manifest continues to point to valid inputs.
 
 ## Published stack
 

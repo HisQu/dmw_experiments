@@ -77,7 +77,29 @@ Analysis intermediates and timestamped workbooks stay below `analysis/`; final
 figures and captions stay below `plots/`; service logs and BABYSIT journals
 stay below `logs/`. After a successful analysis suite, older generated
 workbook snapshots move below `analysis/diagnostics/workbook-archives/` while
-human-evaluated workbooks remain active.
+human-evaluated workbooks and the exact reveal keys used with them remain
+active.
+
+`./run.sh analyze` also writes one adaptive shared-NER review workbook below
+`analysis/workbooks/`. Its name is
+`historian_ner_review_<enabled-providers>_<timestamp>.xlsx`. A one-provider run
+has one provider review sheet; a two-provider run has separate AcademicCloud
+and LM Studio sheets plus one provider column in `NER_Entities`. The workbook
+is intentionally separate from the condition-masked ontology-quality review.
+
+The provider sheets mark resolved entity spans directly in the original
+header or sublemma and place a numbered, same-color key beside the text.
+Markers are authoritative because the local eight-color palette repeats.
+Approximate accepted matches use `≈[n]`; ambiguous and unmatched annotations
+remain uncolored and are listed for correction. `NER_Entities` contains
+location, type, candidate, and review fields. `NER_Missing` records false
+negatives. The adjacent manifest records input, annotation, guideline,
+matcher, and output hashes.
+
+Normal analysis requires complete annotation evidence for all scheduled
+units. `--allow-partial` retains the full scheduled source population and
+labels missing annotations as unavailable. NER rows do not depend on ontology
+success, and historian edits never change raw annotation artifacts.
 
 For a stopped run written by the former flat layout, use
 `./run.sh migrate-artifacts`. The migration retains a hash-inventoried recovery

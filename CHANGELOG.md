@@ -69,6 +69,15 @@ All notable changes to `dmw_experiments` will be documented in this file.
 
 ### ➕ Added
 
+- Added an adaptive historian NER review workbook for enabled provider runs.
+  It aligns generated entity values to original header and sublemma offsets,
+  marks accepted spans inline with numbered local colors, exposes ambiguous
+  and unmatched candidates without false highlighting, and provides structured
+  location, type, and false-negative review fields. An adjacent manifest
+  records frozen source, annotation, guideline, matcher, and output identities.
+  RapidFuzz is now a direct runtime dependency for conservative token-boundary
+  fallback matching.
+
 - Added magnitude-resolved paired quality changes to historian figures and
   audit workbooks. Grade and error-count changes now distinguish exact
   magnitudes of 1 and 2 from changes greater than 2 in either direction while
@@ -87,8 +96,8 @@ All notable changes to `dmw_experiments` will be documented in this file.
 
 - Kept only the latest successful generated provider-workbook snapshot in the
   active analysis directory. Older generated snapshots are archived below
-  `analysis/diagnostics/workbook-archives/`; human-evaluated inputs remain in
-  place.
+  `analysis/diagnostics/workbook-archives/`; evaluated workbooks and the exact
+  reveal keys used for grade analysis remain at their recorded input paths.
 
 <br>
 

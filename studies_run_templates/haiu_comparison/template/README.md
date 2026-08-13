@@ -6,6 +6,7 @@
 2. [Changes from the template](#changes-from-the-template)
 3. [Configuration](#configuration)
 4. [Operation](#operation)
+5. [Historian NER review](#historian-ner-review)
 
 ## Purpose
 
@@ -51,3 +52,16 @@ Never assign real credentials or absolute machine paths in this directory.
 ```
 
 Read `run.AGENT.md` before delegating operation or babysitting to an agent.
+
+## Historian NER review
+
+Analysis writes
+`analysis/workbooks/historian_ner_review_<enabled-providers>_<timestamp>.xlsx`.
+Use the provider sheet to review numbered colored spans beside their entity
+key, `NER_Entities` to correct locations and types, and `NER_Missing` to record
+entities the provider omitted. `≈[n]` marks an accepted fuzzy location;
+orange or red unresolved records are not highlighted in the source text.
+
+Keep this workbook separate from the condition-masked ontology-quality review.
+Use `./run.sh analyze --allow-partial` only for labelled diagnostics when the
+scheduled annotation population is incomplete.
