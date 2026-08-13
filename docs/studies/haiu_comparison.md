@@ -4,17 +4,19 @@
 
 1. [Scientific question](#scientific-question)
 2. [Experimental unit and conditions](#experimental-unit-and-conditions)
-3. [Run template and storage](#run-template-and-storage)
-4. [Configuration and AppRC](#configuration-and-apprc)
-5. [Evidence and analysis](#evidence-and-analysis)
-6. [Published stack](#published-stack)
+3. [Condition workflows and interpretation](#condition-workflows-and-interpretation)
+4. [Run template and storage](#run-template-and-storage)
+5. [Configuration and AppRC](#configuration-and-apprc)
+6. [Evidence and analysis](#evidence-and-analysis)
+7. [Published stack](#published-stack)
 
 ## Scientific question
 
 The study tests whether Haiu retrieval gives DMW enough relevant ontology
 context to generate ontologies as reliably and effectively as the complete
-reference ontology. A standalone Haiu condition separates the effect of
-retrieval from the DMW workflow.
+reference ontology. A standalone Haiu condition provides a system-level
+comparison with direct generation that does not use DMW's generated entity
+annotations or workflow orchestration.
 
 ## Experimental unit and conditions
 
@@ -53,6 +55,54 @@ complete-regest IDs and does not define queries for synthetic header--sublemma
 units. Sending a nonzero limit would therefore declare an example that OPA
 cannot retrieve. The ontology-context condition remains the only intended
 context difference between DMW + Full Ontology and DMW + HAIU.
+
+## Condition workflows and interpretation
+
+The two DMW conditions use the published DMW and OPA workflow. Before either
+timed ontology condition runs, DMW generates or adopts one entity annotation
+for the input unit, accepts it without changing its content, and freezes its
+digest. Both DMW conditions must use that exact annotation. Annotation
+preparation is therefore neither part of condition duration nor a source of
+variation between the two DMW conditions.
+
+The standalone HAIU condition bypasses DMW. It queries Haiu directly with the
+frozen raw header--sublemma text, renders a versioned local transcription of
+OPA's two-stage prompt structure, and calls the provider through Haiu's LLM
+client. Stage 1 produces a modelling plan. Stage 2 remains in the same model
+thread and converts that plan into Turtle. The standalone Stage-1 prompt adds
+the raw input text and the historian-curated annotation guidelines because it
+does not receive a generated DMW entity annotation.
+
+| Aspect | DMW + Full Ontology / DMW + HAIU | Standalone HAIU |
+| --- | --- | --- |
+| Source representation | Raw text plus the same generated, accepted, and frozen DMW entity annotation. | Raw text plus the general historian annotation guidelines; no generated entity annotation. |
+| Ontology context | Complete frozen reference ontology or a Haiu-retrieved subset. | Haiu-retrieved subset. |
+| Retrieval integration | DMW delegates retrieval and context construction through OPA. | The experiment runner calls the canonical Haiu workspace directly. |
+| Generation path | Published DMW/OPA planner and Turtle-coder stages. | Locally rendered OPA-parity planner and Turtle-coder stages called through Haiu. |
+| Workflow services | DMW API, branch and record management, annotation verification, and OPA validation. | No DMW API, annotation generation, or DMW persistence. |
+| Completion semantics | DMW reports workflow success after its pipeline checks. | The runner records provider completion; common analysis separately requires syntactically valid Turtle. |
+| Primary duration | DMW ontology-stage attempt time; annotation preparation and runner backoff are excluded. | Direct retrieval, prompt construction, and both LLM stages; runner backoff is excluded. |
+
+Within one provider execution, all three conditions use the same frozen input
+unit, generation model, historian ontology instructions, output-token cap,
+safety margin, and disabled text-interpretation policy. Both retrieval
+conditions use the same ontology-ref identity, embedding model, and prepared
+canonical index. Each condition nevertheless performs and records its own
+retrieval operation. DMW's separate ontology-example retrieval is disabled,
+and the standalone path has no separate example-retrieval stage.
+
+The planned pairwise comparisons answer different questions:
+
+- **DMW + Full Ontology versus DMW + HAIU** is the controlled ontology-context
+  comparison. The DMW workflow and frozen annotation remain constant; the
+  complete ontology is replaced by retrieved context.
+- **DMW + HAIU versus standalone HAIU** is a system-level comparison. It
+  changes DMW orchestration, generated entity annotations, prompt construction,
+  validation, and persistence together. It must not be interpreted as a pure
+  retrieval effect.
+
+DMW + Full Ontology versus standalone HAIU is not a planned direct comparison
+because both the context scope and the surrounding workflow change.
 
 ## Run template and storage
 

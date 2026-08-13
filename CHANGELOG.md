@@ -81,6 +81,10 @@ All notable changes to `dmw_experiments` will be documented in this file.
 
 ### 💔 Changed
 
+- Documented the DMW and standalone Haiu condition workflows, their controlled
+  inputs, timing boundaries, and the limits of causal interpretation for each
+  planned pairwise comparison.
+
 - Kept only the latest successful generated provider-workbook snapshot in the
   active analysis directory. Older generated snapshots are archived below
   `analysis/diagnostics/workbook-archives/`; human-evaluated inputs remain in
