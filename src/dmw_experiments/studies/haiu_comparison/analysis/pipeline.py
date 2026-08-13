@@ -4,11 +4,20 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 import re
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
+from dmw_experiments.studies.haiu_comparison.analysis.workbooks.ner_review import (
+    HistorianNerReviewPaths,
+    export_historian_ner_review_workbook,
+)
+from dmw_experiments.studies.haiu_comparison.analysis.plots.results import (
+    plot_workbooks,
+)
 from dmw_experiments.studies.haiu_comparison.analysis.workbooks.results import (
     ExportPaths,
     HistorianProviderComparisonPaths,
@@ -17,9 +26,6 @@ from dmw_experiments.studies.haiu_comparison.analysis.workbooks.results import (
 )
 from dmw_experiments.studies.haiu_comparison.model.run_contract import (
     load_run_contract,
-)
-from dmw_experiments.studies.haiu_comparison.analysis.plots.results import (
-    plot_workbooks,
 )
 
 
@@ -39,6 +45,16 @@ _PROVIDER_SNAPSHOT_PATTERNS = (
         r"(?P<stamp>\d{8}T\d{6}[A-Za-z0-9+-]+)\.json$"
     ),
 )
+_NER_REVIEW_SNAPSHOT_PATTERNS = (
+    re.compile(
+        r"^historian_ner_review_[a-z0-9_]+_"
+        r"(?P<stamp>\d{8}T\d{6}[A-Za-z0-9+-]+)\.xlsx$"
+    ),
+    re.compile(
+        r"^historian_ner_review_[a-z0-9_]+_"
+        r"(?P<stamp>\d{8}T\d{6}[A-Za-z0-9+-]+)_manifest\.json$"
+    ),
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -48,11 +64,13 @@ class AnalysisArtifacts:
     :param providers: Provider-specific workbook exports keyed by execution.
     :param provider_review: Fresh ungraded cross-provider review export when
         both provider executions are enabled.
+    :param ner_review: Provider-visible shared NER span review workbook.
     :param plots: Timestamped figure and grade-analysis directory.
     """
 
     providers: dict[str, ExportPaths]
     provider_review: HistorianProviderComparisonPaths | None
+    ner_review: HistorianNerReviewPaths
     plots: Path
 
 
@@ -105,6 +123,22 @@ def run_analysis(
         )
         for name in enabled
     }
+    ner_review = export_historian_ner_review_workbook(
+        {name: root / f"raw-{name}" for name in enabled},
+        workbook_path=(
+            root
+            / "analysis"
+            / "workbooks"
+            / f"historian_ner_review_{'_'.join(enabled)}_{stamp}.xlsx"
+        ),
+        allow_partial=allow_partial,
+        overwrite=overwrite,
+    )
+    _register_ner_review_artifacts(
+        root=root,
+        providers=providers,
+        ner_review=ner_review,
+    )
     provider_review: HistorianProviderComparisonPaths | None = None
     if set(enabled) == {"academiccloud", "lmstudio"}:
         review_path = (
@@ -138,12 +172,72 @@ def run_analysis(
         root=root,
         execution_names=enabled,
         current_timestamp=stamp,
+        protected_paths=tuple(
+            path.expanduser().resolve()
+            for path in (quality_review_workbook, quality_reveal_key)
+            if path is not None
+        ),
     )
     return AnalysisArtifacts(
         providers=providers,
         provider_review=provider_review,
+        ner_review=ner_review,
         plots=plots,
     )
+
+
+def _register_ner_review_artifacts(
+    *,
+    root: Path,
+    providers: dict[str, ExportPaths],
+    ner_review: HistorianNerReviewPaths,
+) -> None:
+    """Add the shared review output to provider manifests and reader guides.
+
+    Provider exports are written before the adaptive review workbook because
+    they also feed plotting. This final registration keeps each generated
+    analysis entry point honest without coupling the NER workbook writer to
+    the ontology-results exporter.
+
+    :param root: Complete copied run used for portable paths.
+    :param providers: Provider workbook exports created in this invocation.
+    :param ner_review: Shared NER workbook and adjacent audit manifest.
+    :return: ``None``.
+    """
+    workbook_relative = ner_review.workbook.relative_to(root).as_posix()
+    manifest_relative = ner_review.manifest.relative_to(root).as_posix()
+    for provider in providers.values():
+        readme_text = provider.readme.read_text(encoding="utf-8")
+        entry = (
+            f"- `../{ner_review.workbook.name}`: provider-visible shared NER "
+            "span review with inline markers and structured corrections."
+        )
+        if entry not in readme_text:
+            anchor = "- `analysis_manifest.json`:"
+            readme_text = readme_text.replace(anchor, f"{entry}\n{anchor}")
+            provider.readme.write_text(readme_text, encoding="utf-8")
+
+        payload = json.loads(provider.manifest.read_text(encoding="utf-8"))
+        outputs = payload.get("outputs")
+        if not isinstance(outputs, dict):
+            raise ValueError(
+                f"Analysis manifest has no output mapping: {provider.manifest}"
+            )
+        outputs[workbook_relative] = _sha256_file(ner_review.workbook)
+        outputs[manifest_relative] = _sha256_file(ner_review.manifest)
+        outputs[provider.readme.relative_to(root).as_posix()] = _sha256_file(
+            provider.readme
+        )
+        payload["historian_ner_review"] = {
+            "workbook": workbook_relative,
+            "workbook_sha256": outputs[workbook_relative],
+            "manifest": manifest_relative,
+            "manifest_sha256": outputs[manifest_relative],
+        }
+        provider.manifest.write_text(
+            json.dumps(payload, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
 
 
 def _archive_superseded_provider_workbook_snapshots(
@@ -151,6 +245,7 @@ def _archive_superseded_provider_workbook_snapshots(
     root: Path,
     execution_names: tuple[str, ...],
     current_timestamp: str,
+    protected_paths: tuple[Path, ...] = (),
 ) -> tuple[Path, ...]:
     """Move older generated workbook sets out of the active reader surface.
 
@@ -161,10 +256,13 @@ def _archive_superseded_provider_workbook_snapshots(
     :param root: Copied run directory containing ``analysis``.
     :param execution_names: Provider execution slugs exported in this run.
     :param current_timestamp: Successful snapshot that must remain active.
+    :param protected_paths: Evaluated inputs that must remain at the exact path
+        recorded by the completed plot manifest.
     :return: Archived paths for operational logging or tests.
     :raises FileExistsError: If an archive would overwrite an existing file.
     """
     archived: list[Path] = []
+    protected = {path.expanduser().resolve() for path in protected_paths}
     archive_root = (
         root
         / "analysis"
@@ -177,12 +275,28 @@ def _archive_superseded_provider_workbook_snapshots(
         if not workbook_dir.is_dir():
             continue
         for source in sorted(workbook_dir.iterdir()):
+            if source.resolve() in protected:
+                continue
             source_stamp = _provider_snapshot_timestamp(source.name)
             if source_stamp is None or source_stamp == current_timestamp:
                 continue
             destination = (
                 archive_root / execution_name / source_stamp / source.name
             )
+            if destination.exists():
+                raise FileExistsError(
+                    f"Superseded workbook archive already exists: {destination}"
+                )
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            source.rename(destination)
+            archived.append(destination)
+    shared_root = root / "analysis" / "workbooks"
+    if shared_root.is_dir():
+        for source in sorted(shared_root.iterdir()):
+            source_stamp = _ner_review_snapshot_timestamp(source.name)
+            if source_stamp is None or source_stamp == current_timestamp:
+                continue
+            destination = archive_root / "shared" / source_stamp / source.name
             if destination.exists():
                 raise FileExistsError(
                     f"Superseded workbook archive already exists: {destination}"
@@ -203,6 +317,27 @@ def _provider_snapshot_timestamp(filename: str) -> str | None:
         if match := pattern.fullmatch(filename):
             return match.group("stamp")
     return None
+
+
+def _ner_review_snapshot_timestamp(filename: str) -> str | None:
+    """Read a timestamp from an exporter-owned shared NER review artifact.
+
+    :param filename: Basename found in the shared workbook directory.
+    :return: Timestamp embedded by the exporter, or ``None`` for other files.
+    """
+    for pattern in _NER_REVIEW_SNAPSHOT_PATTERNS:
+        if match := pattern.fullmatch(filename):
+            return match.group("stamp")
+    return None
+
+
+def _sha256_file(path: Path) -> str:
+    """Hash one generated artifact after its final write.
+
+    :param path: File whose exact bytes enter a manifest.
+    :return: Lowercase SHA-256 digest.
+    """
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -241,6 +376,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"{name} workbook: {provider.workbook}")
     if artifacts.provider_review is not None:
         print(f"Fresh provider review: {artifacts.provider_review.workbook}")
+    print(f"Historian NER review: {artifacts.ner_review.workbook}")
     print(f"Plots and grade analysis: {artifacts.plots}")
     return 0
 

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import shutil
 from pathlib import Path
 from types import SimpleNamespace
@@ -38,6 +40,21 @@ def test_run_analysis_routes_both_executions_into_one_run(
         calls.append(("review", kwargs["workbook_path"]))
         return SimpleNamespace(workbook=kwargs["workbook_path"])
 
+    def fake_ner(
+        provider_run_dirs: dict[str, Path], **kwargs: object
+    ) -> SimpleNamespace:
+        calls.append(
+            (
+                "ner",
+                tuple(provider_run_dirs),
+                kwargs["workbook_path"],
+            )
+        )
+        return SimpleNamespace(
+            workbook=kwargs["workbook_path"],
+            manifest=Path(str(kwargs["workbook_path"])).with_suffix(".json"),
+        )
+
     def fake_plots(workbooks: list[Path], **kwargs: object) -> Path:
         calls.append(("plots", *workbooks))
         return Path(str(kwargs["output_root"])) / "plots-test"
@@ -47,6 +64,16 @@ def test_run_analysis_routes_both_executions_into_one_run(
         run_analysis,
         "export_provider_historian_review_workbook",
         fake_review,
+    )
+    monkeypatch.setattr(
+        run_analysis,
+        "export_historian_ner_review_workbook",
+        fake_ner,
+    )
+    monkeypatch.setattr(
+        run_analysis,
+        "_register_ner_review_artifacts",
+        lambda **_: None,
     )
     monkeypatch.setattr(run_analysis, "plot_workbooks", fake_plots)
 
@@ -59,7 +86,9 @@ def test_run_analysis_routes_both_executions_into_one_run(
 
     assert calls[0] == ("export", root / "raw-academiccloud", "test")
     assert calls[1] == ("export", root / "raw-lmstudio", "test")
+    assert calls[2][0:2] == ("ner", ("academiccloud", "lmstudio"))
     assert artifacts.plots == root / "plots" / "plots-test"
+    assert artifacts.ner_review.workbook.name.endswith("_test.xlsx")
 
 
 def test_run_analysis_requires_complete_grade_source_pair(
@@ -93,19 +122,82 @@ def test_successful_analysis_archives_only_older_generated_workbooks(
     )
     for name in (*old_names, *current_names):
         (workbooks / name).write_text(name, encoding="utf-8")
+    protected_key = workbooks / old_names[-1]
     evaluated = workbooks / "masked_historian_quality_review_evaluated.xlsx"
     evaluated.write_text("human grades", encoding="utf-8")
+    shared_workbooks = root / "analysis/workbooks"
+    old_ner_names = (
+        f"historian_ner_review_academiccloud_{old_stamp}.xlsx",
+        f"historian_ner_review_academiccloud_{old_stamp}_manifest.json",
+    )
+    current_ner_names = tuple(
+        name.replace(old_stamp, current_stamp) for name in old_ner_names
+    )
+    for name in (*old_ner_names, *current_ner_names):
+        (shared_workbooks / name).write_text(name, encoding="utf-8")
 
     archived = run_analysis._archive_superseded_provider_workbook_snapshots(
         root=root,
         execution_names=("academiccloud",),
         current_timestamp=current_stamp,
+        protected_paths=(protected_key,),
     )
 
-    assert {path.name for path in archived} == set(old_names)
-    assert all(not (workbooks / name).exists() for name in old_names)
+    assert {path.name for path in archived} == {
+        *old_names[:-1],
+        *old_ner_names,
+    }
+    assert all(not (workbooks / name).exists() for name in old_names[:-1])
+    assert protected_key.is_file()
     assert all((workbooks / name).is_file() for name in current_names)
+    assert all(not (shared_workbooks / name).exists() for name in old_ner_names)
+    assert all(
+        (shared_workbooks / name).is_file() for name in current_ner_names
+    )
     assert evaluated.is_file()
+
+
+def test_ner_review_is_registered_in_provider_reader_artifacts(
+    tmp_path: Path,
+) -> None:
+    """Provider entry points record the shared workbook and its manifest."""
+    root = tmp_path / "run"
+    provider_dir = root / "analysis/workbooks/academiccloud"
+    provider_dir.mkdir(parents=True)
+    readme = provider_dir / "README.md"
+    readme.write_text(
+        "- `analysis_manifest.json`: source hashes.\n", encoding="utf-8"
+    )
+    manifest = provider_dir / "analysis_manifest.json"
+    manifest.write_text(json.dumps({"outputs": {}}), encoding="utf-8")
+    workbook = root / "analysis/workbooks/historian_ner_review_test.xlsx"
+    workbook.write_text("NER workbook", encoding="utf-8")
+    ner_manifest = workbook.with_name("historian_ner_review_test_manifest.json")
+    ner_manifest.write_text("{}", encoding="utf-8")
+
+    run_analysis._register_ner_review_artifacts(
+        root=root,
+        providers={
+            "academiccloud": SimpleNamespace(readme=readme, manifest=manifest)
+        },
+        ner_review=SimpleNamespace(
+            workbook=workbook,
+            manifest=ner_manifest,
+        ),
+    )
+
+    assert "provider-visible shared NER span review" in readme.read_text(
+        encoding="utf-8"
+    )
+    payload = json.loads(manifest.read_text(encoding="utf-8"))
+    registration = payload["historian_ner_review"]
+    assert registration["workbook"] == (
+        "analysis/workbooks/historian_ner_review_test.xlsx"
+    )
+    assert (
+        registration["workbook_sha256"]
+        == hashlib.sha256(workbook.read_bytes()).hexdigest()
+    )
 
 
 def test_run_analysis_uses_only_enabled_provider_executions(
@@ -131,6 +223,15 @@ def test_run_analysis_uses_only_enabled_provider_executions(
     def reject_review(**_: object) -> SimpleNamespace:
         raise AssertionError("A one-provider run has no provider comparison.")
 
+    def fake_ner(
+        provider_run_dirs: dict[str, Path], **kwargs: object
+    ) -> SimpleNamespace:
+        calls.append(("ner", tuple(provider_run_dirs)))
+        return SimpleNamespace(
+            workbook=kwargs["workbook_path"],
+            manifest=Path(str(kwargs["workbook_path"])).with_suffix(".json"),
+        )
+
     def fake_plots(workbooks: list[Path], **kwargs: object) -> Path:
         calls.append(("plots", *workbooks))
         return Path(str(kwargs["output_root"])) / "plots-test"
@@ -140,6 +241,16 @@ def test_run_analysis_uses_only_enabled_provider_executions(
         run_analysis,
         "export_provider_historian_review_workbook",
         reject_review,
+    )
+    monkeypatch.setattr(
+        run_analysis,
+        "export_historian_ner_review_workbook",
+        fake_ner,
+    )
+    monkeypatch.setattr(
+        run_analysis,
+        "_register_ner_review_artifacts",
+        lambda **_: None,
     )
     monkeypatch.setattr(run_analysis, "plot_workbooks", fake_plots)
 
@@ -151,6 +262,7 @@ def test_run_analysis_uses_only_enabled_provider_executions(
 
     assert calls == [
         ("export", root / "raw-academiccloud", "test"),
+        ("ner", ("academiccloud",)),
         ("plots", root / "raw-academiccloud" / "overview.xlsx"),
     ]
     assert set(artifacts.providers) == {"academiccloud"}

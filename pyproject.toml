@@ -28,6 +28,7 @@ dependencies = [
     "opa @ git+https://github.com/HisQu/OPA.git@v2.1.4",
     "openpyxl",
     "pandas",
+    "rapidfuzz>=3.14,<4",
     "rdflib>=7.0,<8.0",
     "seaborn",
     "typer>=0.16",
