@@ -161,6 +161,7 @@ def test_plot_workbooks_adds_paired_historian_grades_when_supplied(
     captions = (output_dir / "image-captions.md").read_text(encoding="utf-8")
     assert "## `paired-quality-grades`" in captions
     assert "## `quality-grade-provider-interaction`" in captions
+    assert "exactly 2 grades" in captions
     manifest = json.loads(
         (output_dir / "plot_manifest.json").read_text(encoding="utf-8")
     )
@@ -227,6 +228,7 @@ def test_plot_workbooks_adds_false_assignment_error_profile_when_counted(
         output_dir / "quality-grade-analysis-20260803T140000CEST.xlsx"
     )
     assert {
+        "06C_Pooled_Grade_Magnitude",
         "13_Error_Count_Inputs",
         "14_Error_Count_Coverage",
         "15_Matched_Interpretation_Pairs",
@@ -237,7 +239,17 @@ def test_plot_workbooks_adds_false_assignment_error_profile_when_counted(
         "20_Assert_Pair_Differences",
         "21_Pooled_Interp_Changes",
         "22_Pooled_Assert_Changes",
+        "21B_Pooled_Interp_Magnitude",
+        "22B_Pooled_Assert_Magnitude",
     }.issubset(audit_workbook.sheet_names)
+    methods = pd.read_excel(audit_workbook, sheet_name="12_Methods")
+    error_magnitude_method = methods.loc[
+        methods["Calculation"] == "Paired error-change magnitude",
+        "Definition",
+    ].iloc[0]
+    assert "recorded lower bound" in error_magnitude_method
+    captions = (output_dir / "image-captions.md").read_text(encoding="utf-8")
+    assert "magnitude bins are conservative" in captions
     manifest = json.loads(
         (output_dir / "plot_manifest.json").read_text(encoding="utf-8")
     )
@@ -416,8 +428,8 @@ def test_false_assignment_error_profile_pools_provider_local_direct_pairs() -> (
         )
         assert len(interpretation_incidence.patches) == 16
         assert len(assertion_incidence.patches) == 20
-        assert len(interpretation_changes.patches) == 6
-        assert len(assertion_changes.patches) == 6
+        assert len(interpretation_changes.patches) == 14
+        assert len(assertion_changes.patches) == 14
         assert interpretation_changes.get_ylabel() == ("Share of matched pairs")
         assert any(
             text.get_text() == "n:" for text in interpretation_incidence.texts
@@ -432,16 +444,16 @@ def test_false_assignment_error_profile_pools_provider_local_direct_pairs() -> (
             text.get_text() == "n:" for text in interpretation_changes.texts
         )
         assert any(text.get_text() == "n:" for text in assertion_changes.texts)
-        assert to_rgba("#D73027") in {
+        assert to_rgba("#CB181D") in {
             tuple(patch.get_facecolor())
             for patch in interpretation_changes.patches
         }
-        assert to_rgba("#D73027") in {
+        assert to_rgba("#CB181D") in {
             tuple(patch.get_facecolor()) for patch in assertion_changes.patches
         }
         assert np.allclose(
             figure.get_size_inches(),
-            (8.8, 3.5),
+            (8.8, 4.2),
         )
         assert figure._suptitle is None
         all_visible_labels = {
@@ -459,9 +471,58 @@ def test_false_assignment_error_profile_pools_provider_local_direct_pairs() -> (
             "3/3+ errors",
             "4+ errors",
         ]
-        assert figure.axes[5].get_position().y0 > (
-            interpretation_changes.get_position().y1 + 0.10
+        assert count_legend._ncols == 1
+        change_legend = figure.legends[1]
+        assert [text.get_text() for text in change_legend.get_texts()] == [
+            ">2 fewer errors",
+            "2 fewer errors",
+            "1 fewer error",
+            "Unchanged",
+            "1 more error",
+            "2 more errors",
+            ">2 more errors",
+        ]
+        assert change_legend._ncols == 1
+        count_legend_axis = figure.axes[4]
+        change_legend_axis = figure.axes[5]
+        assert count_legend_axis.get_position().y0 > (
+            interpretation_incidence.get_position().y1
         )
+        assert change_legend_axis.get_position().y0 > (
+            interpretation_changes.get_position().y1 + 0.04
+        )
+        assert np.isclose(
+            count_legend_axis.get_position().x0,
+            interpretation_incidence.get_position().x0,
+            atol=0.001,
+        )
+        assert np.isclose(
+            count_legend_axis.get_position().x1,
+            assertion_incidence.get_position().x1,
+            atol=0.001,
+        )
+        assert np.isclose(
+            change_legend_axis.get_position().x0,
+            interpretation_changes.get_position().x0,
+            atol=0.001,
+        )
+        assert np.isclose(
+            change_legend_axis.get_position().x1,
+            assertion_changes.get_position().x1,
+            atol=0.001,
+        )
+        figure.canvas.draw()
+        renderer = figure.canvas.get_renderer()
+        for axis in figure.axes[:4]:
+            sample_label = next(
+                text for text in axis.texts if text.get_text() == "n:"
+            )
+            gap_pixels = (
+                axis.get_window_extent(renderer).y1
+                - sample_label.get_window_extent(renderer).y1
+            )
+            gap_points = gap_pixels * 72.0 / figure.dpi
+            assert 1.9 <= gap_points <= 2.1
     finally:
         plt.close(figure)
 
@@ -770,7 +831,7 @@ def test_grade_distribution_legend_explains_each_grade() -> None:
 
 
 def test_paired_grade_changes_pool_only_direct_provider_regest_pairs() -> None:
-    """Use three mutually exclusive directions and matched denominators."""
+    """Use seven magnitude categories and matched denominators."""
     analysis = build_quality_grade_analysis(
         pd.DataFrame(
             [
@@ -788,14 +849,57 @@ def test_paired_grade_changes_pool_only_direct_provider_regest_pairs() -> None:
     try:
         change_axis = figure.axes[1]
         assert change_axis.get_title() == "B. Paired grade changes"
-        assert len(change_axis.patches) == 6
+        assert len(change_axis.patches) == 14
         assert any(text.get_text() == "n:" for text in change_axis.texts)
-        assert to_rgba("#1B9E77") in {
+        assert to_rgba("#006D2C") in {
             tuple(patch.get_facecolor()) for patch in change_axis.patches
         }
-        assert to_rgba("#D73027") in {
+        assert to_rgba("#CB181D") in {
             tuple(patch.get_facecolor()) for patch in change_axis.patches
         }
+        change_legend = next(
+            legend
+            for legend in figure.legends
+            if any(
+                text.get_text().startswith("Improved")
+                for text in legend.get_texts()
+            )
+        )
+        assert [text.get_text() for text in change_legend.get_texts()] == [
+            "Improved by >2 grades",
+            "Improved by 2 grades",
+            "Improved by 1 grade",
+            "Unchanged",
+            "Worsened by 1 grade",
+            "Worsened by 2 grades",
+            "Worsened by >2 grades",
+        ]
+        assert change_legend._ncols == 1
+    finally:
+        plt.close(figure)
+
+
+def test_paired_grade_changes_hide_labels_in_small_segments() -> None:
+    """Apply the shared stacked-bar label threshold to magnitude bins."""
+    observations = pd.DataFrame(
+        [
+            ("AcademicCloud FP8", str(index), condition, grade)
+            for index in range(20)
+            for condition, grade in (
+                ("workflow_full_ontology", 3),
+                ("workflow_rag", 2 if index == 0 else 3),
+            )
+        ],
+        columns=("provider_label", "regest_id", "condition", "grade"),
+    )
+    analysis = build_quality_grade_analysis(observations)
+
+    figure = _plot_quality_grade_overview(analysis, status_text="Test export")
+    try:
+        change_axis = figure.axes[1]
+        visible_text = {text.get_text() for text in change_axis.texts}
+        assert "19" in visible_text
+        assert "1" not in visible_text
     finally:
         plt.close(figure)
 

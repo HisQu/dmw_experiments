@@ -108,8 +108,9 @@ PAIRED_RESOURCE_FIGURE_SIZE = (6.0, 3.6)
 SIX_PANEL_FIGURE_SIZE = (7.7, 5.2)
 # > Retains the 30%-narrowed width while accommodating two interaction rows.
 PROVIDER_INTERACTION_FIGURE_SIZE = (5.04, 5.4)
-# > Four side-by-side panels retain a compact 1.7 in of drawable height.
-ERROR_PROFILE_FIGURE_SIZE = (8.8, 3.5)
+# > Four side-by-side panels retain 1.7 in of drawable height below two
+# > vertical legend groups.
+ERROR_PROFILE_FIGURE_SIZE = (8.8, 4.2)
 BAR_WIDTH = 0.52
 FALSE_ASSIGNMENT_BAR_WIDTH = 0.8
 PAIR_TRAJECTORY_JITTER = 0.08
@@ -144,20 +145,32 @@ ERROR_ASSERTION_BAND_COLORS = {
     "4+": "#A50F15",
 }
 ERROR_COUNT_SEGMENT_ANNOTATION_MINIMUM_SHARE = 0.075
-ERROR_COUNT_CHANGE_COLORS = {
-    "improved": "#1B9E77",
+PAIR_CHANGE_MAGNITUDE_COLORS = {
+    "improved_by_more_than_2": "#006D2C",
+    "improved_by_2": "#31A354",
+    "improved_by_1": "#A1D99B",
     "unchanged": "#7F7F7F",
-    "worsened": "#D73027",
+    "worsened_by_1": "#FCAE91",
+    "worsened_by_2": "#FB6A4A",
+    "worsened_by_more_than_2": "#CB181D",
 }
-ERROR_COUNT_CHANGE_LABELS = {
-    "improved": "Fewer errors",
+ERROR_CHANGE_MAGNITUDE_LABELS = {
+    "improved_by_more_than_2": ">2 fewer errors",
+    "improved_by_2": "2 fewer errors",
+    "improved_by_1": "1 fewer error",
     "unchanged": "Unchanged",
-    "worsened": "More errors",
+    "worsened_by_1": "1 more error",
+    "worsened_by_2": "2 more errors",
+    "worsened_by_more_than_2": ">2 more errors",
 }
-GRADE_CHANGE_LABELS = {
-    "improved": "Improved",
+GRADE_CHANGE_MAGNITUDE_LABELS = {
+    "improved_by_more_than_2": "Improved by >2 grades",
+    "improved_by_2": "Improved by 2 grades",
+    "improved_by_1": "Improved by 1 grade",
     "unchanged": "Unchanged",
-    "worsened": "Worsened",
+    "worsened_by_1": "Worsened by 1 grade",
+    "worsened_by_2": "Worsened by 2 grades",
+    "worsened_by_more_than_2": "Worsened by >2 grades",
 }
 DIRECT_PAIR_ENDPOINTS = {
     ("DMW full ontology vs DMW RAG", "first"): (0.0, "dmw_full"),
@@ -186,8 +199,9 @@ FIGURE_CAPTIONS = {
         "Historian quality grades. Panel A gives ordinal grade distributions "
         "only for matched provider–regest pairs. The two DMW + Haiu RAG bars "
         "are the same condition, each restricted to the valid pairs of its "
-        "adjacent comparison. Panel B classifies the right condition as "
-        "improved, unchanged, or worsened. Lower grades are better."
+        "adjacent comparison. Panel B separates right-condition improvements "
+        "and worsenings of exactly 1 grade, exactly 2 grades, and more than "
+        "2 grades around unchanged pairs. Lower grades are better."
     ),
     "quality-grade-provider-interaction": (
         "Provider interaction in regesta complete for all three conditions in "
@@ -200,8 +214,11 @@ FIGURE_CAPTIONS = {
         "False-assignment counts in matched provider–regest pairs, pooled only "
         "after matching within provider. Panels A and B show the distributions "
         "of independent false interpretations and false atomic assertions; "
-        "Panels C and D show whether the right condition has fewer, the same, "
-        "or more errors."
+        "Panels C and D separate right-condition changes of exactly 1 error, "
+        "exactly 2 errors, and more than 2 errors around unchanged pairs. "
+        "Panel C treats the recorded 3+ interpretation band as its lower bound "
+        "of 3, so its magnitude bins are conservative when either endpoint is "
+        "3+ and an unchanged 3+ pair need not have equal exact counts."
     ),
 }
 

@@ -26,20 +26,20 @@ from dmw_experiments.studies.haiu_comparison.analysis.plots.results import (
     DIRECT_PAIR_ENDPOINTS,
     DIRECT_PAIR_ENDPOINT_LABELS,
     ERROR_ASSERTION_BAND_COLORS,
-    ERROR_COUNT_CHANGE_COLORS,
-    ERROR_COUNT_CHANGE_LABELS,
+    ERROR_CHANGE_MAGNITUDE_LABELS,
     ERROR_COUNT_SEGMENT_ANNOTATION_MINIMUM_SHARE,
     ERROR_INTERPRETATION_BAND_COLORS,
     ERROR_PROFILE_FIGURE_SIZE,
     FALSE_ASSIGNMENT_BAR_WIDTH,
     FIGURE_FONTSIZE,
-    GRADE_CHANGE_LABELS,
+    GRADE_CHANGE_MAGNITUDE_LABELS,
     GRADE_COLORS,
     GRADE_LEGEND_LABELS,
     OUTCOME_COMPARISON_TICK_LABELS,
     PAIRED_COMPARISON_ENDPOINT_ORDER,
     PAIRED_COMPARISON_ENDPOINTS,
     PAIRED_GRADE_FIGURE_SIZE,
+    PAIR_CHANGE_MAGNITUDE_COLORS,
     PAIR_TRAJECTORY_LINE_ALPHA,
     PROVIDER_INTERACTION_FIGURE_SIZE,
     QUALITY_PAIR_SHEETS,
@@ -79,11 +79,12 @@ def _plot_quality_grade_overview(
     )
     _plot_pair_change_distribution(
         flat_axes[1],
-        distribution=analysis.pooled_grade_change_distribution,
+        distribution=analysis.pooled_grade_change_magnitude_distribution,
         pair_data=analysis.direct_duel_pairs,
         sample_value_column="first_grade",
         title="B. Paired grade changes",
         ylabel="Share of matched pairs",
+        category_labels=GRADE_CHANGE_MAGNITUDE_LABELS,
     )
     _finish_figure(
         figure,
@@ -104,10 +105,9 @@ def _plot_quality_grade_overview(
         top=0.55,
         wspace=0.4,
     )
+    ut.refresh_above_xaxis_annotations(flat_axes)
     _add_grade_distribution_legend(figure)
     _add_paired_change_legend(figure)
-    for axis in flat_axes:
-        ut.ensure_top_text_headroom(axis, axis.texts)
     return figure
 
 
@@ -449,33 +449,35 @@ def _add_grade_distribution_legend(figure: Figure) -> None:
 
 
 def _add_paired_change_legend(figure: Figure) -> None:
-    """Place the pooled improved/unchanged/worsened key above Panel B.
+    """Place the seven paired grade-change categories above Panel B.
 
     :param figure: Two-panel grade figure receiving the shared direction key.
     :return: None after adding the compact top-band legend.
     """
-    legend_axis = figure.add_axes((0.58, 0.80, 0.38, 0.05))
+    legend_axis = figure.add_axes((0.58, 0.60, 0.38, 0.36))
     handles = [
         Rectangle(
             (0, 0),
             1,
             1,
-            facecolor=ERROR_COUNT_CHANGE_COLORS[direction],
+            facecolor=PAIR_CHANGE_MAGNITUDE_COLORS[category],
             edgecolor="none",
         )
-        for direction in ERROR_COUNT_CHANGE_COLORS
+        for category in PAIR_CHANGE_MAGNITUDE_COLORS
     ]
     ut.add_top_band_figure_legend(
         figure,
         legend_axis,
         handles=handles,
         labels=[
-            GRADE_CHANGE_LABELS[direction]
-            for direction in ERROR_COUNT_CHANGE_COLORS
+            GRADE_CHANGE_MAGNITUDE_LABELS[category]
+            for category in PAIR_CHANGE_MAGNITUDE_COLORS
         ],
-        ncol=3,
+        ncol=1,
         frameon=False,
         show_handles=True,
+        loc="upper left",
+        bbox_to_anchor=(0.0, 1.0),
     )
 
 
@@ -663,27 +665,32 @@ def _plot_false_assignment_error_profile(
     )
     _plot_pair_change_distribution(
         axes[2],
-        distribution=analysis.pooled_interpretation_change_distribution,
+        distribution=(
+            analysis.pooled_interpretation_change_magnitude_distribution
+        ),
         pair_data=analysis.interpretation_pair_differences,
         sample_value_column="error_count_difference",
         title="C. Paired interpretation\nchanges",
         ylabel="Share of matched pairs",
+        category_labels=ERROR_CHANGE_MAGNITUDE_LABELS,
     )
     _plot_pair_change_distribution(
         axes[3],
-        distribution=analysis.pooled_assertion_change_distribution,
+        distribution=analysis.pooled_assertion_change_magnitude_distribution,
         pair_data=analysis.assertion_pair_differences,
         sample_value_column="error_count_difference",
         title="D. Paired false-assertion\nchanges",
         ylabel=None,
+        category_labels=ERROR_CHANGE_MAGNITUDE_LABELS,
     )
     figure.subplots_adjust(
         left=0.065,
         right=0.99,
-        bottom=0.18,
-        top=0.67,
+        bottom=0.15,
+        top=0.56,
         wspace=0.46,
     )
+    ut.refresh_above_xaxis_annotations(axes)
     _add_error_profile_legends(figure)
     return figure
 
@@ -828,8 +835,9 @@ def _plot_pair_change_distribution(
     sample_value_column: str,
     title: str,
     ylabel: str | None,
+    category_labels: Mapping[str, str],
 ) -> None:
-    """Render pooled direct-pair improvements, ties, and deteriorations.
+    """Render pooled direct-pair changes in seven magnitude categories.
 
     :param ax: Axis receiving two planned direct-comparison bars.
     :param distribution: Precalculated pooled pair counts and shares by change
@@ -839,6 +847,7 @@ def _plot_pair_change_distribution(
         direct matched denominator above each comparison.
     :param title: Lettered panel title.
     :param ylabel: Optional reader-facing share-axis title.
+    :param category_labels: Reader-facing legend text keyed by category.
     :return: None after drawing the mutually exclusive paired-change bars.
     """
     if distribution.empty:
@@ -851,13 +860,13 @@ def _plot_pair_change_distribution(
     )
     positions = np.arange(len(comparison_order), dtype=float)
     cumulative = np.zeros(len(comparison_order), dtype=float)
-    for direction, color in ERROR_COUNT_CHANGE_COLORS.items():
+    for category, color in PAIR_CHANGE_MAGNITUDE_COLORS.items():
         shares: list[float] = []
         counts: list[int] = []
         for comparison in comparison_order:
             row = distribution.loc[
                 (distribution["comparison"] == comparison)
-                & (distribution["change_direction"] == direction)
+                & (distribution["change_category"] == category)
             ].iloc[0]
             shares.append(float(row["share"]))
             counts.append(int(row["count"]))
@@ -870,7 +879,7 @@ def _plot_pair_change_distribution(
             color=color,
             edgecolor="white",
             linewidth=0.45,
-            label=ERROR_COUNT_CHANGE_LABELS[direction],
+            label=category_labels[category],
         )
         for position, count, share, bottom in zip(
             positions,
@@ -879,7 +888,7 @@ def _plot_pair_change_distribution(
             cumulative,
             strict=True,
         ):
-            if count:
+            if count and share >= ERROR_COUNT_SEGMENT_ANNOTATION_MINIMUM_SHARE:
                 ax.text(
                     position,
                     bottom + (share / 2.0),
@@ -888,7 +897,15 @@ def _plot_pair_change_distribution(
                     va="center",
                     fontsize=FIGURE_FONTSIZE - 1,
                     fontweight="bold",
-                    color=("#1F1F1F" if direction == "unchanged" else "white"),
+                    color=(
+                        "white"
+                        if category
+                        in {
+                            "improved_by_more_than_2",
+                            "worsened_by_more_than_2",
+                        }
+                        else "#1F1F1F"
+                    ),
                     zorder=4,
                 )
         cumulative += share_values
@@ -1031,12 +1048,12 @@ def _configure_direct_pair_endpoint_axis(ax: Axes) -> None:
 
 
 def _add_error_profile_legends(figure: Figure) -> None:
-    """Add one shared count-band key and a paired-change key above the figure.
+    """Add vertical keys above their corresponding two-panel groups.
 
     :param figure: Figure receiving compact reader-facing legends.
     :return: None after adding the two top-band legends.
     """
-    count_legend_axis = figure.add_axes((0.12, 0.90, 0.76, 0.045))
+    count_legend_axis = figure.add_axes((0.065, 0.61, 0.423, 0.36))
     count_handles = [
         Rectangle(
             (0, 0),
@@ -1064,32 +1081,38 @@ def _add_error_profile_legends(figure: Figure) -> None:
             "3/3+ errors",
             "4+ errors",
         ),
-        ncol=5,
+        ncol=1,
         frameon=False,
         show_handles=True,
+        loc="upper left",
+        bbox_to_anchor=(0.0, 1.0),
+        alignment="left",
     )
-    direction_legend_axis = figure.add_axes((0.55, 0.80, 0.41, 0.045))
+    direction_legend_axis = figure.add_axes((0.567, 0.61, 0.423, 0.36))
     direction_handles = [
         Rectangle(
             (0, 0),
             1,
             1,
-            facecolor=ERROR_COUNT_CHANGE_COLORS[direction],
+            facecolor=PAIR_CHANGE_MAGNITUDE_COLORS[category],
             edgecolor="none",
         )
-        for direction in ERROR_COUNT_CHANGE_COLORS
+        for category in PAIR_CHANGE_MAGNITUDE_COLORS
     ]
     ut.add_top_band_figure_legend(
         figure,
         direction_legend_axis,
         handles=direction_handles,
         labels=[
-            ERROR_COUNT_CHANGE_LABELS[direction]
-            for direction in ERROR_COUNT_CHANGE_COLORS
+            ERROR_CHANGE_MAGNITUDE_LABELS[category]
+            for category in PAIR_CHANGE_MAGNITUDE_COLORS
         ],
-        ncol=3,
+        ncol=1,
         frameon=False,
         show_handles=True,
+        loc="upper left",
+        bbox_to_anchor=(0.0, 1.0),
+        alignment="left",
     )
 
 

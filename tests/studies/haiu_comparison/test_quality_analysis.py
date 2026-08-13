@@ -8,6 +8,9 @@ from openpyxl import Workbook, load_workbook
 from dmw_experiments.studies.haiu_comparison.analysis.quality.errors import (
     build_quality_error_analysis,
 )
+from dmw_experiments.studies.haiu_comparison.analysis.quality.changes import (
+    CHANGE_CATEGORY_ORDER,
+)
 from dmw_experiments.studies.haiu_comparison.analysis.quality.grades import (
     build_quality_grade_analysis,
 )
@@ -131,6 +134,9 @@ def test_quality_grade_analysis_keeps_matched_wins_and_ties_auditable() -> None:
         ]
         == 1
     )
+    detailed_changes = analysis.pooled_grade_change_magnitude_distribution
+    assert detailed_changes.groupby("comparison").size().eq(7).all()
+    assert detailed_changes.groupby("comparison")["share"].sum().eq(1.0).all()
 
     interaction = analysis.provider_interaction_summary
     assert set(interaction["shared_regesta"]) == {2}
@@ -277,6 +283,7 @@ def test_quality_grade_analysis_workbook_exposes_calculations(
         "05_Direct_Duels",
         "06_Duel_Pairs",
         "06B_Pooled_Grade_Changes",
+        "06C_Pooled_Grade_Magnitude",
         "07_Complete_Triplets",
         "08_Provider_Summary",
         "09_Provider_Interaction",
@@ -287,21 +294,80 @@ def test_quality_grade_analysis_workbook_exposes_calculations(
         "12_Methods",
     ]
     methods = list(workbook["12_Methods"].values)
-    assert methods[1][0] == "Condition mean and median"
-    assert methods[3][0] == "Practical review categories"
-    practical_categories = str(methods[3][1])
+    method_definitions = {
+        str(row[0]): str(row[1]) for row in methods[1:] if row[0] is not None
+    }
+    assert "Condition mean and median" in method_definitions
+    practical_categories = method_definitions["Practical review categories"]
     assert "bounded local or formal error" in practical_categories
     assert (
         "plausible but materially false historical misinformation"
         in practical_categories
     )
     assert "gross source-reading failure" in practical_categories
-    assert methods[4][0] == "False-assignment incidence and Wilson interval"
-    assert "first_minus_second_grade" in str(methods[5][1])
-    assert methods[6][0] == "Pooled paired grade changes"
-    assert methods[7][0] == "Paired grade distribution"
-    assert "same condition" in str(methods[7][1])
-    assert methods[10][0] == "Provider false-assignment interaction"
+    assert (
+        "False-assignment incidence and Wilson interval" in method_definitions
+    )
+    assert "first_minus_second_grade" in method_definitions["Direct duel"]
+    assert "Pooled paired grade changes" in method_definitions
+    assert (
+        "exact 2-grade" in method_definitions["Paired grade-change magnitude"]
+    )
+    assert "same condition" in method_definitions["Paired grade distribution"]
+    assert "Provider false-assignment interaction" in method_definitions
+
+
+def test_grade_change_magnitudes_cover_all_seven_bins() -> None:
+    """Separate exact one- and two-grade changes from larger movements."""
+    endpoint_grades = (
+        (5, 1),
+        (4, 2),
+        (3, 2),
+        (2, 2),
+        (2, 3),
+        (2, 4),
+        (1, 5),
+    )
+    observations = pd.DataFrame(
+        [
+            ("AcademicCloud FP8", str(index), condition, grade)
+            for index, grades in enumerate(endpoint_grades, start=1)
+            for condition, grade in zip(
+                ("workflow_full_ontology", "workflow_rag"),
+                grades,
+                strict=True,
+            )
+        ],
+        columns=("provider_label", "regest_id", "condition", "grade"),
+    )
+
+    analysis = build_quality_grade_analysis(observations)
+
+    distribution = analysis.pooled_grade_change_magnitude_distribution
+    assert distribution["change_category"].tolist() == list(
+        CHANGE_CATEGORY_ORDER
+    )
+    assert distribution["change_direction"].tolist() == [
+        "improved",
+        "improved",
+        "improved",
+        "unchanged",
+        "worsened",
+        "worsened",
+        "worsened",
+    ]
+    assert distribution["change_magnitude_band"].tolist() == [
+        ">2",
+        "2",
+        "1",
+        "0",
+        "1",
+        "2",
+        ">2",
+    ]
+    assert distribution["count"].tolist() == [1] * 7
+    assert distribution["matched_pairs"].eq(7).all()
+    assert distribution["share"].eq(1 / 7).all()
 
 
 def test_quality_grade_analysis_retains_pair_only_direct_duels() -> None:
@@ -365,6 +431,8 @@ def test_quality_error_analysis_keeps_optional_count_denominators_separate() -> 
     assert analysis.assertion_pair_differences.empty
     assert analysis.pooled_interpretation_change_distribution.empty
     assert analysis.pooled_assertion_change_distribution.empty
+    assert analysis.pooled_interpretation_change_magnitude_distribution.empty
+    assert analysis.pooled_assertion_change_magnitude_distribution.empty
 
     with pytest.raises(ValueError, match="0, 1, 2, or 3\\+"):
         build_quality_error_analysis(
@@ -462,4 +530,29 @@ def test_quality_error_analysis_pairs_each_count_measure_separately() -> None:
             ("DMW RAG vs standalone Haiu RAG", "worsened"), "share"
         ]
         == 1.0
+    )
+    interpretation_magnitudes = (
+        analysis.pooled_interpretation_change_magnitude_distribution.set_index(
+            ["comparison", "change_category"]
+        )
+    )
+    assert (
+        interpretation_magnitudes.loc[
+            ("DMW full ontology vs DMW RAG", "improved_by_1"), "count"
+        ]
+        == 1
+    )
+    assert (
+        interpretation_magnitudes.loc[
+            ("DMW RAG vs standalone Haiu RAG", "worsened_by_2"), "count"
+        ]
+        == 2
+    )
+    assert (
+        analysis.pooled_assertion_change_magnitude_distribution.groupby(
+            "comparison"
+        )
+        .size()
+        .eq(7)
+        .all()
     )

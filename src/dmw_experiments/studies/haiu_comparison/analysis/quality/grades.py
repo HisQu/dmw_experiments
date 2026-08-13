@@ -11,6 +11,9 @@ import numpy as np
 import pandas as pd
 
 import haiu.utils as ut
+from dmw_experiments.studies.haiu_comparison.analysis.quality.changes import (
+    build_pooled_change_magnitude_distribution,
+)
 
 CONDITION_ORDER = (
     "workflow_full_ontology",
@@ -78,6 +81,9 @@ class QualityGradeAnalysis:
     :param pooled_grade_change_distribution: Pooled provider-local direct
         pairs classified by whether the right condition improved, was
         unchanged, or worsened on the ordinal grade scale.
+    :param pooled_grade_change_magnitude_distribution: The same paired
+        population divided into exact one-grade, exact two-grade, and
+        greater-than-two-grade changes on either side of unchanged.
     :param complete_triplets: Provider/regest rows with every condition graded.
     :param complete_triplet_grades: Long-form grades for complete triplets.
     :param provider_summary: Descriptive statistics grouped by provider.
@@ -101,6 +107,7 @@ class QualityGradeAnalysis:
     direct_duel_summary: pd.DataFrame
     direct_duel_pairs: pd.DataFrame
     pooled_grade_change_distribution: pd.DataFrame
+    pooled_grade_change_magnitude_distribution: pd.DataFrame
     complete_triplets: pd.DataFrame
     complete_triplet_grades: pd.DataFrame
     provider_summary: pd.DataFrame
@@ -148,6 +155,9 @@ def build_quality_grade_analysis(
         direct_duel_pairs=direct_duel_pairs,
         pooled_grade_change_distribution=_pooled_grade_change_distribution(
             direct_duel_pairs
+        ),
+        pooled_grade_change_magnitude_distribution=(
+            _pooled_grade_change_magnitude_distribution(direct_duel_pairs)
         ),
         complete_triplets=complete_triplets,
         complete_triplet_grades=complete_triplet_grades,
@@ -751,6 +761,34 @@ def _pooled_grade_change_distribution(
                 }
             )
     return ut.frame_from_records(records, columns=columns)
+
+
+def _pooled_grade_change_magnitude_distribution(
+    direct_duel_pairs: pd.DataFrame,
+) -> pd.DataFrame:
+    """Divide matched grade changes into seven signed-magnitude bins.
+
+    The right condition is the candidate change, so its grade minus the left
+    condition's grade is negative for an improvement. The existing
+    three-direction distribution remains available for coarse summaries.
+
+    :param direct_duel_pairs: Complete provider/regest grade pairs for every
+        planned ordered comparison.
+    :return: Counts and shares for exact one-grade, exact two-grade, and
+        greater-than-two-grade changes around unchanged.
+    """
+    pairs = direct_duel_pairs.assign(
+        right_minus_left_grade=(
+            direct_duel_pairs["second_grade"] - direct_duel_pairs["first_grade"]
+        )
+    )
+    return build_pooled_change_magnitude_distribution(
+        pairs,
+        difference_column="right_minus_left_grade",
+        comparison_order=tuple(
+            comparison.key for comparison in QUALITY_COMPARISONS
+        ),
+    )
 
 
 def _provider_summary(observations: pd.DataFrame) -> pd.DataFrame:

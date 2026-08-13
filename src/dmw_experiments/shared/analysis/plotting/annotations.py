@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 import math
 
@@ -27,13 +27,14 @@ _ANNOTATION_FONTWEIGHT = "bold"
 _ANNOTATION_BOTTOM_PAD_POINTS = 1.5
 _ANNOTATION_BAND_PAD_POINTS = 1.5
 _ANNOTATION_ANCHOR_GAP_POINTS = 2.0
-_ANNOTATION_TOP_PAD_POINTS = 5.0
+_ANNOTATION_TOP_PAD_POINTS = 2.0
 _ANNOTATION_LINE_SPACING_POINTS = 6.0
 _ANNOTATION_ZORDER_EPSILON = 0.001
 _ANNOTATION_TEXT_ZORDER = 3.2
 _ANNOTATION_BAND_ATTR = "_haiu_above_xaxis_annotation_band"
 _ANNOTATION_ANCHOR_ATTR = "_haiu_above_xaxis_annotation_anchor_y"
 _ANNOTATION_ANCHOR_GAP_ATTR = "_haiu_above_xaxis_annotation_anchor_gap_points"
+_ANNOTATION_TOP_LAYOUTS_ATTR = "_haiu_top_xaxis_annotation_layouts"
 
 
 @dataclass(frozen=True)
@@ -48,6 +49,20 @@ class AboveXAxisAnnotation:
     texts: tuple[Text, ...]
     band: Artist | None
     anchor_y: float
+
+
+@dataclass(frozen=True)
+class _TopXAxisAnnotationLayout:
+    """Retain enough state to restore top clearance after figure layout.
+
+    :param texts: One annotation row whose frame clearance must remain stable.
+    :param base_limits: Data limits before reserving the top annotation band.
+    :param pad_points: Required display-space gap below the upper frame.
+    """
+
+    texts: tuple[Text, ...]
+    base_limits: tuple[float, float]
+    pad_points: float
 
 
 def _annotation_renderer(ax: Axes) -> Any | None:
@@ -616,8 +631,12 @@ def annotate_xaxis_group_statistic(
     )
     texts = tuple([*prefix_texts, *value_texts])
     if placement == "top":
-        if base_ylim is not None:
-            ax.set_ylim(*base_ylim)
+        raw_top_base_limits = ax.get_ylim() if base_ylim is None else base_ylim
+        top_base_limits = (
+            float(raw_top_base_limits[0]),
+            float(raw_top_base_limits[1]),
+        )
+        ax.set_ylim(*top_base_limits)
         top = ax.get_ylim()[1]
         for text in texts:
             x_position, _old_y = text.get_position()
@@ -631,6 +650,21 @@ def annotate_xaxis_group_statistic(
             pad_points=_ANNOTATION_TOP_PAD_POINTS
             + (line_index * line_spacing_points),
         )
+        top_layouts = list(
+            cast(
+                tuple[_TopXAxisAnnotationLayout, ...],
+                getattr(ax, _ANNOTATION_TOP_LAYOUTS_ATTR, ()),
+            )
+        )
+        top_layouts.append(
+            _TopXAxisAnnotationLayout(
+                texts=texts,
+                base_limits=top_base_limits,
+                pad_points=_ANNOTATION_TOP_PAD_POINTS
+                + (line_index * line_spacing_points),
+            )
+        )
+        setattr(ax, _ANNOTATION_TOP_LAYOUTS_ATTR, tuple(top_layouts))
         return AboveXAxisAnnotation(texts=texts, band=None, anchor_y=top)
     band, anchor_y = _finalize_annotation_layout(
         ax,
@@ -648,7 +682,7 @@ def annotate_xaxis_group_statistic(
 
 
 def refresh_above_xaxis_annotations(axes: Any) -> None:
-    """Refresh annotation clearance after constrained layout settles.
+    """Refresh bottom bands and top headroom after figure layout settles.
 
     :param axes: Single axes, figure, or axes container.
     :return: None.
@@ -658,6 +692,19 @@ def refresh_above_xaxis_annotations(axes: Any) -> None:
         return
     axis_list[0].figure.canvas.draw()
     for ax in axis_list:
+        top_layouts = cast(
+            tuple[_TopXAxisAnnotationLayout, ...],
+            getattr(ax, _ANNOTATION_TOP_LAYOUTS_ATTR, ()),
+        )
+        if top_layouts:
+            ax.set_ylim(*top_layouts[0].base_limits)
+            for layout in top_layouts:
+                ensure_top_text_headroom(
+                    ax,
+                    layout.texts,
+                    pad_points=layout.pad_points,
+                    max_iterations=8,
+                )
         bands = [
             artist
             for artist in ax.artists

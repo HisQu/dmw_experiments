@@ -73,6 +73,10 @@ def export_quality_grade_analysis_workbook(
                 "06B_Pooled_Grade_Changes",
                 analysis.pooled_grade_change_distribution,
             ),
+            (
+                "06C_Pooled_Grade_Magnitude",
+                analysis.pooled_grade_change_magnitude_distribution,
+            ),
             ("07_Complete_Triplets", analysis.complete_triplets),
             ("08_Provider_Summary", analysis.provider_summary),
             ("09_Provider_Interaction", analysis.provider_interaction_summary),
@@ -120,8 +124,16 @@ def export_quality_grade_analysis_workbook(
                     error_analysis.pooled_interpretation_change_distribution,
                 ),
                 (
+                    "21B_Pooled_Interp_Magnitude",
+                    error_analysis.pooled_interpretation_change_magnitude_distribution,
+                ),
+                (
                     "22_Pooled_Assert_Changes",
                     error_analysis.pooled_assertion_change_distribution,
+                ),
+                (
+                    "22B_Pooled_Assert_Magnitude",
+                    error_analysis.pooled_assertion_change_magnitude_distribution,
                 ),
             )
         for index, (sheet_name, table) in enumerate(tables, start=1):
@@ -432,6 +444,14 @@ def _write_methods_sheet(
             "06B_Pooled_Grade_Changes",
         ),
         (
+            "Paired grade-change magnitude",
+            "Using the same matched denominator, divide improvements and "
+            "worsenings into exact 1-grade, exact 2-grade, and greater-than-2-"
+            "grade categories around unchanged pairs. Zero-count categories "
+            "remain visible so every comparison has the same seven bins.",
+            "06C_Pooled_Grade_Magnitude",
+        ),
+        (
             "Paired grade distribution",
             "Count and share of each whole grade 1–6 at each endpoint of a "
             "planned direct comparison. The two DMW + Haiu RAG endpoint "
@@ -510,11 +530,10 @@ def _write_methods_sheet(
                 "condition's count from the second condition's count. A "
                 "negative value means fewer errors in the right condition "
                 "(improved); a positive value means more errors (worsened). "
-                "The profile figure uses this direction to retain and colour "
-                "only changed original-count trajectories. "
                 "For independent false interpretations, the 3+ review band "
-                "uses its lower bound of 3, so any such difference is a "
-                "conservative lower-bound change.",
+                "uses its lower bound of 3. A magnitude category involving "
+                "3+ is therefore conservative, and two 3+ endpoints need not "
+                "have equal exact counts.",
                 "19_Interp_Pair_Differences and 20_Assert_Pair_Differences",
             ),
             (
@@ -525,6 +544,15 @@ def _write_methods_sheet(
                 "to show how often changing condition helped or harmed the "
                 "same regest.",
                 "21_Pooled_Interp_Changes and 22_Pooled_Assert_Changes",
+            ),
+            (
+                "Paired error-change magnitude",
+                "Using the same matched denominator, divide fewer-error and "
+                "more-error pairs into exact 1-error, exact 2-error, and "
+                "greater-than-2-error categories around unchanged pairs. "
+                "Interpretation magnitudes use 3 as the recorded lower bound "
+                "for 3+; assertion magnitudes use exact reviewer counts.",
+                "21B_Pooled_Interp_Magnitude and 22B_Pooled_Assert_Magnitude",
             ),
         )
     for row_index, row in enumerate(rows, start=1):

@@ -69,6 +69,14 @@ All notable changes to `dmw_experiments` will be documented in this file.
 
 ### ➕ Added
 
+- Added magnitude-resolved paired quality changes to historian figures and
+  audit workbooks. Grade and error-count changes now distinguish exact
+  magnitudes of 1 and 2 from changes greater than 2 in either direction while
+  retaining the existing coarse direction summaries. The false-assignment
+  profile places vertical count and change keys above their respective panel
+  groups. Shared top-axis annotations now preserve a small display-space gap
+  below subplot frames after final figure layout.
+
 <br>
 
 ### 💔 Changed

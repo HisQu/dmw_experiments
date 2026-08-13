@@ -9,6 +9,9 @@ from typing import cast
 import pandas as pd
 
 import haiu.utils as ut
+from dmw_experiments.studies.haiu_comparison.analysis.quality.changes import (
+    build_pooled_change_magnitude_distribution,
+)
 from dmw_experiments.studies.haiu_comparison.analysis.quality.grades import (
     CONDITION_LABELS,
     CONDITION_ORDER,
@@ -46,6 +49,11 @@ class QualityErrorAnalysis:
         of improved, unchanged, and worsened direct interpretation pairs.
     :param pooled_assertion_change_distribution: Pooled counts and shares of
         improved, unchanged, and worsened direct assertion pairs.
+    :param pooled_interpretation_change_magnitude_distribution: Interpretation
+        pairs divided into one-error, two-error, and greater-than-two-error
+        changes on either side of unchanged.
+    :param pooled_assertion_change_magnitude_distribution: Assertion pairs
+        divided into the same seven signed-magnitude categories.
     """
 
     observations: pd.DataFrame
@@ -58,6 +66,8 @@ class QualityErrorAnalysis:
     assertion_pair_differences: pd.DataFrame
     pooled_interpretation_change_distribution: pd.DataFrame
     pooled_assertion_change_distribution: pd.DataFrame
+    pooled_interpretation_change_magnitude_distribution: pd.DataFrame
+    pooled_assertion_change_magnitude_distribution: pd.DataFrame
 
 
 def build_quality_error_analysis(
@@ -121,6 +131,24 @@ def build_quality_error_analysis(
         ),
         pooled_assertion_change_distribution=_pooled_pair_change_distribution(
             assertion_pair_differences,
+        ),
+        pooled_interpretation_change_magnitude_distribution=(
+            build_pooled_change_magnitude_distribution(
+                interpretation_pair_differences,
+                difference_column="error_count_difference",
+                comparison_order=tuple(
+                    comparison.key for comparison in QUALITY_COMPARISONS
+                ),
+            )
+        ),
+        pooled_assertion_change_magnitude_distribution=(
+            build_pooled_change_magnitude_distribution(
+                assertion_pair_differences,
+                difference_column="error_count_difference",
+                comparison_order=tuple(
+                    comparison.key for comparison in QUALITY_COMPARISONS
+                ),
+            )
         ),
     )
 
