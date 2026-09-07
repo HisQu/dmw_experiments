@@ -101,8 +101,11 @@ the run identity.
 | Recipe | Effect |
 | --- | --- |
 | `just release-check` | Run both Python environments and validate artifacts. |
-| `just release patch|minor|major` | Prepare a checked version commit and annotated tag. |
+| `just release-prepare patch|minor|major` | Prepare a checked version commit and annotated local tag. |
+| `just release-push vX.Y.Z` | Atomically push a prepared release commit and tag. |
+| `just release patch|minor|major` | Prepare and push a release. |
+| `just publish-pypi vX.Y.Z` | Publish an existing GitHub Release's artifacts to PyPI. |
 | `just build` | Build the wheel and source archive locally. |
 
-A pushed `v*` tag triggers CI and creates the GitHub Release after all gates
-pass.
+A pushed `v*` tag triggers CI, creates the GitHub Release after all gates pass,
+and follows `RELEASE_PYPI` from the tagged justfile.

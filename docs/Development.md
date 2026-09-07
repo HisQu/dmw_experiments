@@ -119,8 +119,8 @@ published stack before verification or release.
 <!-- ======================================================== -->
 
 Tagged releases create GitHub Releases with a validated wheel, source archive,
-and the matching `CHANGELOG.md` section. PyPI publishing is not part of this
-release path.
+and the matching `CHANGELOG.md` section. `RELEASE_PYPI := "false"` keeps normal
+releases off PyPI.
 
 Prepare and publish a release in this order:
 
@@ -133,8 +133,7 @@ Prepare and publish a release in this order:
    just release-check
    ```
 
-4. Prepare the version commit and annotated tag. Choose the semantic version
-   level explicitly:
+4. Prepare and push the release. Choose the semantic version level explicitly:
 
    ```bash
    just release patch
@@ -142,25 +141,32 @@ Prepare and publish a release in this order:
    # or: just release major
    ```
 
-5. Review the generated version commit and local tag.
-6. Push `main` and the tag together:
+`release` prepares the version commit and annotated tag, then atomically pushes
+`main` and the tag. To inspect the local result first, split the operation:
 
-   ```bash
-   git push origin main vX.Y.Z
-   ```
+```bash
+just release-prepare patch
+just release-push vX.Y.Z
+```
 
-The `release` recipe does not upload anything. A pushed `v*` tag starts
-`.github/workflows/release.yml`. GitHub reruns the Python 3.12 and 3.13 CI
-matrix, rebuilds and smoke-checks the wheel and source archive, extracts the
-matching changelog section, and creates the GitHub Release only after every
-gate passes. A failed workflow leaves the tag visible but does not publish a
-Release object.
+A pushed `v*` tag starts `.github/workflows/release.yml`. GitHub reruns the
+Python 3.12 and 3.13 CI matrix, rebuilds and smoke-checks the wheel and source
+archive, extracts the matching changelog section, and creates the GitHub
+Release only after every gate passes. A failed workflow leaves the tag visible
+but does not publish a Release object.
 
 | Recipe | Purpose |
 | --- | --- |
 | `just release-check` | Run both supported Python environments and validate release artifacts without uploading. |
-| `just release patch\|minor\|major` | Prepare the checked version commit and annotated local tag. |
+| `just release-prepare patch\|minor\|major` | Prepare the checked version commit and annotated local tag without uploading. |
+| `just release-push vX.Y.Z` | Atomically push a prepared `main` commit and annotated tag. |
+| `just release patch\|minor\|major` | Prepare and push the release. |
+| `just publish-pypi vX.Y.Z` | Publish artifacts from an existing GitHub Release. |
 | `just build` | Rebuild the wheel and source archive for inspection. |
+
+The manual PyPI command requires one matching wheel, one matching source
+archive, and a configured trusted publisher. It downloads the GitHub Release
+assets and never rebuilds them.
 
 > [!IMPORTANT]
 > Do not create or push a release tag manually before the changelog section and

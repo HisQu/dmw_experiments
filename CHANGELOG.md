@@ -58,6 +58,12 @@ All notable changes to `dmw_experiments` will be documented in this file.
 
 ### 💥 Breaking changes
 
+- Breaking: `just release patch|minor|major` now pushes `main` and the created
+  tag after local preparation succeeds.
+  Affected: Maintainers who use `just release` only to prepare and inspect a
+  local version commit and tag.
+  Migration: Use `just release-prepare patch|minor|major` for local-only
+  preparation, then run `just release-push vX.Y.Z` when ready.
 - Breaking: Analysis workbooks and matching reveal keys now include the shared
   invocation timestamp in their filenames.
   Affected: Scripts that open fixed names such as `overview.xlsx` or
@@ -69,6 +75,8 @@ All notable changes to `dmw_experiments` will be documented in this file.
 
 ### ➕ Added
 
+- Added `just publish-pypi vX.Y.Z` to publish the validated wheel and source
+  archive attached to an existing non-draft GitHub Release without rebuilding.
 - Added an adaptive historian NER review workbook for enabled provider runs.
   It aligns generated entity values to original header and sublemma offsets,
   marks accepted spans inline with numbered local colors, exposes ambiguous
@@ -90,6 +98,9 @@ All notable changes to `dmw_experiments` will be documented in this file.
 
 ### 💔 Changed
 
+- Moved the normal-release PyPI policy into `RELEASE_PYPI` in the tagged
+  justfile and kept it disabled. Release artifact transfer now uses
+  `actions/upload-artifact@v7` and `actions/download-artifact@v8`.
 - Documented the DMW and standalone Haiu condition workflows, their controlled
   inputs, timing boundaries, and the limits of causal interpretation for each
   planned pairwise comparison.
