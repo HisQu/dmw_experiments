@@ -24,8 +24,8 @@ destinations, and operator scripts.
 - Keep the three condition names identical to `run.toml`.
 - Keep `run.env` exhaustive and keep real credentials in AppRC's app-wide
   configuration.
-- Record pending template work in the repository-root `TODO.md`; do not create
-  another template todo file.
+- Record pending template work in the repository-root `BACKLOG.md`; do not create
+  another template backlog.
 - Update this README when a run exposes a lesson that should affect later
   copies.
 

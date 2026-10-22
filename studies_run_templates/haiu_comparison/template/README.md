@@ -19,7 +19,7 @@ List every deliberate change to `run.toml`, inputs, environment settings, or
 the published dependency lock. Write `None` when the copy is unchanged apart
 from generated identities.
 
-Before starting, read the study template README, root `TODO.md`, and the
+Before starting, read the study template README, root `BACKLOG.md`, and the
 README files of relevant earlier runs. Record reusable lessons in the study
 template README when they are not already implemented there.
 
