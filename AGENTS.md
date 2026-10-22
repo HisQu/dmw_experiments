@@ -21,7 +21,8 @@
   - one synchronized scientific overview per study in `docs/studies/`
 - Put CLI behavior in `dmw_experiments.cli.app`; keep `dmw_experiments.main` as a
   thin public entry point wrapper.
-- Check the TODO.md and assess if your task is related to any issues and should be resolved as part of your pass.
+- Check `BACKLOG.md` and assess whether related issues should be resolved as part of your pass.
+- An active pass's `TODO.md` checklist belongs beside its `PLAN.md`, not in the durable backlog.
 
 ## Project rules
 - Do not duplicate helpers or re-implement existing utilities without checking first.
@@ -49,7 +50,7 @@
 - Start multi-link related-link callouts with `Related links:`.
 - Do not use standalone backlink labels in prose.
 - Update the CHANGELOG.md after each pass
-- Update the TODO.md 
+- Update `BACKLOG.md` for actionable unresolved work.
 
 ## Verification
 - Review the diff for duplicate helpers, naming drift, unnecessary abstractions, and regressions.

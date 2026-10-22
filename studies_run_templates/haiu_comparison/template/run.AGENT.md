@@ -1,7 +1,7 @@
 # Agent run instructions
 
 Read the repository `AGENTS.md`, this run's `README.md`, the Haiu comparison
-template README, root `TODO.md`, and relevant earlier run READMEs before acting.
+template README, root `BACKLOG.md`, and relevant earlier run READMEs before acting.
 
 Use `./run.sh` or `./run.ps1` as the only operator entry point. Keep the
 execution-specific `BABYSIT-*.md` files current with launches, checkpoints,
